@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
+import { politicians } from "./data/politicians";
+import { parties } from "./data/parties";
+import { reasonsDatas } from "./data/reasons";
+import { PremiumBanner } from "./components/common/PremiumBanner";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -29,445 +33,8 @@ import {
   X,
 } from "lucide-react";
 
-// // モバイル最適化された AdSense コンポーネント - レスポンシブ対応
-// const MobileAd = ({
-//   format = "banner",
-//   className = "",
-//   showCloseButton = false,
-// }) => {
-//   const [closed, setClosed] = useState(false);
-
-//   if (closed) return null;
-
-//   // 研究資料に基づいて最適なモバイル広告サイズを選択 - レスポンシブデザイン対応
-//   let adStyle = {};
-//   let adLabel = "広告";
-
-//   switch (format) {
-//     case "large-banner":
-//       // レスポンシブデザイン - 幅はパーセンテージに基づく
-//       adStyle = { height: "100px", maxWidth: "320px", width: "100%" };
-//       adLabel = "おすすめ";
-//       break;
-//     case "rectangle":
-//       // レスポンシブデザイン - 大きな画面では大きくなる
-//       adStyle = { height: "250px", maxWidth: "300px", width: "100%" };
-//       adLabel = "PR";
-//       break;
-//     case "fixed-bottom":
-//       // 画面下部固定広告 - フルウィドゥで表示
-//       adStyle = { height: "50px", width: "100%", maxWidth: "100%" };
-//       adLabel = "広告";
-//       break;
-//     default:
-//       // デフォルトは標準モバイルバナー (100%幅、最大320px)
-//       adStyle = { height: "50px", maxWidth: "320px", width: "100%" };
-//   }
-
-//   // スタイルを調整して実際の広告に見えるようにする
-//   const containerStyle =
-//     format === "fixed-bottom"
-//       ? "fixed bottom-0 left-0 right-0 z-20 flex justify-center shadow-lg animate-slideUp"
-//       : `${className}`;
-
-//   return (
-//     <div className={`ad-container relative ${containerStyle}`}>
-//       {showCloseButton && (
-//         <button
-//           onClick={() => setClosed(true)}
-//           className="absolute -top-2 -right-2 bg-white rounded-full shadow-md z-10"
-//           aria-label="広告を閉じる"
-//         >
-//           <XCircle size={16} className="text-gray-500" />
-//         </button>
-//       )}
-//       <div
-//         className="ad-banner mx-auto overflow-hidden rounded-lg border border-gray-200 shadow-sm flex items-center justify-center relative"
-//         style={adStyle}
-//       >
-//         <div className="flex flex-col items-center justify-center w-full h-full p-1 bg-gradient-to-r from-gray-50 to-white">
-//           <div className="text-xs font-medium text-gray-400 absolute top-1 left-2 flex items-center">
-//             <Info size={10} className="mr-1" />
-//             {adLabel}
-//           </div>
-//           <div className="flex items-center justify-center flex-1">
-//             <div className="text-sm text-gray-400">Google AdSense</div>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// // インフィード広告コンポーネント（政治家カードに似せた広告）- レスポンシブ対応
-// const NativeAdCard = ({
-//   index,
-//   showCloseButton = false,
-// }: {
-//   index: number;
-//   showCloseButton?: boolean;
-// }) => {
-//   const [closed, setClosed] = useState(false);
-
-//   if (closed) return null;
-
-//   return (
-//     <div
-//       className={`border-b border-gray-100 last:border-0 hover:bg-indigo-50/30 transition-colors relative ${
-//         index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-//       }`}
-//     >
-//       {showCloseButton && (
-//         <button
-//           onClick={() => setClosed(true)}
-//           className="absolute -top-2 -right-2 bg-white rounded-full shadow-md z-10"
-//           aria-label="広告を閉じる"
-//         >
-//           <XCircle size={14} className="text-gray-500" />
-//         </button>
-//       )}
-//       <div className="p-4">
-//         <div className="text-xs font-medium text-gray-400 mb-1 flex items-center">
-//           <Info size={10} className="mr-1" />
-//           スポンサー
-//         </div>
-//         <div className="flex items-center">
-//           <div className="relative">
-//             <img
-//               src="/api/placeholder/80/80"
-//               alt="広告"
-//               className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 transform transition hover:scale-105"
-//               style={{ borderColor: "#6B7280" }}
-//             />
-//           </div>
-
-//           <div className="ml-4 flex-1">
-//             <div className="flex items-center justify-between">
-//               <h3 className="font-bold text-sm sm:text-base">
-//                 政治や選挙に関する広告
-//               </h3>
-//             </div>
-
-//             <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-1">
-//               <span>政治関連の広告や情報が表示されます</span>
-//             </div>
-
-//             <div className="mt-2">
-//               <div className="text-xs text-gray-500">
-//                 詳しくはこちらをタップ
-//               </div>
-//             </div>
-//           </div>
-
-//           <ChevronRight size={18} className="text-gray-400 ml-2" />
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
 // メインのアプリコンポーネント - レスポンシブ対応
 const App = () => {
-  // サンプルデータ - より多くの政治家データを追加
-  const [politicians] = useState([
-    {
-      id: "p1",
-      name: "鈴木一郎",
-      position: "衆議院議員",
-      age: 52,
-      party: {
-        id: "party1",
-        name: "未来創造党",
-        color: "#4361EE",
-      },
-      supportRate: 68,
-      opposeRate: 32,
-      totalVotes: 4582,
-      activity: 75,
-      image: "/api/placeholder/80/80",
-      trending: "up",
-      recentActivity: "教育政策の見直しを提案",
-    },
-    {
-      id: "p2",
-      name: "田中花子",
-      position: "参議院議員",
-      age: 45,
-      party: {
-        id: "party2",
-        name: "国民連合",
-        color: "#F72585",
-      },
-      supportRate: 42,
-      opposeRate: 58,
-      totalVotes: 3219,
-      activity: 88,
-      image: "/api/placeholder/80/80",
-      trending: "down",
-      recentActivity: "財政改革法案に反対票",
-    },
-    {
-      id: "p3",
-      name: "佐藤健太",
-      position: "衆議院議員",
-      age: 38,
-      party: {
-        id: "party3",
-        name: "市民第一党",
-        color: "#7209B7",
-      },
-      supportRate: 75,
-      opposeRate: 25,
-      totalVotes: 5103,
-      activity: 92,
-      image: "/api/placeholder/80/80",
-      trending: "up",
-      recentActivity: "環境保護イニシアチブを開始",
-    },
-    {
-      id: "p4",
-      name: "山田太郎",
-      position: "衆議院議員",
-      age: 61,
-      party: {
-        id: "party1",
-        name: "未来創造党",
-        color: "#4361EE",
-      },
-      supportRate: 59,
-      opposeRate: 41,
-      totalVotes: 3872,
-      activity: 63,
-      image: "/api/placeholder/80/80",
-      trending: "up",
-      recentActivity: "産業振興策を提案",
-    },
-    {
-      id: "p5",
-      name: "伊藤由美",
-      position: "参議院議員",
-      age: 42,
-      party: {
-        id: "party3",
-        name: "市民第一党",
-        color: "#7209B7",
-      },
-      supportRate: 71,
-      opposeRate: 29,
-      totalVotes: 4125,
-      activity: 84,
-      image: "/api/placeholder/80/80",
-      trending: "up",
-      recentActivity: "女性支援法案の提出",
-    },
-    {
-      id: "p6",
-      name: "渡辺大輔",
-      position: "衆議院議員",
-      age: 49,
-      party: {
-        id: "party2",
-        name: "国民連合",
-        color: "#F72585",
-      },
-      supportRate: 45,
-      opposeRate: 55,
-      totalVotes: 2987,
-      activity: 71,
-      image: "/api/placeholder/80/80",
-      trending: "down",
-      recentActivity: "外交問題での発言が物議",
-    },
-    {
-      id: "p7",
-      name: "加藤美咲",
-      position: "参議院議員",
-      age: 37,
-      party: {
-        id: "party1",
-        name: "未来創造党",
-        color: "#4361EE",
-      },
-      supportRate: 62,
-      opposeRate: 38,
-      totalVotes: 3456,
-      activity: 81,
-      image: "/api/placeholder/80/80",
-      trending: "up",
-      recentActivity: "デジタル改革を推進",
-    },
-    {
-      id: "p8",
-      name: "中村誠",
-      position: "衆議院議員",
-      age: 55,
-      party: {
-        id: "party2",
-        name: "国民連合",
-        color: "#F72585",
-      },
-      supportRate: 38,
-      opposeRate: 62,
-      totalVotes: 3109,
-      activity: 65,
-      image: "/api/placeholder/80/80",
-      trending: "down",
-      recentActivity: "予算委員会で質問",
-    },
-    {
-      id: "p9",
-      name: "小林拓也",
-      position: "衆議院議員",
-      age: 41,
-      party: {
-        id: "party3",
-        name: "市民第一党",
-        color: "#7209B7",
-      },
-      supportRate: 67,
-      opposeRate: 33,
-      totalVotes: 3892,
-      activity: 79,
-      image: "/api/placeholder/80/80",
-      trending: "up",
-      recentActivity: "地方創生案を発表",
-    },
-  ]);
-
-  const [parties] = useState([
-    {
-      id: "party1",
-      name: "未来創造党",
-      color: "#4361EE",
-      supportRate: 52,
-      opposeRate: 48,
-      totalVotes: 12478,
-      members: 84,
-      keyPolicies: ["教育改革", "デジタル化推進", "環境保護"],
-      description:
-        "技術革新と持続可能な発展を掲げ、教育とデジタル化を通じた社会変革を目指す政党。特に若年層の支持を集めている。",
-    },
-    {
-      id: "party2",
-      name: "国民連合",
-      color: "#F72585",
-      supportRate: 38,
-      opposeRate: 62,
-      totalVotes: 9341,
-      members: 67,
-      keyPolicies: ["経済再生", "社会保障拡充", "伝統文化保護"],
-      description:
-        "経済成長と社会保障の充実を重視し、日本の伝統的価値観を守ることを主張する政党。中高年層を中心に支持基盤を持つ。",
-    },
-    {
-      id: "party3",
-      name: "市民第一党",
-      color: "#7209B7",
-      supportRate: 61,
-      opposeRate: 39,
-      totalVotes: 15023,
-      members: 103,
-      keyPolicies: ["地方分権", "透明性向上", "持続可能な開発"],
-      description:
-        "地方自治体への権限移譲や政治の透明性向上を訴え、草の根の市民運動から発展した比較的新しい政党。環境問題にも積極的に取り組んでいる。",
-    },
-  ]);
-
-  // 投票理由と返信を含むデータ
-  const [reasonsData, setReasonsData] = useState({
-    support: [
-      {
-        id: "r1",
-        text: "教育政策に共感します。特に教員の待遇改善への取り組みが評価できます。",
-        user: "市民太郎",
-        likes: 42,
-        date: "2日前",
-        replies: [
-          {
-            id: "reply1",
-            text: "具体的にどの政策が良いと思いましたか？教員給与の引き上げ案についても評価されていますか？",
-            user: "教育関係者",
-            likes: 12,
-            date: "1日前",
-            replies: [
-              {
-                id: "reply1-1",
-                text: "私は特に教員の働き方改革と、ICT環境整備への予算拡大を評価しています。給与引き上げも必要ですが、まずは労働環境の改善が優先だと考えます。",
-                user: "市民太郎",
-                likes: 8,
-                date: "1日前",
-                replyTo: "教育関係者",
-              },
-              {
-                id: "reply1-2",
-                text: "市民太郎さんのご意見に同感です。私も現場の環境改善なしに単なる給与アップだけでは状況は変わらないと思います。",
-                user: "別の教師",
-                likes: 5,
-                date: "20時間前",
-                replyTo: "市民太郎",
-              },
-            ],
-            replyTo: "市民太郎",
-          },
-          {
-            id: "reply2",
-            text: "私も同意見です。特に地方の学校への支援が手厚い点が評価できると思います。",
-            user: "地方在住",
-            likes: 7,
-            date: "1日前",
-            replyTo: "市民太郎",
-            replies: [],
-          },
-        ],
-      },
-      {
-        id: "r2",
-        text: "地域の課題に真摯に向き合う姿勢が素晴らしいと思います。先日の洪水被害への素早い対応は評価に値します。",
-        user: "東京花子",
-        likes: 27,
-        date: "4日前",
-        replies: [],
-      },
-    ],
-    oppose: [
-      {
-        id: "r4",
-        text: "財政政策に一貫性がありません。以前は緊縮財政を主張していましたが、選挙前になると突然方針を変えました。",
-        user: "政治マニア",
-        likes: 31,
-        date: "1日前",
-        replies: [
-          {
-            id: "reply4",
-            text: "それは状況の変化に応じて柔軟に対応しているとも取れるのではないでしょうか？",
-            user: "別の見方",
-            likes: 5,
-            date: "1日前",
-            replyTo: "政治マニア",
-            replies: [
-              {
-                id: "reply4-1",
-                text: "柔軟性と一貫性のなさは違います。具体的には2年前の予算委員会での発言と今回の選挙公約が完全に矛盾しています。",
-                user: "政治マニア",
-                likes: 14,
-                date: "23時間前",
-                replyTo: "別の見方",
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "r5",
-        text: "地元での活動が少なく、国会での発言も限られています。もっと積極的に行動してほしいです。",
-        user: "地元住民",
-        likes: 19,
-        date: "3日前",
-        replies: [],
-      },
-    ],
-  });
-
   const [selectedPolitician, setSelectedPolitician] = useState<{
     id: string;
     name: string;
@@ -508,10 +75,10 @@ const App = () => {
     parentComment?: any;
   } | null>(null); // 返信対象
   const [replyText, setReplyText] = useState(""); // 返信内容
-  const [showPremiumBanner, setShowPremiumBanner] = useState(true); // プレミアム案内バナー表示フラグ
   const [showFixedBottomAd, setShowFixedBottomAd] = useState(true); // 下部固定広告表示フラグ
   const [showInlineAd] = useState(true); // インラインバナー表示フラグ
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // モバイルメニュー表示フラグ（レスポンシブ対応用）
+  const [reasonsData, setReasonsData] = useState(reasonsDatas); // 投票理由データの状態管理
 
   // スクロール検出
   useEffect(() => {
@@ -1155,57 +722,6 @@ const App = () => {
     </div>
   );
 
-  // プレミアム会員バナー
-  const PremiumBanner = () => {
-    // マウント時に一度だけ実行される処理を記述
-    const bannerRef = useRef<HTMLDivElement>(null);
-
-    // 重要: このuseEffectはマウント時に一度だけ実行される
-    useEffect(() => {
-      // プレミアムバナーの要素を取得
-      const banner = bannerRef.current;
-      if (!banner) return;
-
-      // アニメーションクラスをDOM要素に直接追加（Reactの再レンダリングの影響を受けない）
-      banner.classList.add("premium-reveal-animation");
-
-      // クリーンアップ関数は必要ない（アニメーションを一度だけ実行するため）
-    }, []); // 空の依存配列で初回マウント時のみ実行
-
-    if (!showPremiumBanner) return null;
-
-    return (
-      <div
-        ref={bannerRef}
-        className="mb-4 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 rounded-lg shadow-md p-3 relative opacity-0"
-      >
-        <button
-          onClick={() => setShowPremiumBanner(false)}
-          className="absolute -top-2 -right-2 bg-white rounded-full shadow-md"
-          aria-label="バナーを閉じる"
-        >
-          <XCircle size={16} className="text-amber-500" />
-        </button>
-        <div className="flex items-center">
-          <div className="p-2 bg-white rounded-full">
-            <Crown size={20} className="text-amber-500" />
-          </div>
-          <div className="ml-3 flex-1">
-            <h3 className="text-white font-bold text-sm">
-              プレミアム会員になると広告非表示
-            </h3>
-            <p className="text-white text-xs opacity-90 mt-0.5">
-              月額¥500で全ての広告を非表示にできます
-            </p>
-          </div>
-          <button className="bg-white text-amber-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-50 transition shadow-sm">
-            詳細を見る
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   // 全議員一覧表示コンポーネント
   const AllPoliticiansList = () => {
     const sortedPoliticians = getSortedPoliticians(politicians);
@@ -1622,32 +1138,6 @@ const App = () => {
     );
   };
 
-  // インラインバナー広告（非スティッキー、通常の配置）
-  const InlineAdBanner = ({ format = "rectangle", showCloseButton = true }) => {
-    const [closed, setClosed] = useState(false);
-
-    if (closed || !showInlineAd) return null;
-
-    return (
-      <div className="my-4 border-t border-b border-gray-200 py-4">
-        <div className="relative">
-          {showCloseButton && (
-            <button
-              onClick={() => setClosed(true)}
-              className="absolute -top-2 -right-2 bg-white rounded-full shadow-md z-10"
-              aria-label="広告を閉じる"
-            >
-              <XCircle size={16} className="text-gray-500" />
-            </button>
-          )}
-          {/* <div className="flex justify-center">
-            <MobileAd format={format} />
-          </div> */}
-        </div>
-      </div>
-    );
-  };
-
   // モバイルメニュー（レスポンシブ対応用）
   const MobileMenu = () => {
     if (!mobileMenuOpen) return null;
@@ -1730,11 +1220,11 @@ const App = () => {
 
       {/* ヘッダー - スクロールで変化するエフェクト */}
       <header
-        className={`sticky top-0 z-20 transition-all duration-300 ${
-          isScrolled
-            ? "bg-white shadow-md py-2"
-            : "bg-gradient-to-r from-indigo-600 to-purple-600 py-3 sm:py-4"
-        }`}
+      // className={`sticky top-0 z-20 transition-all duration-300 ${
+      //   isScrolled
+      //     ? "bg-white shadow-md py-2"
+      //     : "bg-gradient-to-r from-indigo-600 to-purple-600 py-3 sm:py-4"
+      // }`}
       >
         <div className="container px-4 mx-auto flex items-center justify-between">
           {/* メニューボタン - 大画面では非表示 */}
@@ -2103,7 +1593,7 @@ const App = () => {
                   </h3>
 
                   {/* 修正：スティッキー広告を通常のインラインバナーに変更 */}
-                  <InlineAdBanner format="rectangle" showCloseButton={true} />
+                  {/* <InlineAdBanner format="rectangle" showCloseButton={true} /> */}
 
                   {/* 支持理由 */}
                   <div className="mb-6">
