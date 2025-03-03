@@ -1,4 +1,6 @@
-export const parties = [
+import { Party } from "../types";
+
+export const parties: Party[] = [
   {
     id: "party1",
     name: "未来創造党",

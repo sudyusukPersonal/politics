@@ -1,6 +1,6 @@
-// import { useState } from "react";
+import { Politician } from "../types";
 
-export const politicians = [
+export const politicians: Politician[] = [
   {
     id: "p1",
     name: "鈴木一郎",

@@ -1,4 +1,6 @@
-export const reasonsDatas = {
+import { ReasonsData } from "../types";
+
+export const reasonsData: ReasonsData = {
   support: [
     {
       id: "r1",

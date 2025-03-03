@@ -1,24 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { Crown, XCircle } from "lucide-react";
+import { useData } from "../../context/DataContext";
 
-// プレミアム会員バナー
-export const PremiumBanner = () => {
-  const [showPremiumBanner, setShowPremiumBanner] = useState(true); // プレミアム案内バナー表示フラグ
-
-  // マウント時に一度だけ実行される処理を記述
+const PremiumBanner: React.FC = () => {
+  const { showPremiumBanner, setShowPremiumBanner } = useData();
   const bannerRef = useRef<HTMLDivElement>(null);
 
-  // 重要: このuseEffectはマウント時に一度だけ実行される
+  // Run once on mount to add the animation class
   useEffect(() => {
-    // プレミアムバナーの要素を取得
     const banner = bannerRef.current;
     if (!banner) return;
-
-    // アニメーションクラスをDOM要素に直接追加（Reactの再レンダリングの影響を受けない）
     banner.classList.add("premium-reveal-animation");
-
-    // クリーンアップ関数は必要ない（アニメーションを一度だけ実行するため）
-  }, []); // 空の依存配列で初回マウント時のみ実行
+  }, []);
 
   if (!showPremiumBanner) return null;
 
@@ -53,3 +46,5 @@ export const PremiumBanner = () => {
     </div>
   );
 };
+
+export default PremiumBanner;
