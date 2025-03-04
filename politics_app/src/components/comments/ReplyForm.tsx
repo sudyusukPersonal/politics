@@ -1,3 +1,4 @@
+// components/comments/ReplyForm.tsx (MODIFIED)
 import React from "react";
 import { Send, CornerDownRight } from "lucide-react";
 import { Comment } from "../../types";
@@ -21,7 +22,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
         <div className="flex items-center text-xs text-gray-500 mb-2">
           <CornerDownRight size={12} className="mr-1" />
           <span className="font-medium text-gray-600">@{commentUser}</span>
-          <span className="ml-1">への返信</span>
+          <span className="ml-1">Reply to</span>
         </div>
 
         <div className="flex items-center">
@@ -29,7 +30,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
             type="text"
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            placeholder="返信を入力..."
+            placeholder="Type your reply..."
             className="flex-1 border border-gray-300 rounded-l-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
           />
@@ -48,7 +49,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
             onClick={handleCancelReply}
             className="text-xs text-gray-500 hover:text-gray-700"
           >
-            キャンセル
+            Cancel
           </button>
         </div>
       </form>

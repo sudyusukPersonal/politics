@@ -188,77 +188,40 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setReplyText("");
   };
 
+  // Just updating the handleSubmitReply function in context/DataContext.tsx
+
   const handleSubmitReply = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!replyText.trim() || !replyingTo) return;
 
+    // Creating a new reply comment with the flattened structure
     const newReply = {
       id: `reply-${Date.now()}`,
       text: replyText,
-      user: "あなた",
+      user: "You",
       likes: 0,
-      date: "たった今",
-      replyTo: replyingTo.comment.user,
-      replies: [],
+      date: "Just now",
+      isParentComment: false,
+      parentId: replyingTo.parentComment?.id || replyingTo.comment.id,
+      replyToId: replyingTo.comment.id,
+      replyToUser: replyingTo.comment.user,
     };
 
+    // Find which type of comment this belongs to (support or oppose)
     const updatedReasonsData = { ...reasonsData };
+    let commentType: "support" | "oppose" | null = null;
 
-    // Direct reply to a parent comment
-    if (!replyingTo.parentComment) {
-      const type = replyingTo.comment.id.startsWith("r")
-        ? reasonsData.support.some((r) => r.id === replyingTo.comment.id)
-          ? "support"
-          : "oppose"
-        : null;
-
-      if (type) {
-        const commentIndex = updatedReasonsData[type].findIndex(
-          (c) => c.id === replyingTo.comment.id
-        );
-        if (commentIndex !== -1) {
-          updatedReasonsData[type][commentIndex].replies.push(newReply);
-        }
-      }
+    // Determine if this is a support or oppose comment
+    if (reasonsData.support.some((c) => c.id === newReply.parentId)) {
+      commentType = "support";
+    } else if (reasonsData.oppose.some((c) => c.id === newReply.parentId)) {
+      commentType = "oppose";
     }
-    // Reply to a nested reply
-    else {
-      const type = replyingTo.parentComment.id.startsWith("r")
-        ? reasonsData.support.some((r) => r.id === replyingTo.parentComment.id)
-          ? "support"
-          : "oppose"
-        : null;
 
-      if (type) {
-        const commentIndex = updatedReasonsData[type].findIndex(
-          (c) => c.id === replyingTo.parentComment.id
-        );
-        if (commentIndex !== -1) {
-          // Find the target reply and add our new reply
-          const findAndAddReply = (replies: any[], targetId: string) => {
-            for (let i = 0; i < replies.length; i++) {
-              if (replies[i].id === targetId) {
-                replies[i].replies.push(newReply);
-                return true;
-              }
-
-              // Recursively search deeper levels
-              if (replies[i].replies && replies[i].replies.length) {
-                if (findAndAddReply(replies[i].replies, targetId)) {
-                  return true;
-                }
-              }
-            }
-            return false;
-          };
-
-          findAndAddReply(
-            updatedReasonsData[type][commentIndex].replies,
-            replyingTo.comment.id
-          );
-        }
-      }
+    if (commentType) {
+      // Add the reply to the appropriate array
+      updatedReasonsData[commentType].push(newReply);
     }
 
     setReasonsData(updatedReasonsData);
@@ -266,17 +229,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setReplyText("");
 
     // Expand the comment thread we just replied to
-    if (replyingTo.parentComment) {
-      setExpandedComments((prev) => ({
-        ...prev,
-        [replyingTo.parentComment.id]: true,
-      }));
-    } else {
-      setExpandedComments((prev) => ({
-        ...prev,
-        [replyingTo.comment.id]: true,
-      }));
-    }
+    setExpandedComments((prev) => ({
+      ...prev,
+      [newReply.parentId as string]: true,
+    }));
   };
 
   const handleCancelReply = () => {

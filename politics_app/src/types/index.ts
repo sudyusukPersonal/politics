@@ -1,3 +1,4 @@
+// types/index.ts (MODIFIED)
 // Basic types for the application
 
 export interface Party {
@@ -31,23 +32,17 @@ export interface Politician {
   recentActivity: string;
 }
 
-export interface Reply {
-  id: string;
-  text: string;
-  user: string;
-  likes: number;
-  date: string;
-  replyTo?: string;
-  replies?: Reply[];
-}
-
 export interface Comment {
   id: string;
   text: string;
   user: string;
   likes: number;
   date: string;
-  replies: Reply[];
+  // New properties for flattened structure
+  isParentComment: boolean; // Indicates if this is a parent comment or a reply
+  parentId?: string; // ID of the parent comment (null for parent comments)
+  replyToId?: string; // ID of the comment being replied to (could be parent or another reply)
+  replyToUser?: string; // Username of the person being replied to
 }
 
 export interface ReasonsData {
