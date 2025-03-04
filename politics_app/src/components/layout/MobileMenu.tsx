@@ -1,16 +1,12 @@
+// politics_app/src/components/layout/MobileMenu.tsx
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { X, Users, Building, BarChart3, Crown } from "lucide-react";
 import { useData } from "../../context/DataContext";
 
 const MobileMenu: React.FC = () => {
-  const {
-    mobileMenuOpen,
-    setMobileMenuOpen,
-    setActiveTab,
-    setSelectedPolitician,
-    setSelectedParty,
-    setShowAllPoliticians,
-  } = useData();
+  const navigate = useNavigate();
+  const { mobileMenuOpen, setMobileMenuOpen, setActiveTab } = useData();
 
   if (!mobileMenuOpen) return null;
 
@@ -32,9 +28,7 @@ const MobileMenu: React.FC = () => {
               <button
                 onClick={() => {
                   setActiveTab("politicians");
-                  setSelectedPolitician(null);
-                  setSelectedParty(null);
-                  setShowAllPoliticians(false);
+                  navigate("/");
                   setMobileMenuOpen(false);
                 }}
                 className="flex items-center text-gray-700 font-medium"
@@ -47,9 +41,7 @@ const MobileMenu: React.FC = () => {
               <button
                 onClick={() => {
                   setActiveTab("parties");
-                  setSelectedPolitician(null);
-                  setSelectedParty(null);
-                  setShowAllPoliticians(false);
+                  navigate("/parties");
                   setMobileMenuOpen(false);
                 }}
                 className="flex items-center text-gray-700 font-medium"
@@ -61,9 +53,7 @@ const MobileMenu: React.FC = () => {
             <li>
               <button
                 onClick={() => {
-                  setShowAllPoliticians(true);
-                  setSelectedPolitician(null);
-                  setSelectedParty(null);
+                  navigate("/politicians");
                   setMobileMenuOpen(false);
                 }}
                 className="flex items-center text-gray-700 font-medium"

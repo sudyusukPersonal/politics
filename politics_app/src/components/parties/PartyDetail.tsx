@@ -1,4 +1,6 @@
-import React from "react";
+// politics_app/src/components/parties/PartyDetail.tsx
+import React, { useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Users,
@@ -7,24 +9,43 @@ import {
   ThumbsDown,
   Activity,
 } from "lucide-react";
-import { Party } from "../../types";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
+import { Politician } from "../../types";
 
-// Define the props interface for this component
-interface PartyDetailProps {
-  party: Party;
-}
-
-const PartyDetail: React.FC<PartyDetailProps> = ({ party }) => {
+const PartyDetail: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const {
+    getPartyById,
     handleBackToParties,
     getPoliticiansByParty,
     getSortedPoliticians,
     sortMethod,
     handleSortChange,
+    setSelectedParty,
   } = useData();
+
+  const party = getPartyById(id || "");
+
+  useEffect(() => {
+    if (!party) {
+      // Redirect to parties list if party not found
+      navigate("/parties");
+      return;
+    }
+
+    // Set selected party in context for other components that might need it
+    setSelectedParty(party);
+
+    // Scroll to top on component mount
+    window.scrollTo(0, 0);
+  }, [party, navigate, setSelectedParty]);
+
+  if (!party) {
+    return null; // Or a loading state
+  }
 
   // Get politicians belonging to this party
   const partyPoliticians = getPoliticiansByParty(party.id);
@@ -118,7 +139,7 @@ const PartyDetail: React.FC<PartyDetailProps> = ({ party }) => {
           <div className="mt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">主要政策</h3>
             <div className="flex flex-wrap gap-2">
-              {party.keyPolicies.map((policy, i) => (
+              {party.keyPolicies.map((policy: string, i: number) => (
                 <span
                   key={i}
                   className="text-xs py-1 px-3 rounded-full border"
@@ -235,18 +256,20 @@ const PartyDetail: React.FC<PartyDetailProps> = ({ party }) => {
 
         {/* Party members list */}
         <div>
-          {sortedPartyPoliticians.map((politician, index) => (
-            <React.Fragment key={politician.id}>
-              <PoliticianCard politician={politician} index={index} />
+          {sortedPartyPoliticians.map(
+            (politician: Politician, index: number) => (
+              <React.Fragment key={politician.id}>
+                <PoliticianCard politician={politician} index={index} />
 
-              {/* Ad after 3rd politician */}
-              {index === 2 && sortedPartyPoliticians.length > 3 && (
-                <div className="py-3 flex justify-center border-b border-gray-100">
-                  <InlineAdBanner format="rectangle" showCloseButton={true} />
-                </div>
-              )}
-            </React.Fragment>
-          ))}
+                {/* Ad after 3rd politician */}
+                {index === 2 && sortedPartyPoliticians.length > 3 && (
+                  <div className="py-3 flex justify-center border-b border-gray-100">
+                    <InlineAdBanner format="rectangle" showCloseButton={true} />
+                  </div>
+                )}
+              </React.Fragment>
+            )
+          )}
         </div>
       </div>
     </section>

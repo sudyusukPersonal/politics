@@ -33,6 +33,7 @@ export interface Politician {
 }
 
 export interface Comment {
+  replies: any;
   id: string;
   text: string;
   user: string;

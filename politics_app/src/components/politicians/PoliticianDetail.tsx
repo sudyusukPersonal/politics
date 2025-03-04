@@ -1,4 +1,6 @@
-import React from "react";
+// politics_app/src/components/politicians/PoliticianDetail.tsx
+import React, { useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Building,
   Calendar,
@@ -8,7 +10,6 @@ import {
   Eye,
   MessageSquare,
 } from "lucide-react";
-import { Politician } from "../../types";
 import { useData } from "../../context/DataContext";
 import TrendIcon from "../common/TrendIcon";
 import VoteButtons from "../common/VoteButtons";
@@ -16,13 +17,38 @@ import VoteForm from "./VoteForm";
 import CommentSection from "../comments/CommentSection";
 import PremiumBanner from "../common/PremiumBanner";
 
-// Define the props interface for this component
-interface PoliticianDetailProps {
-  politician: Politician;
-}
+const PoliticianDetail: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const {
+    getPoliticianById,
+    handlePartySelect,
+    voteType,
+    showReasonForm,
+    parties,
 
-const PoliticianDetail: React.FC<PoliticianDetailProps> = ({ politician }) => {
-  const { voteType, showReasonForm, parties, handlePartySelect } = useData();
+    setSelectedPolitician,
+  } = useData();
+
+  const politician = getPoliticianById(id || "");
+
+  useEffect(() => {
+    if (!politician) {
+      // Redirect to politicians list if politician not found
+      navigate("/politicians");
+      return;
+    }
+
+    // Set selected politician in context for other components that might need it
+    setSelectedPolitician(politician);
+
+    // Scroll to top on component mount
+    window.scrollTo(0, 0);
+  }, [politician, navigate, setSelectedPolitician]);
+
+  if (!politician) {
+    return null; // Or a loading state
+  }
 
   return (
     <section className="space-y-4">

@@ -1,10 +1,21 @@
-import React from "react";
+// politics_app/src/components/home/HomeScreen.tsx
+import React, { useEffect } from "react";
 import { useData } from "../../context/DataContext";
 import PoliticiansTab from "./PoliticiansTab";
 import PartiesTab from "./PartiesTab";
 
-const HomeScreen: React.FC = () => {
+interface HomeScreenProps {
+  initialTab?: string;
+}
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ initialTab }) => {
   const { activeTab, setActiveTab } = useData();
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, setActiveTab]);
 
   return (
     <>
@@ -18,7 +29,7 @@ const HomeScreen: React.FC = () => {
               : "border-transparent text-gray-500"
           }`}
         >
-          政治家
+          政
         </button>
         <button
           onClick={() => setActiveTab("parties")}
@@ -28,7 +39,7 @@ const HomeScreen: React.FC = () => {
               : "border-transparent text-gray-500"
           }`}
         >
-          政党
+          政治家
         </button>
       </div>
 

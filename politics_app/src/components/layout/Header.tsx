@@ -1,19 +1,19 @@
+// politics_app/src/components/layout/Header.tsx
 import React from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, Award, Crown, ArrowLeft } from "lucide-react";
 import { useData } from "../../context/DataContext";
 
 const Header: React.FC = () => {
-  const {
-    isScrolled,
-    selectedPolitician,
-    selectedParty,
-    showAllPoliticians,
-    activeTab,
-    setActiveTab,
-    setSelectedPolitician,
-    handlePartySelect,
-    setMobileMenuOpen,
-  } = useData();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isScrolled, activeTab, setActiveTab, setMobileMenuOpen } = useData();
+
+  const isPoliticianDetail =
+    location.pathname.includes("/politicians/") &&
+    location.pathname !== "/politicians";
+  const isPartyDetail =
+    location.pathname.includes("/parties/") && location.pathname !== "/parties";
 
   return (
     <header
@@ -54,27 +54,23 @@ const Header: React.FC = () => {
         </div>
 
         {/* App title */}
-        <h1
-          className={`font-bold transition-all duration-300 flex items-center ${
-            isScrolled
-              ? "text-gray-800 text-base sm:text-lg"
-              : "text-white text-lg sm:text-xl"
-          }`}
-        >
-          <Award size={isScrolled ? 20 : 24} className="mr-2" />
-          政治家評価ポータル
-        </h1>
+        <Link to="/" className="text-center">
+          <h1
+            className={`font-bold transition-all duration-300 flex items-center ${
+              isScrolled
+                ? "text-gray-800 text-base sm:text-lg"
+                : "text-white text-lg sm:text-xl"
+            }`}
+          >
+            <Award size={isScrolled ? 20 : 24} className="mr-2" />
+            政治家評価ポータル
+          </h1>
+        </Link>
 
         {/* Navigation or back button */}
-        {selectedPolitician ? (
+        {isPoliticianDetail ? (
           <button
-            onClick={() => {
-              setSelectedPolitician(null);
-              // If we came from a party detail, go back to that party
-              if (selectedParty) {
-                handlePartySelect(selectedParty);
-              }
-            }}
+            onClick={() => navigate(-1)}
             className={`flex items-center rounded-full px-3 py-1 text-sm transition-all ${
               isScrolled
                 ? "bg-indigo-100 text-indigo-600"
@@ -83,14 +79,30 @@ const Header: React.FC = () => {
           >
             <span>一覧に戻る</span>
           </button>
-        ) : !selectedParty && !showAllPoliticians ? (
+        ) : isPartyDetail ? (
+          <button
+            onClick={() => navigate("/parties")}
+            className={`flex items-center rounded-full px-3 py-1 text-sm transition-all ${
+              isScrolled
+                ? "bg-indigo-100 text-indigo-600"
+                : "bg-white/20 text-white backdrop-blur-sm"
+            }`}
+          >
+            <span>政党一覧に戻る</span>
+          </button>
+        ) : location.pathname === "/" ||
+          location.pathname === "/politicians" ||
+          location.pathname === "/parties" ? (
           <div
             className={`hidden md:flex space-x-1 rounded-full backdrop-blur-sm p-1 ${
               isScrolled ? "bg-gray-100" : "bg-white/20"
             }`}
           >
             <button
-              onClick={() => setActiveTab("politicians")}
+              onClick={() => {
+                setActiveTab("politicians");
+                navigate("/");
+              }}
               className={`px-3 py-1 text-xs font-medium rounded-full transition ${
                 activeTab === "politicians"
                   ? isScrolled
@@ -104,7 +116,10 @@ const Header: React.FC = () => {
               政治家
             </button>
             <button
-              onClick={() => setActiveTab("parties")}
+              onClick={() => {
+                setActiveTab("parties");
+                navigate("/parties");
+              }}
               className={`px-3 py-1 text-xs font-medium rounded-full transition ${
                 activeTab === "parties"
                   ? isScrolled

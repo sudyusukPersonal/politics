@@ -1,3 +1,4 @@
+// politics_app/src/context/DataContext.tsx
 import React, {
   createContext,
   useState,
@@ -6,6 +7,7 @@ import React, {
   useEffect,
   JSX,
 } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { politicians as initialPoliticians } from "../data/politicians";
 import { parties as initialParties } from "../data/parties";
 import { reasonsData as initialReasonsData } from "../data/reasons";
@@ -23,7 +25,6 @@ interface DataContextType {
   voteType: "support" | "oppose" | null;
   activeTab: string;
   showReasonForm: boolean;
-  showAllPoliticians: boolean;
   expandedComments: Record<string, boolean>;
   replyingTo: { comment?: any; parentComment?: any } | null;
   replyText: string;
@@ -34,6 +35,7 @@ interface DataContextType {
   showFixedBottomAd: boolean;
   showInlineAd: boolean;
   mobileMenuOpen: boolean;
+  showAllPoliticians: boolean;
 
   // State setters
   setPoliticians: React.Dispatch<React.SetStateAction<Politician[]>>;
@@ -48,7 +50,6 @@ interface DataContextType {
   >;
   setActiveTab: React.Dispatch<React.SetStateAction<string>>;
   setShowReasonForm: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowAllPoliticians: React.Dispatch<React.SetStateAction<boolean>>;
   setExpandedComments: React.Dispatch<
     React.SetStateAction<Record<string, boolean>>
   >;
@@ -62,6 +63,8 @@ interface DataContextType {
   setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
 
   // Helper functions
+  getPoliticianById: (id: string) => Politician | undefined;
+  getPartyById: (id: string) => Party | undefined;
   handlePoliticianSelect: (politician: Politician) => void;
   handlePartySelect: (party: Party) => void;
   handleBackToParties: () => void;
@@ -88,6 +91,10 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  // Navigation using react-router
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // State
   const [politicians, setPoliticians] =
     useState<Politician[]>(initialPoliticians);
@@ -103,7 +110,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [activeTab, setActiveTab] = useState("politicians");
   const [showReasonForm, setShowReasonForm] = useState(false);
   const [sortMethod, setSortMethod] = useState("supportDesc");
-  const [showAllPoliticians, setShowAllPoliticians] = useState(false);
   const [expandedComments, setExpandedComments] = useState<
     Record<string, boolean>
   >({});
@@ -118,33 +124,44 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Helper functions
+  const getPoliticianById = (id: string) => {
+    return politicians.find((politician) => politician.id === id);
+  };
+
+  const getPartyById = (id: string) => {
+    return parties.find((party) => party.id === id);
+  };
+
   const handlePoliticianSelect = (politician: Politician) => {
-    setSelectedPolitician(politician);
-    setSelectedParty(null);
     setVoteType(null);
     setShowReasonForm(false);
     setExpandedComments({});
     setReplyingTo(null);
     setMobileMenuOpen(false);
+
+    // Navigate to politician detail page
+    navigate(`/politicians/${politician.id}`);
+
     // Scroll to top
     window.scrollTo(0, 0);
   };
 
   const handlePartySelect = (party: Party) => {
-    setSelectedParty(party);
-    setSelectedPolitician(null);
     setMobileMenuOpen(false);
+
+    // Navigate to party detail page
+    navigate(`/parties/${party.id}`);
+
     // Scroll to top
     window.scrollTo(0, 0);
   };
 
   const handleBackToParties = () => {
-    setSelectedParty(null);
-    setActiveTab("parties");
+    navigate("/parties");
   };
 
   const handleBackToPoliticians = () => {
-    setShowAllPoliticians(false);
+    navigate("/politicians");
   };
 
   const handleVoteClick = (type: "support" | "oppose") => {
@@ -170,7 +187,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const showAllPoliticiansList = () => {
-    setShowAllPoliticians(true);
+    navigate("/politicians");
   };
 
   const toggleCommentReplies = (commentId: string) => {
@@ -188,40 +205,77 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setReplyText("");
   };
 
-  // Just updating the handleSubmitReply function in context/DataContext.tsx
-
   const handleSubmitReply = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!replyText.trim() || !replyingTo) return;
 
-    // Creating a new reply comment with the flattened structure
     const newReply = {
       id: `reply-${Date.now()}`,
       text: replyText,
-      user: "You",
+      user: "あなた",
       likes: 0,
-      date: "Just now",
-      isParentComment: false,
-      parentId: replyingTo.parentComment?.id || replyingTo.comment.id,
-      replyToId: replyingTo.comment.id,
-      replyToUser: replyingTo.comment.user,
+      date: "たった今",
+      replyTo: replyingTo.comment.user,
+      replies: [],
     };
 
-    // Find which type of comment this belongs to (support or oppose)
     const updatedReasonsData = { ...reasonsData };
-    let commentType: "support" | "oppose" | null = null;
 
-    // Determine if this is a support or oppose comment
-    if (reasonsData.support.some((c) => c.id === newReply.parentId)) {
-      commentType = "support";
-    } else if (reasonsData.oppose.some((c) => c.id === newReply.parentId)) {
-      commentType = "oppose";
+    // Direct reply to a parent comment
+    if (!replyingTo.parentComment) {
+      const type = replyingTo.comment.id.startsWith("r")
+        ? reasonsData.support.some((r) => r.id === replyingTo.comment.id)
+          ? "support"
+          : "oppose"
+        : null;
+
+      if (type) {
+        const commentIndex = updatedReasonsData[type].findIndex(
+          (c) => c.id === replyingTo.comment.id
+        );
+        if (commentIndex !== -1) {
+          updatedReasonsData[type][commentIndex].replies.push(newReply);
+        }
+      }
     }
+    // Reply to a nested reply
+    else {
+      const type = replyingTo.parentComment.id.startsWith("r")
+        ? reasonsData.support.some((r) => r.id === replyingTo.parentComment.id)
+          ? "support"
+          : "oppose"
+        : null;
 
-    if (commentType) {
-      // Add the reply to the appropriate array
-      updatedReasonsData[commentType].push(newReply);
+      if (type) {
+        const commentIndex = updatedReasonsData[type].findIndex(
+          (c) => c.id === replyingTo.parentComment.id
+        );
+        if (commentIndex !== -1) {
+          // Find the target reply and add our new reply
+          const findAndAddReply = (replies: any[], targetId: string) => {
+            for (let i = 0; i < replies.length; i++) {
+              if (replies[i].id === targetId) {
+                replies[i].replies.push(newReply);
+                return true;
+              }
+
+              // Recursively search deeper levels
+              if (replies[i].replies && replies[i].replies.length) {
+                if (findAndAddReply(replies[i].replies, targetId)) {
+                  return true;
+                }
+              }
+            }
+            return false;
+          };
+
+          findAndAddReply(
+            updatedReasonsData[type][commentIndex].replies,
+            replyingTo.comment.id
+          );
+        }
+      }
     }
 
     setReasonsData(updatedReasonsData);
@@ -229,10 +283,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setReplyText("");
 
     // Expand the comment thread we just replied to
-    setExpandedComments((prev) => ({
-      ...prev,
-      [newReply.parentId as string]: true,
-    }));
+    if (replyingTo.parentComment) {
+      setExpandedComments((prev) => ({
+        ...prev,
+        [replyingTo.parentComment.id]: true,
+      }));
+    } else {
+      setExpandedComments((prev) => ({
+        ...prev,
+        [replyingTo.comment.id]: true,
+      }));
+    }
   };
 
   const handleCancelReply = () => {
@@ -317,6 +378,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  // Update active tab based on the current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === "/" || path.includes("/politicians")) {
+      setActiveTab("politicians");
+    } else if (path.includes("/parties")) {
+      setActiveTab("parties");
+    }
+  }, [location]);
+
   // Effect for scroll detection
   useEffect(() => {
     const handleScroll = () => {
@@ -360,7 +431,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         reason,
         activeTab,
         showReasonForm,
-        showAllPoliticians,
         expandedComments,
         replyingTo,
         replyText,
@@ -370,6 +440,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         showFixedBottomAd,
         showInlineAd,
         mobileMenuOpen,
+        showAllPoliticians: false,
 
         // State setters
         setPoliticians,
@@ -381,7 +452,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setReason,
         setActiveTab,
         setShowReasonForm,
-        setShowAllPoliticians,
         setExpandedComments,
         setReplyingTo,
         setReplyText,
@@ -390,6 +460,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setMobileMenuOpen,
 
         // Helper functions
+        getPoliticianById,
+        getPartyById,
         handlePoliticianSelect,
         handlePartySelect,
         handleBackToParties,
