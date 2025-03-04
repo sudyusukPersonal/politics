@@ -12,8 +12,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ initialTab }) => {
   const { activeTab, setActiveTab } = useData();
 
   useEffect(() => {
+    // If initialTab is provided, use it, otherwise default to "politicians"
     if (initialTab) {
       setActiveTab(initialTab);
+    } else {
+      // This ensures that without an explicit initialTab, we default to politicians
+      setActiveTab("politicians");
     }
   }, [initialTab, setActiveTab]);
 
@@ -29,7 +33,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ initialTab }) => {
               : "border-transparent text-gray-500"
           }`}
         >
-          政
+          政治家
         </button>
         <button
           onClick={() => setActiveTab("parties")}
@@ -39,12 +43,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ initialTab }) => {
               : "border-transparent text-gray-500"
           }`}
         >
-          政治家
+          政党
         </button>
       </div>
 
       {/* Conditional rendering of the active tab */}
-      {activeTab === "politicians" ? <PoliticiansTab /> : <PartiesTab />}
+      {activeTab === "politicians" ? <PartiesTab /> : <PoliticiansTab />}
     </>
   );
 };

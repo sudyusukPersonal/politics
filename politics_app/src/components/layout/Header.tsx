@@ -101,7 +101,7 @@ const Header: React.FC = () => {
             <button
               onClick={() => {
                 setActiveTab("politicians");
-                navigate("/");
+                navigate("/"); // Changed from "/"
               }}
               className={`px-3 py-1 text-xs font-medium rounded-full transition ${
                 activeTab === "politicians"
@@ -118,7 +118,7 @@ const Header: React.FC = () => {
             <button
               onClick={() => {
                 setActiveTab("parties");
-                navigate("/parties");
+                navigate("/parties"); // Changed from "/parties"
               }}
               className={`px-3 py-1 text-xs font-medium rounded-full transition ${
                 activeTab === "parties"

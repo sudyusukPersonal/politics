@@ -10,7 +10,7 @@ const AppRoutes: React.FC = () => {
     <main className="flex-1 p-4 pb-16 container mx-auto max-w-7xl">
       <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
         <Routes>
-          <Route path="/" element={<HomeScreen />} />
+          <Route path="/" element={<HomeScreen initialTab="politicians" />} />
           <Route path="/politicians" element={<AllPoliticiansList />} />
           <Route
             path="/politicians/:politicianId"
