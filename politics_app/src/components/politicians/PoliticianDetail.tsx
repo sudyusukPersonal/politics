@@ -1,5 +1,5 @@
 // politics_app/src/components/politicians/PoliticianDetail.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Building,
