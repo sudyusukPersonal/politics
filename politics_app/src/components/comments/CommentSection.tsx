@@ -89,9 +89,6 @@ const CommentSection: React.FC = () => {
   }, []);
 
   // const supportCommentGroups = groupCommentsByParent(reasonsData.support);
-  // console.log(comments.filter((comment) => comment.type === "support").length);
-  // console.log(reasonsData.support.length);
-
   // const opposeCommentGroups = groupCommentsByParent(reasonsData.oppose);
 
   const supportComments = comments.filter(
