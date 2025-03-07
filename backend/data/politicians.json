@@ -1,0 +1,164 @@
+[
+  {
+    "id": "p1",
+    "name": "鈴木なまごみ",
+    "position": "衆議院議員",
+    "age": 52,
+    "party": {
+      "id": "party1",
+      "name": "未来創造党",
+      "color": "#4361EE"
+    },
+    "supportRate": 68,
+    "opposeRate": 32,
+    "totalVotes": 4582,
+    "activity": 100,
+    "image": "/api/placeholder/80/80",
+    "trending": "up",
+    "recentActivity": "教育政策の見直しを提案"
+  },
+  {
+    "id": "p2",
+    "name": "田中花子",
+    "position": "参議院議員",
+    "age": 45,
+    "party": {
+      "id": "party2",
+      "name": "国民連合",
+      "color": "#F72585"
+    },
+    "supportRate": 42,
+    "opposeRate": 58,
+    "totalVotes": 3219,
+    "activity": 88,
+    "image": "/api/placeholder/80/80",
+    "trending": "down",
+    "recentActivity": "財政改革法案に反対票"
+  },
+  {
+    "id": "p3",
+    "name": "エロン・マスク",
+    "position": "衆議院議員",
+    "age": 38,
+    "party": {
+      "id": "party3",
+      "name": "市民第一党",
+      "color": "#7209B7"
+    },
+    "supportRate": 75,
+    "opposeRate": 25,
+    "totalVotes": 5103,
+    "activity": 98,
+    "image": "/api/placeholder/80/80",
+    "trending": "up",
+    "recentActivity": "環境保護イニシアチブを開始"
+  },
+  {
+    "id": "p4",
+    "name": "蛆虫",
+    "position": "衆議院議員",
+    "age": 61,
+    "party": {
+      "id": "party1",
+      "name": "未来創造党",
+      "color": "#4361EE"
+    },
+    "supportRate": 98,
+    "opposeRate": 2,
+    "totalVotes": 3872,
+    "activity": 98,
+    "image": "/api/placeholder/80/80",
+    "trending": "up",
+    "recentActivity": "産業振興策を提案"
+  },
+  {
+    "id": "p5",
+    "name": "ムーミン",
+    "position": "参議院議員",
+    "age": 42,
+    "party": {
+      "id": "party3",
+      "name": "市民第一党",
+      "color": "#7209B7"
+    },
+    "supportRate": 1,
+    "opposeRate": 99,
+    "totalVotes": 4125,
+    "activity": 84,
+    "image": "/api/placeholder/80/80",
+    "trending": "up",
+    "recentActivity": "女性支援法案の提出"
+  },
+  {
+    "id": "p6",
+    "name": "納豆マン",
+    "position": "衆議院議員",
+    "age": 49,
+    "party": {
+      "id": "party2",
+      "name": "国民連合",
+      "color": "#F72585"
+    },
+    "supportRate": 45,
+    "opposeRate": 55,
+    "totalVotes": 2987,
+    "activity": 71,
+    "image": "/api/placeholder/80/80",
+    "trending": "down",
+    "recentActivity": "外交問題での発言が物議"
+  },
+  {
+    "id": "p7",
+    "name": "糞虫",
+    "position": "参議院議員",
+    "age": 37,
+    "party": {
+      "id": "party1",
+      "name": "未来創造党",
+      "color": "#4361EE"
+    },
+    "supportRate": 62,
+    "opposeRate": 38,
+    "totalVotes": 3456,
+    "activity": 81,
+    "image": "/api/placeholder/80/80",
+    "trending": "up",
+    "recentActivity": "デジタル改革を推進"
+  },
+  {
+    "id": "p8",
+    "name": "海ガメ",
+    "position": "衆議院議員",
+    "age": 55,
+    "party": {
+      "id": "party2",
+      "name": "国民連合",
+      "color": "#F72585"
+    },
+    "supportRate": 38,
+    "opposeRate": 62,
+    "totalVotes": 3109,
+    "activity": 65,
+    "image": "/api/placeholder/80/80",
+    "trending": "down",
+    "recentActivity": "予算委員会で質問"
+  },
+  {
+    "id": "p9",
+    "name": "アナル姫",
+    "position": "衆議院議員",
+    "age": 41,
+    "party": {
+      "id": "party3",
+      "name": "市民第一党",
+      "color": "#7209B7"
+    },
+    "supportRate": 67,
+    "opposeRate": 33,
+    "totalVotes": 3892,
+    "activity": 79,
+    "image": "/api/placeholder/80/80",
+    "trending": "up",
+    "recentActivity": "地方創生案を発表"
+  }
+]

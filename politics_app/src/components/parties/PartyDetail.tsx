@@ -1,5 +1,5 @@
 // politics_app/src/components/parties/PartyDetail.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -27,29 +27,86 @@ const PartyDetail: React.FC = () => {
     setSelectedParty,
   } = useData();
 
-  const party = getPartyById(id || "");
+  interface Party {
+    id: string;
+    name: string;
+    color: string;
+    supportRate: number;
+    opposeRate: number;
+    totalVotes: number;
+    members: number;
+    keyPolicies: string[];
+    description: string;
+  }
+
+  interface Politician {
+    id: string;
+    name: string;
+    position: string;
+    age: number;
+    party: {
+      id: string;
+      name: string;
+      color: string;
+    };
+    supportRate: number;
+    opposeRate: number;
+    totalVotes: number;
+    activity: number;
+    image: string;
+    trending: string;
+    recentActivity: string;
+  }
+
+  interface PartyResponse {
+    party: Party;
+    members: Politician[];
+  }
+
+  const [pol, setPol] = useState<Party | null>(null);
+  const [men, setMen] = useState<Politician[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!party) {
-      // Redirect to parties list if party not found
-      navigate("/parties");
+    const fetchPoliticians = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("http://localhost:8080/parties/" + id);
+        console.log("リクエストしたよ");
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data: PartyResponse = await response.json();
+        setPol(data.party);
+        setMen(data.members);
+      } catch (error) {
+        console.error("Failed to fetch politicians:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPoliticians();
+  }, [id]);
+
+  useEffect(() => {
+    // データ読み込み中はチェックしない
+    if (isLoading) return;
+
+    // データ読み込み完了後、政治家が見つからなかった場合のみリダイレクト
+    if (!pol) {
+      navigate("/politicians");
       return;
     }
 
-    // Set selected party in context for other components that might need it
-    setSelectedParty(party);
-
-    // Scroll to top on component mount
+    setSelectedParty(pol);
     window.scrollTo(0, 0);
-  }, [party, navigate, setSelectedParty]);
+  }, [pol, isLoading, navigate, setSelectedParty]);
 
-  if (!party) {
-    return null; // Or a loading state
-  }
+  const party = getPartyById(id || "");
 
   // Get politicians belonging to this party
-  const partyPoliticians = getPoliticiansByParty(party.id);
-  const sortedPartyPoliticians = getSortedPoliticians(partyPoliticians);
+  ///////////↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓政党ユーザーはバックエンドで取得↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓//////
+  const sortedPartyPoliticians = getSortedPoliticians(men);
 
   return (
     <section className="space-y-4">
@@ -67,23 +124,23 @@ const PartyDetail: React.FC = () => {
         {/* Party header */}
         <div
           className="p-5 border-b border-gray-100"
-          style={{ backgroundColor: `${party.color}10` }}
+          style={{ backgroundColor: `${pol?.color}10` }}
         >
           <div className="flex flex-col sm:flex-row sm:items-center">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 sm:mb-0"
-              style={{ backgroundColor: party.color }}
+              style={{ backgroundColor: pol?.color }}
             >
-              {party.name.charAt(0)}
+              {pol?.name.charAt(0)}
             </div>
             <div className="sm:ml-4">
-              <h2 className="text-xl font-bold" style={{ color: party.color }}>
-                {party.name}
+              <h2 className="text-xl font-bold" style={{ color: pol?.color }}>
+                {pol?.name}
               </h2>
               <div className="flex flex-wrap items-center text-sm text-gray-500 mt-1">
-                <span>所属議員: {partyPoliticians.length}名</span>
+                <span>所属議員: {men.length}名</span>
                 <span className="mx-2 hidden sm:inline">•</span>
-                <span>総投票数: {party.totalVotes.toLocaleString()}</span>
+                <span>総投票数: {pol?.totalVotes.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -95,14 +152,14 @@ const PartyDetail: React.FC = () => {
                 <ThumbsUp size={14} className="text-green-500 mr-1" />
                 <span className="text-sm font-medium">支持率: </span>
                 <span className="font-bold ml-1 text-green-600">
-                  {party.supportRate}%
+                  {pol?.supportRate}%
                 </span>
               </div>
               <div className="flex items-center">
                 <ThumbsDown size={14} className="text-red-500 mr-1" />
                 <span className="text-sm font-medium">不支持率: </span>
                 <span className="font-bold ml-1 text-red-600">
-                  {party.opposeRate}%
+                  {pol?.opposeRate}%
                 </span>
               </div>
             </div>
@@ -112,14 +169,14 @@ const PartyDetail: React.FC = () => {
               <div
                 className="h-full rounded-l-full"
                 style={{
-                  width: `${party.supportRate}%`,
+                  width: `${pol?.supportRate}%`,
                   backgroundColor: "#10B981",
                 }}
               ></div>
               <div
                 className="h-full rounded-r-full"
                 style={{
-                  width: `${party.opposeRate}%`,
+                  width: `${pol?.opposeRate}%`,
                   backgroundColor: "#EF4444",
                 }}
               ></div>
@@ -129,24 +186,24 @@ const PartyDetail: React.FC = () => {
           {/* Ad banner */}
           <InlineAdBanner format="large-banner" showCloseButton={true} />
 
-          {/* Party description */}
+          {/* pol? description */}
           <div className="mt-4">
             <h3 className="text-sm font-medium text-gray-700">政党概要</h3>
-            <p className="text-sm text-gray-600 mt-1">{party.description}</p>
+            <p className="text-sm text-gray-600 mt-1">{pol?.description}</p>
           </div>
 
           {/* Key policies */}
           <div className="mt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">主要政策</h3>
             <div className="flex flex-wrap gap-2">
-              {party.keyPolicies.map((policy: string, i: number) => (
+              {pol?.keyPolicies.map((policy: string, i: number) => (
                 <span
                   key={i}
                   className="text-xs py-1 px-3 rounded-full border"
                   style={{
-                    backgroundColor: `${party.color}15`,
-                    borderColor: `${party.color}30`,
-                    color: party.color,
+                    backgroundColor: `${pol?.color}15`,
+                    borderColor: `${pol?.color}30`,
+                    color: pol?.color,
                   }}
                 >
                   {policy}

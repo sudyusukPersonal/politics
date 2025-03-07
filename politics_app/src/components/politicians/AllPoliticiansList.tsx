@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, Users } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "./PoliticianCard";
@@ -7,11 +7,60 @@ import PremiumBanner from "../common/PremiumBanner";
 import InlineAdBanner from "../ads/InlineAdBanner";
 
 const AllPoliticiansList: React.FC = () => {
-  const { handleBackToPoliticians, getSortedPoliticians, politicians } =
-    useData();
+  const {
+    handleBackToPoliticians,
+    getSortedPoliticians,
+    politicians,
+    selectedPolitician,
+  } = useData();
+
+  interface Party {
+    id: string;
+    name: string;
+    color: string;
+    supportRate: number;
+    // その他のパーティプロパティ
+  }
+
+  interface Politician {
+    id: string;
+    name: string;
+    position: string;
+    age: number;
+    party: Party;
+    supportRate: number;
+    opposeRate: number;
+    totalVotes: number;
+    activity: number;
+    image: string;
+    trending: string;
+    recentActivity: string;
+  }
+
+  interface PoliticiansResponse {
+    politicians: Politician[];
+  }
+
+  const [po, setPo] = useState<Politician[]>([]);
+
+  useEffect(() => {
+    const fetchPoliticians = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/politicians");
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data: PoliticiansResponse = await response.json();
+        setPo(data.politicians);
+      } catch (error) {
+        console.error("Failed to fetch politicians:", error);
+      }
+    };
+    fetchPoliticians();
+  }, []);
 
   // Get sorted politicians based on the current sort method
-  const sortedPoliticians = getSortedPoliticians(politicians);
+  const sortedPoliticians = getSortedPoliticians(po);
 
   return (
     <section className="space-y-4">

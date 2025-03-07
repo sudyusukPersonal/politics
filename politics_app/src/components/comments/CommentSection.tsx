@@ -57,7 +57,6 @@ const CommentSection: React.FC = () => {
         setIsLoading(true);
         // サーバーへのリクエスト
         const response = await fetch("http://localhost:8080/comments");
-        console.log("リクエストしたよ");
 
         // リクエストが成功したかチェック
         if (!response.ok) {

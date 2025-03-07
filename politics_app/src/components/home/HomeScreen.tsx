@@ -48,7 +48,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ initialTab }) => {
       </div>
 
       {/* Conditional rendering of the active tab */}
-      {activeTab === "politicians" ? <PartiesTab /> : <PoliticiansTab />}
+      {activeTab === "politicians" ? <PoliticiansTab /> : <PartiesTab />}
     </>
   );
 };
