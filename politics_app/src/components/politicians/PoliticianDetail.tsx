@@ -1,5 +1,5 @@
 // src/components/politicians/PoliticianDetail.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Building,
@@ -16,69 +16,64 @@ import VoteButtons from "../common/VoteButtons";
 import VoteForm from "./VoteForm";
 import CommentSection from "../comments/CommentSection";
 import LoadingAnimation from "../common/LoadingAnimation";
-import { getPoliticianById } from "../../utils/dataUtils";
 import { Politician } from "../../types";
 
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { handlePartySelect, voteType, showReasonForm, setSelectedPolitician } =
-    useData();
+  const {
+    handlePartySelect,
+    voteType,
+    showReasonForm,
+    setSelectedPolitician,
+    getPoliticianById,
+    globalPoliticians,
+    dataInitialized,
+  } = useData();
 
   const [politician, setPolitician] = useState<Politician | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // バックエンドAPIの代わりにJSONファイルからデータを読み込む
-    const loadPolitician = () => {
-      try {
-        setIsLoading(true);
+  // グローバルデータから政治家データを取得（メモ化）
+  const selectedPolitician = useMemo(() => {
+    if (!id || !dataInitialized) return null;
+    return getPoliticianById(id);
+  }, [id, dataInitialized, getPoliticianById]);
 
-        // 意図的に少し遅延を入れてローディングアニメーションを表示（実際の環境では不要）
-        setTimeout(() => {
-          if (!id) {
-            throw new Error("政治家IDが見つかりません");
-          }
-          const data = getPoliticianById(id);
-          if (data) {
-            setPolitician(data);
-          } else {
-            throw new Error("指定されたIDの政治家が見つかりません");
-          }
-          setIsLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error("政治家データの読み込みに失敗しました:", error);
-        setIsLoading(false);
+  // データ読み込み状態の管理
+  useEffect(() => {
+    // データが初期化されたかチェック
+    if (dataInitialized) {
+      if (selectedPolitician) {
+        setPolitician(selectedPolitician);
       }
-    };
-
-    loadPolitician();
-  }, [id]);
-
-  useEffect(() => {
-    // データ読み込み中はチェックしない
-    if (isLoading) return;
-
-    // データ読み込み完了後、政治家が見つからなかった場合のみリダイレクト
-    if (!politician) {
-      navigate("/politicians");
-      return;
+      setIsLoading(false);
     }
+  }, [dataInitialized, selectedPolitician]);
 
-    setSelectedPolitician(politician);
-    window.scrollTo(0, 0);
-  }, [politician, isLoading, navigate, setSelectedPolitician]);
+  // 政治家が読み込まれたらコンテキストに設定
+  useEffect(() => {
+    if (politician) {
+      setSelectedPolitician(politician);
+      window.scrollTo(0, 0);
+    }
+  }, [politician, setSelectedPolitician]);
+
+  // リダイレクト処理（データロード後に政治家が見つからない場合）
+  useEffect(() => {
+    if (!isLoading && !politician && dataInitialized) {
+      navigate("/politicians");
+    }
+  }, [politician, isLoading, navigate, dataInitialized]);
 
   // 政党詳細ページへの移動
   const handlePartyClick = () => {
     if (politician) {
-      // 政党IDをもとに政党データを取得して移動
       navigate(`/parties/${politician.party.id}`);
     }
   };
 
-  // モダンなローディング表示に変更
+  // モダンなローディング表示
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 min-h-[400px] flex items-center justify-center">

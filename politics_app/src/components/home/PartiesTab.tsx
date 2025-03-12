@@ -1,5 +1,5 @@
 // src/components/home/PartiesTab.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   TrendingUp,
   ThumbsUp,
@@ -11,35 +11,25 @@ import {
 import { useData } from "../../context/DataContext";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
-import LoadingAnimation from "../common/LoadingAnimation"; // ローディングアニメーションをインポート
-import { processPartiesData } from "../../utils/dataUtils";
+import LoadingAnimation from "../common/LoadingAnimation";
 import { Party } from "../../types";
 
 const PartiesTab: React.FC = () => {
-  const { getPoliticiansByParty, handlePartySelect } = useData();
+  const {
+    globalParties,
+    dataInitialized,
+    getPoliticiansByParty,
+    handlePartySelect,
+  } = useData();
 
-  const [parties, setParties] = useState<Party[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // グローバルデータが初期化されたらロード完了とみなす
   useEffect(() => {
-    // バックエンドAPIの代わりにJSONファイルからデータを読み込む
-    const loadParties = () => {
-      try {
-        setLoading(true);
-        // スケルトンローディング用の遅延（実際の環境では不要）
-        setTimeout(() => {
-          const data = processPartiesData();
-          setParties(data);
-          setLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error("政党データの読み込みに失敗しました:", error);
-        setLoading(false);
-      }
-    };
-
-    loadParties();
-  }, []);
+    if (dataInitialized) {
+      setLoading(false);
+    }
+  }, [dataInitialized]);
 
   // スケルトンローディング表示
   if (loading) {
@@ -66,6 +56,36 @@ const PartiesTab: React.FC = () => {
     );
   }
 
+  // 政党データが空の場合
+  if (!globalParties.length) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+        <div className="text-indigo-500 mb-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-12 w-12 mx-auto"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h3 className="text-lg font-medium text-gray-900">
+          政党データがありません
+        </h3>
+        <p className="mt-2 text-gray-600">
+          政党情報を読み込めませんでした。再読み込みをお試しください。
+        </p>
+      </div>
+    );
+  }
+
   return (
     <section className="space-y-6">
       {/* Premium banner */}
@@ -83,7 +103,7 @@ const PartiesTab: React.FC = () => {
         </div>
 
         <div className="p-4 space-y-6">
-          {parties.map((party, index) => (
+          {globalParties.map((party, index) => (
             <React.Fragment key={party.id}>
               <div
                 className="relative hover:bg-gray-50 p-2 rounded-lg transition cursor-pointer"

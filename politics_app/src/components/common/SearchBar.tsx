@@ -1,5 +1,5 @@
 // src/components/common/SearchBar.tsx
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../../context/DataContext";
@@ -14,20 +14,31 @@ const SearchBar: React.FC<SearchBarProps> = ({
   isScrolled,
   onExpandChange,
 }) => {
-  const { globalPoliticians } = useData();
+  const { globalPoliticians, dataInitialized } = useData();
   const navigate = useNavigate();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Politician[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [searchReady, setSearchReady] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
 
+  // データの初期化状態を監視
+  useEffect(() => {
+    if (dataInitialized) {
+      setSearchReady(true);
+    }
+  }, [dataInitialized]);
+
   // 検索拡張の切り替え処理
   const toggleSearch = () => {
+    // データが準備できていない場合は何もしない
+    if (!searchReady) return;
+
     const newExpandedState = !isExpanded;
     setIsExpanded(newExpandedState);
 
@@ -67,6 +78,26 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }, 100);
   };
 
+  // 検索結果のメモ化
+  const performSearch = useMemo(() => {
+    return (term: string): Politician[] => {
+      if (!term.trim() || !globalPoliticians.length) return [];
+
+      const searchTerm = term.toLowerCase();
+
+      console.time("検索処理時間");
+      const results = globalPoliticians.filter((politician) => {
+        const name = politician.name.toLowerCase();
+        const furigana = politician.furigana?.toLowerCase() || "";
+
+        return name.includes(searchTerm) || furigana.includes(searchTerm);
+      });
+      console.timeEnd("検索処理時間");
+
+      return results;
+    };
+  }, [globalPoliticians]);
+
   // 検索入力の処理
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -78,15 +109,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
       return;
     }
 
-    // グローバル政治家データで検索を実行
-    const results = globalPoliticians.filter((politician) => {
-      const name = politician.name.toLowerCase();
-      const furigana = politician.furigana?.toLowerCase() || "";
-      const search = value.toLowerCase();
-
-      return name.includes(search) || furigana.includes(search);
-    });
-
+    // メモ化された検索関数を使用
+    const results = performSearch(value);
     setSearchResults(results);
     setShowResults(true);
   };
@@ -131,6 +155,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
     clearSearch();
   };
 
+  // モバイルかどうか判定（パフォーマンス向上のためメモ化）
+  const isMobile = useMemo(() => {
+    return typeof window !== "undefined" && window.innerWidth < 640;
+  }, []);
+
   return (
     <div ref={searchBarRef} className="relative">
       <div
@@ -138,7 +167,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           isScrolled ? "bg-gray-100" : "bg-white/20 backdrop-blur-sm"
         } rounded-full ${
           isExpanded ? "w-40 sm:w-56" : "w-8 sm:w-8 cursor-pointer"
-        }`}
+        } ${!searchReady ? "opacity-50" : ""}`}
       >
         {/* 虫眼鏡アイコンはボタンの中央に配置（非拡張時） */}
         <div
@@ -158,9 +187,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <input
           ref={inputRef}
           type="text"
-          placeholder="政治家を検索..."
+          placeholder={searchReady ? "政治家を検索..." : "読み込み中..."}
           value={searchTerm}
           onChange={handleSearch}
+          disabled={!searchReady}
           onFocus={() => setShowResults(searchResults.length > 0)}
           className={`${
             isScrolled ? "text-gray-900" : "text-white placeholder-white/70"
@@ -203,6 +233,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                       alt={politician.name}
                       className="w-10 h-10 rounded-full object-cover border-2"
                       style={{ borderColor: politician.party.color }}
+                      loading="lazy" // 画像の遅延読み込み
                     />
                   </div>
                   <div className="ml-3">
@@ -232,4 +263,5 @@ const SearchBar: React.FC<SearchBarProps> = ({
   );
 };
 
-export default SearchBar;
+// React.memoを使用してパフォーマンスを最適化
+export default React.memo(SearchBar);

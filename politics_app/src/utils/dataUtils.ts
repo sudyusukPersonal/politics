@@ -2,6 +2,10 @@
 import politiciansData from "../data/merged_politicians.json";
 import { Politician, Party } from "../types";
 
+// キャッシング用のグローバル変数
+let cachedPoliticians: Politician[] | null = null;
+let cachedParties: Party[] | null = null;
+
 // 政党ごとの色を設定する関数
 const getPartyColor = (affiliation: string): string => {
   switch (affiliation) {
@@ -46,14 +50,22 @@ const getLocalImagePath = (name: string): string => {
   }
 };
 
-// JSONデータから政党一覧を生成する
+// JSONデータから政党一覧を生成する（キャッシング機能付き）
 export const processPartiesData = (): Party[] => {
+  // キャッシュがあれば、それを返す（処理の重複を避ける）
+  if (cachedParties !== null) {
+    return cachedParties;
+  }
+
+  console.time("政党データ処理時間");
+
   // JSONデータから一意の政党リストを抽出
   const uniqueParties = Array.from(
     new Set(politiciansData.map((item) => item.affiliation))
   );
 
-  return uniqueParties.map((partyName) => {
+  // 政党データを作成
+  const parties = uniqueParties.map((partyName) => {
     const supportRate = Math.floor(Math.random() * 40) + 30; // 30-70%のランダムな支持率
     const partyId = generatePartyId(partyName);
 
@@ -70,11 +82,26 @@ export const processPartiesData = (): Party[] => {
       description: `${partyName}の政策と理念に基づいた政党です。`,
     };
   });
+
+  console.timeEnd("政党データ処理時間");
+
+  // 結果をキャッシュして今後の呼び出しで再利用できるようにする
+  cachedParties = parties;
+
+  return parties;
 };
 
-// JSONデータを処理してアプリケーションのデータモデルに合わせる（ふりがなフィールド対応版）
+// JSONデータを処理してアプリケーションのデータモデルに合わせる（キャッシング機能付き）
 export const processPoliticiansData = (): Politician[] => {
-  return politiciansData
+  // キャッシュがあれば、それを返す（処理の重複を避ける）
+  if (cachedPoliticians !== null) {
+    return cachedPoliticians;
+  }
+
+  console.time("政治家データ処理時間");
+
+  // 政治家データを処理
+  const politicians = politiciansData
     .filter(
       (item): item is typeof item & { name: string } => item.name !== undefined
     )
@@ -110,6 +137,20 @@ export const processPoliticiansData = (): Politician[] => {
       politician.opposeRate = 100 - politician.supportRate;
       return politician;
     });
+
+  console.timeEnd("政治家データ処理時間");
+
+  // 結果をキャッシュして今後の呼び出しで再利用できるようにする
+  cachedPoliticians = politicians;
+
+  return politicians;
+};
+
+// キャッシュをクリアする関数（データ更新時などに使用）
+export const clearDataCache = () => {
+  cachedPoliticians = null;
+  cachedParties = null;
+  console.log("データキャッシュをクリアしました");
 };
 
 // 名前からふりがなを抽出する補助関数
@@ -153,32 +194,54 @@ const getRandomPolicies = (partyName: string): string[] => {
   return shuffled.slice(0, count);
 };
 
-// 特定の政党に所属する政治家を取得する
+// 特定の政党に所属する政治家を取得する（キャッシュ利用）
 export const getPoliticiansByParty = (partyId: string): Politician[] => {
-  const allPoliticians = processPoliticiansData();
-  return allPoliticians.filter((politician) => politician.party.id === partyId);
+  // まずキャッシュをチェック
+  if (!cachedPoliticians) {
+    processPoliticiansData(); // キャッシュがなければデータを処理
+  }
+
+  // キャッシュから直接フィルタリング
+  return (cachedPoliticians || []).filter(
+    (politician) => politician.party.id === partyId
+  );
 };
 
-// 特定のIDの政治家を取得する
+// 特定のIDの政治家を取得する（キャッシュ利用）
 export const getPoliticianById = (id: string): Politician | undefined => {
-  const allPoliticians = processPoliticiansData();
-  return allPoliticians.find((politician) => politician.id === id);
+  // まずキャッシュをチェック
+  if (!cachedPoliticians) {
+    processPoliticiansData(); // キャッシュがなければデータを処理
+  }
+
+  // キャッシュから直接検索
+  return (cachedPoliticians || []).find((politician) => politician.id === id);
 };
 
-// 特定のIDの政党を取得する
+// 特定のIDの政党を取得する（キャッシュ利用）
 export const getPartyById = (id: string): Party | undefined => {
-  const allParties = processPartiesData();
-  return allParties.find((party) => party.id === id);
+  // まずキャッシュをチェック
+  if (!cachedParties) {
+    processPartiesData(); // キャッシュがなければデータを処理
+  }
+
+  // キャッシュから直接検索
+  return (cachedParties || []).find((party) => party.id === id);
 };
 
 // キーワードで政治家を検索する（名前とふりがなで部分一致検索）
 export const searchPoliticians = (keyword: string): Politician[] => {
   if (!keyword.trim()) return [];
 
-  const searchTerm = keyword.toLowerCase();
-  const allPoliticians = processPoliticiansData();
+  // まずキャッシュをチェック
+  if (!cachedPoliticians) {
+    processPoliticiansData(); // キャッシュがなければデータを処理
+  }
 
-  return allPoliticians.filter((politician) => {
+  const searchTerm = keyword.toLowerCase();
+
+  // キャッシュから直接フィルタリング
+  return (cachedPoliticians || []).filter((politician) => {
     const name = politician.name.toLowerCase();
     const furigana = politician.furigana?.toLowerCase() || "";
 

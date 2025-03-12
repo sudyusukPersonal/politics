@@ -1,5 +1,5 @@
 // src/components/parties/PartyDetail.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -13,7 +13,6 @@ import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
-import { processPoliticiansData, getPartyById } from "../../utils/dataUtils";
 import { Party, Politician } from "../../types";
 
 const PartyDetail: React.FC = () => {
@@ -25,65 +24,59 @@ const PartyDetail: React.FC = () => {
     handleSortChange,
     getSortedPoliticians,
     setSelectedParty,
+    getPartyById,
+    getPoliticiansByParty,
+    dataInitialized,
   } = useData();
 
   const [party, setParty] = useState<Party | null>(null);
-  const [members, setMembers] = useState<Politician[]>([]);
+  const [partyMembers, setPartyMembers] = useState<Politician[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // グローバルデータから政党データを取得（メモ化）
+  const selectedParty = useMemo(() => {
+    if (!id || !dataInitialized) return null;
+    return getPartyById(id);
+  }, [id, dataInitialized, getPartyById]);
+
+  // 政党に所属する政治家を取得（メモ化）
+  const members = useMemo(() => {
+    if (!id || !dataInitialized) return [];
+    return getPoliticiansByParty(id);
+  }, [id, dataInitialized, getPoliticiansByParty]);
+
+  // ソート済みの党員リスト（メモ化）
+  const sortedPartyPoliticians = useMemo(() => {
+    return getSortedPoliticians(members);
+  }, [members, getSortedPoliticians, sortMethod]);
+
+  // データ読み込み状態の管理
   useEffect(() => {
-    // バックエンドAPIの代わりにJSONファイルからデータを読み込む
-    const loadParty = () => {
-      try {
-        setIsLoading(true);
-
-        // 意図的に少し遅延を入れてローディングアニメーションを表示（実際の環境では不要）
-        setTimeout(() => {
-          if (!id) {
-            throw new Error("政党IDが見つかりません");
-          }
-          const partyData = getPartyById(id);
-          if (partyData) {
-            setParty(partyData);
-
-            // この政党に所属する政治家を取得
-            const allPoliticians = processPoliticiansData();
-            const partyMembers = allPoliticians.filter(
-              (p) => p.party.id === id
-            );
-            setMembers(partyMembers);
-          } else {
-            throw new Error("指定されたIDの政党が見つかりません");
-          }
-          setIsLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error("政党データの読み込みに失敗しました:", error);
-        setIsLoading(false);
+    if (dataInitialized) {
+      if (selectedParty) {
+        setParty(selectedParty);
+        setPartyMembers(members);
       }
-    };
-
-    loadParty();
-  }, [id]);
-
-  useEffect(() => {
-    // データ読み込み中はチェックしない
-    if (isLoading) return;
-
-    // データ読み込み完了後、政党が見つからなかった場合のみリダイレクト
-    if (!party) {
-      navigate("/parties");
-      return;
+      setIsLoading(false);
     }
+  }, [dataInitialized, selectedParty, members]);
 
-    setSelectedParty(party);
-    window.scrollTo(0, 0);
-  }, [party, isLoading, navigate, setSelectedParty]);
+  // 選択された政党をコンテキストに設定
+  useEffect(() => {
+    if (party) {
+      setSelectedParty(party);
+      window.scrollTo(0, 0);
+    }
+  }, [party, setSelectedParty]);
 
-  // ソート順に並べた党員リスト
-  const sortedPartyPoliticians = getSortedPoliticians(members);
+  // リダイレクト処理（データロード後に政党が見つからない場合）
+  useEffect(() => {
+    if (!isLoading && !party && dataInitialized) {
+      navigate("/parties");
+    }
+  }, [party, isLoading, navigate, dataInitialized]);
 
-  // モダンなローディング表示に変更
+  // モダンなローディング表示
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 min-h-[400px] flex items-center justify-center">

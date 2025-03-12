@@ -1,68 +1,54 @@
 // src/components/home/PoliticiansTab.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Users, BarChart3, ChevronRight } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
-import LoadingAnimation from "../common/LoadingAnimation"; // ローディングアニメーションをインポート
-import { processPoliticiansData } from "../../utils/dataUtils";
+import LoadingAnimation from "../common/LoadingAnimation";
 import { Politician } from "../../types";
 
 const PoliticiansTab: React.FC = () => {
   const {
+    globalPoliticians,
+    dataInitialized,
     getSortedPoliticians,
     showAllPoliticiansList,
     handlePoliticianSelect,
-    globalPoliticians, // グローバルデータを使用
   } = useData();
 
-  const [politicians, setPoliticians] = useState<Politician[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Use global data directly when initialized
   useEffect(() => {
-    // グローバルデータが利用可能な場合はそれを使用
-    if (globalPoliticians && globalPoliticians.length > 0) {
-      setPoliticians(globalPoliticians);
+    // Simply check if data is initialized
+    if (dataInitialized) {
       setLoading(false);
-      return;
     }
+  }, [dataInitialized]);
 
-    // バックエンドAPIの代わりにJSONファイルからデータを読み込む
-    const loadPoliticians = () => {
-      try {
-        setLoading(true);
-        // スケルトンローディング表示のための遅延（実際の環境では不要）
-        setTimeout(() => {
-          const data = processPoliticiansData();
-          setPoliticians(data);
-          setLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error("政治家データの読み込みに失敗しました:", error);
-        setLoading(false);
-      }
-    };
+  // Memoize sorted politicians to prevent unnecessary recomputation
+  const topPoliticians = useMemo(() => {
+    if (!globalPoliticians.length) return [];
+    return getSortedPoliticians(globalPoliticians).slice(0, 3);
+  }, [globalPoliticians, getSortedPoliticians]);
 
-    loadPoliticians();
+  // Memoize most active politicians
+  const mostActivePoliticians = useMemo(() => {
+    if (!globalPoliticians.length) return [];
+    return [...globalPoliticians]
+      .sort((a, b) => b.activity - a.activity)
+      .slice(0, 3);
   }, [globalPoliticians]);
 
-  // 支持率順にトップの政治家を取得
-  const topPoliticians = getSortedPoliticians(politicians).slice(0, 3);
-
-  // 活動指数順に政治家を取得
-  const mostActivePoliticians = [...politicians]
-    .sort((a, b) => b.activity - a.activity)
-    .slice(0, 3);
-
-  // スケルトンローディング表示
+  // Skeleton loading display
   if (loading) {
     return (
       <div className="space-y-6">
-        {/* スケルトン：プレミアムバナー */}
+        {/* Skeleton: Premium banner */}
         <div className="h-20 bg-gray-100 rounded-xl animate-pulse"></div>
 
-        {/* スケルトン：注目の政治家カード */}
+        {/* Skeleton: Featured politicians card */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center">
             <div className="w-40 h-6 bg-gray-200 rounded animate-pulse"></div>
@@ -77,7 +63,7 @@ const PoliticiansTab: React.FC = () => {
           </div>
         </div>
 
-        {/* スケルトン：活動指数ランキングカード */}
+        {/* Skeleton: Activity ranking card */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 p-4">
           <div className="w-48 h-6 bg-gray-200 rounded animate-pulse mb-6"></div>
           <div className="space-y-5">
@@ -126,13 +112,19 @@ const PoliticiansTab: React.FC = () => {
 
         <div>
           {/* Display top politicians */}
-          {topPoliticians.map((politician, index) => (
-            <PoliticianCard
-              key={politician.id}
-              politician={politician}
-              index={index}
-            />
-          ))}
+          {topPoliticians.length > 0 ? (
+            topPoliticians.map((politician, index) => (
+              <PoliticianCard
+                key={politician.id}
+                politician={politician}
+                index={index}
+              />
+            ))
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              データがありません
+            </div>
+          )}
         </div>
 
         {/* Ad banner */}
@@ -149,41 +141,47 @@ const PoliticiansTab: React.FC = () => {
           活動指数ランキング
         </h2>
         <div className="space-y-4">
-          {mostActivePoliticians.map((politician, index) => (
-            <div
-              key={politician.id}
-              className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition"
-              onClick={() => handlePoliticianSelect(politician)}
-            >
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 font-bold text-gray-700 mr-3 flex-shrink-0">
-                {index + 1}
-              </div>
-              <img
-                src={politician.image}
-                alt={politician.name}
-                className="w-10 h-10 rounded-full object-cover border border-gray-200 mr-3 flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-medium text-sm truncate">
-                    {politician.name}
-                  </h3>
-                  <span className="font-bold text-indigo-600 flex-shrink-0">
-                    {politician.activity}
-                  </span>
+          {mostActivePoliticians.length > 0 ? (
+            mostActivePoliticians.map((politician, index) => (
+              <div
+                key={politician.id}
+                className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition"
+                onClick={() => handlePoliticianSelect(politician)}
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 font-bold text-gray-700 mr-3 flex-shrink-0">
+                  {index + 1}
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                  <div
-                    className="rounded-full h-full transition-all duration-500"
-                    style={{
-                      width: `${politician.activity}%`,
-                      backgroundColor: politician.party.color,
-                    }}
-                  />
+                <img
+                  src={politician.image}
+                  alt={politician.name}
+                  className="w-10 h-10 rounded-full object-cover border border-gray-200 mr-3 flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium text-sm truncate">
+                      {politician.name}
+                    </h3>
+                    <span className="font-bold text-indigo-600 flex-shrink-0">
+                      {politician.activity}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div
+                      className="rounded-full h-full transition-all duration-500"
+                      style={{
+                        width: `${politician.activity}%`,
+                        backgroundColor: politician.party.color,
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              データがありません
             </div>
-          ))}
+          )}
 
           {/* Sponsored content */}
           <div className="flex items-center p-2 rounded-lg bg-gray-50 border border-gray-200">

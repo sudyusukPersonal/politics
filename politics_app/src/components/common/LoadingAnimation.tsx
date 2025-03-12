@@ -1,122 +1,170 @@
 // src/components/common/LoadingAnimation.tsx
-import React from "react";
+import React, { memo } from "react";
 
 interface LoadingAnimationProps {
   message?: string;
   type?: "dots" | "spinner" | "pulse" | "bar";
   color?: string;
+  size?: "small" | "medium" | "large";
 }
 
-const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
-  message = "データを読み込んでいます",
-  type = "pulse",
-  color = "#4361EE", // Default color (close to indigo-600)
-}) => {
-  // Modern dots animation
-  const DotsAnimation = () => (
-    <div className="flex space-x-2 justify-center items-center mb-4">
-      {[1, 2, 3].map((_, index) => (
+// メモ化してパフォーマンスを向上
+const LoadingAnimation: React.FC<LoadingAnimationProps> = memo(
+  ({
+    message = "データを読み込んでいます",
+    type = "pulse",
+    color = "#4361EE", // デフォルト色 (indigo-600に近い)
+    size = "medium",
+  }) => {
+    // サイズに基づいたスタイル変数
+    const getSizeStyles = () => {
+      switch (size) {
+        case "small":
+          return {
+            dotSize: "w-2 h-2",
+            spinnerSize: "w-8 h-8",
+            pulseSize: "w-12 h-12",
+            barWidth: "w-48",
+            fontSize: "text-xs",
+            iconSize: "w-6 h-6",
+            containerPadding: "p-3",
+          };
+        case "large":
+          return {
+            dotSize: "w-4 h-4",
+            spinnerSize: "w-16 h-16",
+            pulseSize: "w-20 h-20",
+            barWidth: "w-80",
+            fontSize: "text-base",
+            iconSize: "w-10 h-10",
+            containerPadding: "p-8",
+          };
+        default: // medium
+          return {
+            dotSize: "w-3 h-3",
+            spinnerSize: "w-12 h-12",
+            pulseSize: "w-16 h-16",
+            barWidth: "w-64",
+            fontSize: "text-sm",
+            iconSize: "w-8 h-8",
+            containerPadding: "p-6",
+          };
+      }
+    };
+
+    const sizeStyles = getSizeStyles();
+
+    // モダンなドットアニメーション
+    const DotsAnimation = () => (
+      <div className="flex space-x-2 justify-center items-center mb-4">
+        {[1, 2, 3].map((_, index) => (
+          <div
+            key={index}
+            className={`${sizeStyles.dotSize} rounded-full`}
+            style={{
+              backgroundColor: color,
+              animation: `bounce 1.4s infinite ease-in-out both`,
+              animationDelay: `${index * 0.16}s`,
+            }}
+          ></div>
+        ))}
+      </div>
+    );
+
+    // モダンなスピナーアニメーション
+    const SpinnerAnimation = () => (
+      <div className="flex justify-center mb-4">
         <div
-          key={index}
-          className="w-3 h-3 rounded-full"
+          className={`${sizeStyles.spinnerSize} rounded-full`}
           style={{
-            backgroundColor: color,
-            animation: `bounce 1.4s infinite ease-in-out both`,
-            animationDelay: `${index * 0.16}s`,
+            borderWidth: "3px",
+            borderStyle: "solid",
+            borderColor: `${color} transparent ${color} transparent`,
+            animation: "dual-ring 1.2s linear infinite",
           }}
         ></div>
-      ))}
-    </div>
-  );
+      </div>
+    );
 
-  // Modern spinner animation
-  const SpinnerAnimation = () => (
-    <div className="flex justify-center mb-4">
-      <div
-        className="w-12 h-12 rounded-full"
-        style={{
-          borderWidth: "3px",
-          borderStyle: "solid",
-          borderColor: `${color} transparent ${color} transparent`,
-          animation: "dual-ring 1.2s linear infinite",
-        }}
-      ></div>
-    </div>
-  );
-
-  // Modern pulse animation with shadow
-  const PulseAnimation = () => (
-    <div className="flex justify-center mb-4">
-      <div className="relative w-16 h-16">
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            backgroundColor: color,
-            opacity: 0.3,
-            animation: "pulse-shadow 1.5s ease-in-out infinite",
-          }}
-        ></div>
-        <div
-          className="relative rounded-full w-16 h-16 flex items-center justify-center"
-          style={{
-            backgroundColor: color,
-            animation: "pulse-scale 1.5s ease-in-out infinite",
-          }}
-        >
-          <svg
-            className="w-8 h-8 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
+    // モダンなパルスアニメーション（シャドウ付き）
+    const PulseAnimation = () => (
+      <div className="flex justify-center mb-4">
+        <div className={`relative ${sizeStyles.pulseSize}`}>
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              backgroundColor: color,
+              opacity: 0.3,
+              animation: "pulse-shadow 1.5s ease-in-out infinite",
+            }}
+          ></div>
+          <div
+            className={`relative rounded-full ${sizeStyles.pulseSize} flex items-center justify-center`}
+            style={{
+              backgroundColor: color,
+              animation: "pulse-scale 1.5s ease-in-out infinite",
+            }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
+            <svg
+              className={`${sizeStyles.iconSize} text-white`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              />
+            </svg>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
 
-  // Modern bar animation with shimmer effect
-  const BarAnimation = () => (
-    <div className="flex justify-center items-center mb-4">
-      <div className="relative w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+    // モダンなバーアニメーション（シマーエフェクト付き）
+    const BarAnimation = () => (
+      <div className="flex justify-center items-center mb-4">
         <div
-          className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-transparent via-white to-transparent"
-          style={{ animation: "shimmer 1.5s infinite" }}
-        ></div>
-        <div
-          className="absolute top-0 left-0 h-full rounded-full"
-          style={{
-            backgroundColor: color,
-            width: "40%",
-            animation: "indeterminate 1.5s infinite ease-in-out",
-          }}
-        ></div>
+          className={`relative ${sizeStyles.barWidth} h-2 bg-gray-200 rounded-full overflow-hidden`}
+        >
+          <div
+            className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-transparent via-white to-transparent"
+            style={{ animation: "shimmer 1.5s infinite" }}
+          ></div>
+          <div
+            className="absolute top-0 left-0 h-full rounded-full"
+            style={{
+              backgroundColor: color,
+              width: "40%",
+              animation: "indeterminate 1.5s infinite ease-in-out",
+            }}
+          ></div>
+        </div>
       </div>
-    </div>
-  );
+    );
 
-  return (
-    <div className="w-full flex flex-col items-center justify-center p-6 rounded-lg">
-      {/* Animation based on type */}
-      {type === "dots" && <DotsAnimation />}
-      {type === "spinner" && <SpinnerAnimation />}
-      {type === "pulse" && <PulseAnimation />}
-      {type === "bar" && <BarAnimation />}
+    return (
+      <div
+        className={`w-full flex flex-col items-center justify-center ${sizeStyles.containerPadding} rounded-lg`}
+      >
+        {/* タイプに基づいたアニメーション */}
+        {type === "dots" && <DotsAnimation />}
+        {type === "spinner" && <SpinnerAnimation />}
+        {type === "pulse" && <PulseAnimation />}
+        {type === "bar" && <BarAnimation />}
 
-      {/* Message section with fixed width to prevent movement */}
-      <div className="text-center h-6 flex items-center justify-center">
-        <p className="text-gray-700 font-medium">{message}</p>
-      </div>
+        {/* メッセージセクション（固定幅を設定して動きを防止） */}
+        <div className="text-center h-6 flex items-center justify-center">
+          <p className={`text-gray-700 font-medium ${sizeStyles.fontSize}`}>
+            {message}
+          </p>
+        </div>
 
-      {/* CSS for animations */}
-      <style>{`
+        {/* アニメーション用CSS */}
+        <style>{`
         @keyframes bounce {
           0%,
           80%,
@@ -187,8 +235,12 @@ const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
           }
         }
       `}</style>
-    </div>
-  );
-};
+      </div>
+    );
+  }
+);
+
+// コンポーネント名を設定（デバッグ用）
+LoadingAnimation.displayName = "LoadingAnimation";
 
 export default LoadingAnimation;
