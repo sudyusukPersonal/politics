@@ -10,10 +10,68 @@ import React, {
 import { useNavigate, useLocation } from "react-router-dom";
 import { Politician, Party, ReasonsData } from "../types";
 import { TrendingUp, Activity } from "lucide-react";
-import { processPoliticiansData, processPartiesData } from "../utils/dataUtils"; // 新しいユーティリティをインポート
-import { reasonsData as initialReasonsData } from "../data/reasons"; // この部分はそのまま
+import { processPoliticiansData, processPartiesData } from "../utils/dataUtils";
+import { reasonsData as initialReasonsData } from "../data/reasons";
 
-// Create context type
+// グローバルデータストレージ（アプリケーション全体で一度だけ初期化）
+let globalPoliticiansData: Politician[] = [];
+let globalPartiesData: Party[] = [];
+
+// グローバルデータの初期化処理
+const initializeGlobalData = () => {
+  // すでに初期化されている場合はスキップ
+  if (globalPoliticiansData.length > 0 && globalPartiesData.length > 0) {
+    return { politicians: globalPoliticiansData, parties: globalPartiesData };
+  }
+
+  // データ初期化
+  try {
+    const politicians = processPoliticiansData();
+    const parties = processPartiesData();
+
+    // ふりがなフィールドを追加・処理
+    const enhancedPoliticians = politicians.map((politician) => {
+      // JSON内に既にfuriganaプロパティが存在する場合はそれを使用
+      const existingFurigana = (politician as any).furigana;
+      if (existingFurigana) {
+        return {
+          ...politician,
+          furigana: existingFurigana,
+        };
+      }
+
+      // ふりがなが無い場合は名前から推測
+      let furigana = "";
+
+      // 名前からカタカナ・ひらがなを抽出する処理
+      if (typeof politician.name === "string") {
+        // カタカナとひらがなの正規表現
+        const kanaRegex = /[\u3040-\u30FF]+/g;
+        const matches = politician.name.match(kanaRegex);
+
+        if (matches) {
+          furigana = matches.join("");
+        }
+      }
+
+      return {
+        ...politician,
+        furigana: furigana || undefined,
+      };
+    });
+
+    // グローバル変数に保存
+    globalPoliticiansData = enhancedPoliticians;
+    globalPartiesData = parties;
+
+    return { politicians: enhancedPoliticians, parties };
+  } catch (error) {
+    console.error("グローバルデータの初期化に失敗しました:", error);
+    return { politicians: [], parties: [] };
+  }
+};
+
+// Context型定義
 interface DataContextType {
   // State
   politicians: Politician[];
@@ -35,6 +93,7 @@ interface DataContextType {
   showInlineAd: boolean;
   mobileMenuOpen: boolean;
   showAllPoliticians: boolean;
+  globalPoliticians: Politician[]; // 新しく追加：グローバル政治家データへの参照
 
   // State setters
   setPoliticians: React.Dispatch<React.SetStateAction<Politician[]>>;
@@ -81,24 +140,28 @@ interface DataContextType {
   getPoliticiansByParty: (partyId: string) => Politician[];
   getTrendIcon: (trend: string) => JSX.Element;
   getSortLabel: (method: string) => string;
+  searchPoliticians: (term: string) => Politician[]; // 新しく追加：検索関数
 }
 
-// Create the context
+// Contextの作成
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Provider component
+// Provider コンポーネント
 export const DataProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  // Navigation using react-router
+  // react-routerのナビゲーション
   const navigate = useNavigate();
   const location = useLocation();
 
+  // グローバルデータの初期化と取得
+  const { politicians: initialPoliticians, parties: initialParties } =
+    initializeGlobalData();
+
   // JSONファイルから読み込んだデータで初期化
-  const [politicians, setPoliticians] = useState<Politician[]>(
-    processPoliticiansData()
-  );
-  const [parties, setParties] = useState<Party[]>(processPartiesData());
+  const [politicians, setPoliticians] =
+    useState<Politician[]>(initialPoliticians);
+  const [parties, setParties] = useState<Party[]>(initialParties);
   const [reasonsData, setReasonsData] =
     useState<ReasonsData>(initialReasonsData);
 
@@ -124,15 +187,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [showInlineAd] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Helper functions
+  // ヘルパー関数
   // 特定のIDの政治家を取得する関数
   const getPoliticianByIdHelper = (id: string) => {
-    return politicians.find((politician) => politician.id === id);
+    return globalPoliticiansData.find((politician) => politician.id === id);
   };
 
   // 特定のIDの政党を取得する関数
   const getPartyByIdHelper = (id: string) => {
-    return parties.find((party) => party.id === id);
+    return globalPartiesData.find((party) => party.id === id);
   };
 
   const handlePoliticianSelect = (politician: Politician) => {
@@ -142,20 +205,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setReplyingTo(null);
     setMobileMenuOpen(false);
 
-    // Navigate to politician detail page
+    // 政治家詳細ページへナビゲート
     navigate(`/politicians/${politician.id}`);
 
-    // Scroll to top
+    // 先頭にスクロール
     window.scrollTo(0, 0);
   };
 
   const handlePartySelect = (party: Party) => {
     setMobileMenuOpen(false);
 
-    // Navigate to party detail page
+    // 政党詳細ページへナビゲート
     navigate(`/parties/${party.id}`);
 
-    // Scroll to top
+    // 先頭にスクロール
     window.scrollTo(0, 0);
   };
 
@@ -174,7 +237,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Submit vote
+    // 投票を送信
     alert(
       `${
         voteType === "support" ? "支持" : "不支持"
@@ -225,7 +288,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
 
     const updatedReasonsData = { ...reasonsData };
 
-    // Direct reply to a parent comment
+    // 親コメントへの直接返信
     if (!replyingTo.parentComment) {
       const type = replyingTo.comment.id.startsWith("r")
         ? reasonsData.support.some((r) => r.id === replyingTo.comment.id)
@@ -242,7 +305,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         }
       }
     }
-    // Reply to a nested reply
+    // ネストされた返信への返信
     else {
       const type = replyingTo.parentComment.id.startsWith("r")
         ? reasonsData.support.some((r) => r.id === replyingTo.parentComment.id)
@@ -255,7 +318,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
           (c) => c.id === replyingTo.parentComment.id
         );
         if (commentIndex !== -1) {
-          // Find the target reply and add our new reply
+          // 対象の返信を見つけて新しい返信を追加
           const findAndAddReply = (replies: any[], targetId: string) => {
             for (let i = 0; i < replies.length; i++) {
               if (replies[i].id === targetId) {
@@ -263,7 +326,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
                 return true;
               }
 
-              // Recursively search deeper levels
+              // 再帰的に深いレベルを検索
               if (replies[i].replies && replies[i].replies.length) {
                 if (findAndAddReply(replies[i].replies, targetId)) {
                   return true;
@@ -285,7 +348,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setReplyingTo(null);
     setReplyText("");
 
-    // Expand the comment thread we just replied to
+    // 返信したコメントスレッドを展開
     if (replyingTo.parentComment) {
       setExpandedComments((prev) => ({
         ...prev,
@@ -304,7 +367,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setReplyText("");
   };
 
-  // Count all replies recursively
+  // すべての返信を再帰的にカウント
   const countAllReplies = (replies: any[]) => {
     let count = replies.length;
     for (const reply of replies) {
@@ -315,7 +378,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     return count;
   };
 
-  // Sort politicians based on current method
+  // 現在の方法に基づいて政治家をソート
   const getSortedPoliticians = (politicianList: Politician[]) => {
     const list = [...politicianList];
 
@@ -337,12 +400,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Get politicians by party ID
+  // 政党IDによる政治家の取得
   const getPoliticiansByParty = (partyId: string) => {
-    return politicians.filter((politician) => politician.party.id === partyId);
+    return globalPoliticiansData.filter(
+      (politician) => politician.party.id === partyId
+    );
   };
 
-  // Trend icon component
+  // トレンドアイコンコンポーネント
   const getTrendIcon = (trend: string) => {
     if (trend === "up") {
       return (
@@ -361,7 +426,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Sort label text
+  // ソートラベルテキスト
   const getSortLabel = (method: string) => {
     switch (method) {
       case "supportDesc":
@@ -381,7 +446,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Update active tab based on the current route
+  // 新しい関数: 政治家を検索する
+  const searchPoliticians = (term: string): Politician[] => {
+    if (!term.trim()) {
+      return [];
+    }
+
+    const searchTerm = term.toLowerCase();
+    return globalPoliticiansData.filter((politician) => {
+      const name = politician.name.toLowerCase();
+      const furigana = politician.furigana?.toLowerCase() || "";
+
+      return name.includes(searchTerm) || furigana.includes(searchTerm);
+    });
+  };
+
+  // 現在のルートに基づいてアクティブタブを更新
   useEffect(() => {
     const path = location.pathname;
     if (path === "/" || path.includes("/politicians")) {
@@ -391,7 +471,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [location]);
 
-  // Effect for scroll detection
+  // スクロール検出のエフェクト
   useEffect(() => {
     const handleScroll = () => {
       const scrolled = window.scrollY > 10;
@@ -403,9 +483,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isScrolled]);
 
-  // Effect for viewport meta tag & timer
+  // ビューポートメタタグとタイマーのエフェクト
   useEffect(() => {
-    // Optimize viewport for mobile
+    // モバイル向けにビューポートを最適化
     document
       .querySelector('meta[name="viewport"]')
       ?.setAttribute(
@@ -413,7 +493,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         "width=device-width, initial-scale=1.0, maximum-scale=5.0"
       );
 
-    // Show fixed bottom ad after 5 seconds
+    // 5秒後に固定ボトム広告を表示
     const timer = setTimeout(() => {
       setShowFixedBottomAd(true);
     }, 5000);
@@ -444,6 +524,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         showInlineAd,
         mobileMenuOpen,
         showAllPoliticians: false,
+        globalPoliticians: globalPoliticiansData, // 新しく追加されたグローバルデータ参照
 
         // State setters
         setPoliticians,
@@ -482,6 +563,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         getPoliticiansByParty,
         getTrendIcon,
         getSortLabel,
+        searchPoliticians, // 新しく追加された検索関数
       }}
     >
       {children}
@@ -489,7 +571,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   );
 };
 
-// Custom hook to use the data context
+// データコンテキストを使用するためのカスタムフック
 export const useData = () => {
   const context = useContext(DataContext);
   if (context === undefined) {

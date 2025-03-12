@@ -12,7 +12,8 @@ import {
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
-import { processPoliticiansData, getPartyById } from "../../utils/dataUtils"; // 新しいユーティリティをインポート
+import LoadingAnimation from "../common/LoadingAnimation"; // ローディングアニメーションをインポート
+import { processPoliticiansData, getPartyById } from "../../utils/dataUtils";
 import { Party, Politician } from "../../types";
 
 const PartyDetail: React.FC = () => {
@@ -35,23 +36,29 @@ const PartyDetail: React.FC = () => {
     const loadParty = () => {
       try {
         setIsLoading(true);
-        if (!id) {
-          throw new Error("政党IDが見つかりません");
-        }
-        const partyData = getPartyById(id);
-        if (partyData) {
-          setParty(partyData);
 
-          // この政党に所属する政治家を取得
-          const allPoliticians = processPoliticiansData();
-          const partyMembers = allPoliticians.filter((p) => p.party.id === id);
-          setMembers(partyMembers);
-        } else {
-          throw new Error("指定されたIDの政党が見つかりません");
-        }
+        // 意図的に少し遅延を入れてローディングアニメーションを表示（実際の環境では不要）
+        setTimeout(() => {
+          if (!id) {
+            throw new Error("政党IDが見つかりません");
+          }
+          const partyData = getPartyById(id);
+          if (partyData) {
+            setParty(partyData);
+
+            // この政党に所属する政治家を取得
+            const allPoliticians = processPoliticiansData();
+            const partyMembers = allPoliticians.filter(
+              (p) => p.party.id === id
+            );
+            setMembers(partyMembers);
+          } else {
+            throw new Error("指定されたIDの政党が見つかりません");
+          }
+          setIsLoading(false);
+        }, 1000);
       } catch (error) {
         console.error("政党データの読み込みに失敗しました:", error);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -76,12 +83,48 @@ const PartyDetail: React.FC = () => {
   // ソート順に並べた党員リスト
   const sortedPartyPoliticians = getSortedPoliticians(members);
 
+  // モダンなローディング表示に変更
   if (isLoading) {
-    return <div className="text-center py-4">データを読み込んでいます...</div>;
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 min-h-[400px] flex items-center justify-center">
+        <LoadingAnimation type="pulse" message="政党情報を読み込んでいます" />
+      </div>
+    );
   }
 
   if (!party) {
-    return <div className="text-center py-4">政党が見つかりません</div>;
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+        <div className="text-red-500 mb-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-12 w-12 mx-auto"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        </div>
+        <h3 className="text-lg font-medium text-gray-900">
+          政党が見つかりません
+        </h3>
+        <p className="mt-2 text-gray-600">
+          指定されたIDの政党情報を取得できませんでした。
+        </p>
+        <button
+          onClick={() => navigate("/parties")}
+          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+        >
+          政党一覧に戻る
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -96,7 +139,7 @@ const PartyDetail: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
         {/* Party header */}
         <div
           className="p-5 border-b border-gray-100"
@@ -222,7 +265,7 @@ const PartyDetail: React.FC = () => {
             {/* Sort dropdown options */}
             <div
               id="party-sort-dropdown"
-              className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-10 hidden"
+              className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-10 hidden animate-fadeIn"
             >
               <div className="w-48 text-sm">
                 <div className="px-2 py-1 text-xs font-medium text-gray-500 border-b border-gray-100">

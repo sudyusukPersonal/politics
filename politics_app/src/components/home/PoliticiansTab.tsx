@@ -5,7 +5,8 @@ import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
-import { processPoliticiansData } from "../../utils/dataUtils"; // 新しいユーティリティをインポート
+import LoadingAnimation from "../common/LoadingAnimation"; // ローディングアニメーションをインポート
+import { processPoliticiansData } from "../../utils/dataUtils";
 import { Politician } from "../../types";
 
 const PoliticiansTab: React.FC = () => {
@@ -13,27 +14,38 @@ const PoliticiansTab: React.FC = () => {
     getSortedPoliticians,
     showAllPoliticiansList,
     handlePoliticianSelect,
+    globalPoliticians, // グローバルデータを使用
   } = useData();
 
   const [politicians, setPoliticians] = useState<Politician[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // グローバルデータが利用可能な場合はそれを使用
+    if (globalPoliticians && globalPoliticians.length > 0) {
+      setPoliticians(globalPoliticians);
+      setLoading(false);
+      return;
+    }
+
     // バックエンドAPIの代わりにJSONファイルからデータを読み込む
     const loadPoliticians = () => {
       try {
         setLoading(true);
-        const data = processPoliticiansData();
-        setPoliticians(data);
+        // スケルトンローディング表示のための遅延（実際の環境では不要）
+        setTimeout(() => {
+          const data = processPoliticiansData();
+          setPoliticians(data);
+          setLoading(false);
+        }, 1000);
       } catch (error) {
         console.error("政治家データの読み込みに失敗しました:", error);
-      } finally {
         setLoading(false);
       }
     };
 
     loadPoliticians();
-  }, []);
+  }, [globalPoliticians]);
 
   // 支持率順にトップの政治家を取得
   const topPoliticians = getSortedPoliticians(politicians).slice(0, 3);
@@ -43,8 +55,46 @@ const PoliticiansTab: React.FC = () => {
     .sort((a, b) => b.activity - a.activity)
     .slice(0, 3);
 
+  // スケルトンローディング表示
   if (loading) {
-    return <div className="text-center py-4">データを読み込んでいます...</div>;
+    return (
+      <div className="space-y-6">
+        {/* スケルトン：プレミアムバナー */}
+        <div className="h-20 bg-gray-100 rounded-xl animate-pulse"></div>
+
+        {/* スケルトン：注目の政治家カード */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+            <div className="w-40 h-6 bg-gray-200 rounded animate-pulse"></div>
+            <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+
+          <div className="p-8 flex flex-col items-center justify-center">
+            <LoadingAnimation
+              type="spinner"
+              message="政治家データを読み込んでいます"
+            />
+          </div>
+        </div>
+
+        {/* スケルトン：活動指数ランキングカード */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 p-4">
+          <div className="w-48 h-6 bg-gray-200 rounded animate-pulse mb-6"></div>
+          <div className="space-y-5">
+            {[1, 2, 3].map((_, index) => (
+              <div key={index} className="flex items-center">
+                <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse mr-3"></div>
+                <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse mr-3"></div>
+                <div className="flex-1">
+                  <div className="w-full max-w-[180px] h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div className="w-full h-1.5 bg-gray-200 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -53,7 +103,7 @@ const PoliticiansTab: React.FC = () => {
       <PremiumBanner />
 
       {/* Top politicians card */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
         <div className="p-4 border-b border-gray-100 flex justify-between items-center">
           <div>
             <h2 className="text-lg font-bold text-gray-800 flex items-center">
@@ -90,7 +140,10 @@ const PoliticiansTab: React.FC = () => {
       </div>
 
       {/* Activity ranking card */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 p-4">
+      <div
+        className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 p-4 animate-fadeIn"
+        style={{ animationDelay: "0.2s" }}
+      >
         <h2 className="text-lg font-bold text-gray-800 flex items-center mb-4">
           <BarChart3 size={18} className="mr-2 text-indigo-600" />
           活動指数ランキング

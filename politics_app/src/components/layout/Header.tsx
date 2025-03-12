@@ -1,19 +1,28 @@
 // politics_app/src/components/layout/Header.tsx
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, Award, Crown, ArrowLeft } from "lucide-react";
 import { useData } from "../../context/DataContext";
+import SearchBar from "../common/SearchBar"; // 検索バーコンポーネントをインポート
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isScrolled, activeTab, setActiveTab, setMobileMenuOpen } = useData();
 
+  // 検索バーの展開状態を管理
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
   const isPoliticianDetail =
     location.pathname.includes("/politicians/") &&
     location.pathname !== "/politicians";
   const isPartyDetail =
     location.pathname.includes("/parties/") && location.pathname !== "/parties";
+
+  // 検索バーの展開状態変更時のハンドラー
+  const handleSearchExpandChange = (expanded: boolean) => {
+    setIsSearchExpanded(expanded);
+  };
 
   return (
     <header
@@ -53,8 +62,15 @@ const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* App title */}
-        <Link to="/" className="text-center">
+        {/* App title - モバイル時に検索バー展開時は非表示 */}
+        <Link
+          to="/"
+          className={`text-center transition-all duration-300 ${
+            isSearchExpanded
+              ? "opacity-0 sm:opacity-100 w-0 sm:w-auto overflow-hidden"
+              : "opacity-100 w-auto"
+          }`}
+        >
           <h1
             className={`font-bold transition-all duration-300 flex items-center ${
               isScrolled
@@ -67,7 +83,7 @@ const Header: React.FC = () => {
           </h1>
         </Link>
 
-        {/* Navigation or back button */}
+        {/* 検索バーを追加（Navigation/back buttonの代わりに配置） */}
         {isPoliticianDetail ? (
           <button
             onClick={() => navigate(-1)}
@@ -94,47 +110,60 @@ const Header: React.FC = () => {
           location.pathname === "/politicians" ||
           location.pathname === "/parties" ? (
           <div
-            className={`hidden md:flex space-x-1 rounded-full backdrop-blur-sm p-1 ${
-              isScrolled ? "bg-gray-100" : "bg-white/20"
+            className={`flex items-center space-x-4 ${
+              isSearchExpanded ? "flex-grow justify-end sm:flex-grow-0" : ""
             }`}
           >
-            <button
-              onClick={() => {
-                setActiveTab("politicians");
-                navigate("/"); // Changed from "/"
-              }}
-              className={`px-3 py-1 text-xs font-medium rounded-full transition ${
-                activeTab === "politicians"
-                  ? isScrolled
-                    ? "bg-white text-indigo-600 shadow-sm"
-                    : "bg-white/90 text-indigo-600"
-                  : isScrolled
-                  ? "text-gray-600"
-                  : "text-white"
+            {/* 検索バー */}
+            <SearchBar
+              isScrolled={isScrolled}
+              onExpandChange={handleSearchExpandChange}
+            />
+
+            {/* タブ切り替え（中・大画面以上で表示） */}
+            <div
+              className={`hidden md:flex space-x-1 rounded-full backdrop-blur-sm p-1 ${
+                isScrolled ? "bg-gray-100" : "bg-white/20"
               }`}
             >
-              政治家
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("parties");
-                navigate("/parties"); // Changed from "/parties"
-              }}
-              className={`px-3 py-1 text-xs font-medium rounded-full transition ${
-                activeTab === "parties"
-                  ? isScrolled
-                    ? "bg-white text-indigo-600 shadow-sm"
-                    : "bg-white/90 text-indigo-600"
-                  : isScrolled
-                  ? "text-gray-600"
-                  : "text-white"
-              }`}
-            >
-              政党
-            </button>
+              <button
+                onClick={() => {
+                  setActiveTab("politicians");
+                  navigate("/");
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                  activeTab === "politicians"
+                    ? isScrolled
+                      ? "bg-white text-indigo-600 shadow-sm"
+                      : "bg-white/90 text-indigo-600"
+                    : isScrolled
+                    ? "text-gray-600"
+                    : "text-white"
+                }`}
+              >
+                政治家
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("parties");
+                  navigate("/parties");
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition ${
+                  activeTab === "parties"
+                    ? isScrolled
+                      ? "bg-white text-indigo-600 shadow-sm"
+                      : "bg-white/90 text-indigo-600"
+                    : isScrolled
+                    ? "text-gray-600"
+                    : "text-white"
+                }`}
+              >
+                政党
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="w-8 md:w-16"></div> // Spacer for layout consistency
+          <div className="w-8 md:w-16"></div> // スペーサー（レイアウトの一貫性のため）
         )}
       </div>
     </header>

@@ -11,7 +11,8 @@ import {
 import { useData } from "../../context/DataContext";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
-import { processPartiesData } from "../../utils/dataUtils"; // 新しいユーティリティをインポート
+import LoadingAnimation from "../common/LoadingAnimation"; // ローディングアニメーションをインポート
+import { processPartiesData } from "../../utils/dataUtils";
 import { Party } from "../../types";
 
 const PartiesTab: React.FC = () => {
@@ -25,11 +26,14 @@ const PartiesTab: React.FC = () => {
     const loadParties = () => {
       try {
         setLoading(true);
-        const data = processPartiesData();
-        setParties(data);
+        // スケルトンローディング用の遅延（実際の環境では不要）
+        setTimeout(() => {
+          const data = processPartiesData();
+          setParties(data);
+          setLoading(false);
+        }, 1000);
       } catch (error) {
         console.error("政党データの読み込みに失敗しました:", error);
-      } finally {
         setLoading(false);
       }
     };
@@ -37,8 +41,29 @@ const PartiesTab: React.FC = () => {
     loadParties();
   }, []);
 
+  // スケルトンローディング表示
   if (loading) {
-    return <div className="text-center py-4">データを読み込んでいます...</div>;
+    return (
+      <div className="space-y-6">
+        {/* スケルトン：プレミアムバナー */}
+        <div className="h-20 bg-gray-100 rounded-xl animate-pulse"></div>
+
+        {/* スケルトン：政党カード */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+          <div className="p-4 border-b border-gray-100">
+            <div className="w-48 h-6 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div className="w-72 h-4 bg-gray-100 rounded animate-pulse"></div>
+          </div>
+
+          <div className="p-8 flex flex-col items-center justify-center">
+            <LoadingAnimation
+              type="bar"
+              message="政党データを読み込んでいます"
+            />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -46,7 +71,7 @@ const PartiesTab: React.FC = () => {
       {/* Premium banner */}
       <PremiumBanner />
 
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
         <div className="p-4 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-800 flex items-center">
             <TrendingUp size={18} className="mr-2 text-indigo-600" />
@@ -105,17 +130,17 @@ const PartiesTab: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Progress bar */}
+                {/* Progress bar with animation */}
                 <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex mb-2">
                   <div
-                    className="h-full rounded-l-full"
+                    className="h-full rounded-l-full transition-width duration-1000 ease-in-out"
                     style={{
                       width: `${party.supportRate}%`,
                       backgroundColor: "#10B981",
                     }}
                   ></div>
                   <div
-                    className="h-full rounded-r-full"
+                    className="h-full rounded-r-full transition-width duration-1000 ease-in-out"
                     style={{
                       width: `${party.opposeRate}%`,
                       backgroundColor: "#EF4444",

@@ -72,7 +72,7 @@ export const processPartiesData = (): Party[] => {
   });
 };
 
-// JSONデータを処理してアプリケーションのデータモデルに合わせる
+// JSONデータを処理してアプリケーションのデータモデルに合わせる（ふりがなフィールド対応版）
 export const processPoliticiansData = (): Politician[] => {
   return politiciansData
     .filter(
@@ -81,9 +81,14 @@ export const processPoliticiansData = (): Politician[] => {
     .map((item, index) => {
       const partyId = generatePartyId(item.affiliation);
 
+      // ふりがなフィールドのサポート追加
+      // JSONデータから直接furiganaを取得（存在する場合）
+      const furigana = item.furigana || extractFurigana(item.name);
+
       return {
         id: `p${index + 1}`, // 一意のIDを生成
         name: item.name,
+        furigana: furigana, // ふりがなフィールドを追加
         position: item.type || "議員",
         age: Math.floor(Math.random() * 30) + 35, // 35-65の乱数（元データにないため）
         party: {
@@ -95,7 +100,7 @@ export const processPoliticiansData = (): Politician[] => {
         opposeRate: 0, // あとで計算
         totalVotes: Math.floor(Math.random() * 5000) + 2000, // ランダムな投票数
         activity: Math.floor(Math.random() * 40) + 50, // 50-90のランダムな活動指数
-        image: getLocalImagePath(item.name), // public/images/内の画像を参照
+        image: item.image_url || getLocalImagePath(item.name), // 画像URLがある場合はそれを使用、無い場合はローカル画像を参照
         trending: Math.random() > 0.5 ? "up" : "down", // ランダムなトレンド
         recentActivity: "最近の活動情報",
       };
@@ -105,6 +110,21 @@ export const processPoliticiansData = (): Politician[] => {
       politician.opposeRate = 100 - politician.supportRate;
       return politician;
     });
+};
+
+// 名前からふりがなを抽出する補助関数
+const extractFurigana = (name: string): string => {
+  if (!name) return "";
+
+  // カタカナとひらがなの正規表現
+  const kanaRegex = /[\u3040-\u30FF]+/g;
+  const matches = name.match(kanaRegex);
+
+  if (matches) {
+    return matches.join("");
+  }
+
+  return "";
 };
 
 // 政党ごとにランダムな政策を生成する補助関数
@@ -149,4 +169,19 @@ export const getPoliticianById = (id: string): Politician | undefined => {
 export const getPartyById = (id: string): Party | undefined => {
   const allParties = processPartiesData();
   return allParties.find((party) => party.id === id);
+};
+
+// キーワードで政治家を検索する（名前とふりがなで部分一致検索）
+export const searchPoliticians = (keyword: string): Politician[] => {
+  if (!keyword.trim()) return [];
+
+  const searchTerm = keyword.toLowerCase();
+  const allPoliticians = processPoliticiansData();
+
+  return allPoliticians.filter((politician) => {
+    const name = politician.name.toLowerCase();
+    const furigana = politician.furigana?.toLowerCase() || "";
+
+    return name.includes(searchTerm) || furigana.includes(searchTerm);
+  });
 };

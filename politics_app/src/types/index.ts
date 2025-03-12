@@ -1,5 +1,5 @@
-// types/index.ts (MODIFIED)
-// Basic types for the application
+// src/types/index.ts
+// アプリケーションの基本型定義
 
 export interface Party {
   id: string;
@@ -16,6 +16,7 @@ export interface Party {
 export interface Politician {
   id: string;
   name: string;
+  furigana?: string; // ふりがなフィールドを追加（オプション）
   position: string;
   age: number;
   party: {
@@ -39,11 +40,11 @@ export interface Comment {
   user: string;
   likes: number;
   date: string;
-  // New properties for flattened structure
-  isParentComment: boolean; // Indicates if this is a parent comment or a reply
-  parentId?: string; // ID of the parent comment (null for parent comments)
-  replyToId?: string; // ID of the comment being replied to (could be parent or another reply)
-  replyToUser?: string; // Username of the person being replied to
+  // フラット構造のための新しいプロパティ
+  isParentComment: boolean; // 親コメントかどうかを示す
+  parentId?: string; // 親コメントのID（親コメントの場合はnull）
+  replyToId?: string; // 返信先コメントのID（親コメントまたは別の返信）
+  replyToUser?: string; // 返信先のユーザー名
 }
 
 export interface ReasonsData {
