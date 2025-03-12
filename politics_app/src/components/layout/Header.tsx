@@ -23,6 +23,8 @@ const Header: React.FC = () => {
 
   // モバイル向けの状態管理
   const [hideBackButton, setHideBackButton] = useState(false);
+  // タイトル表示制御用の状態を追加
+  const [hideTitleCompletely, setHideTitleCompletely] = useState(false);
 
   // refs for handling outside clicks
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -75,19 +77,20 @@ const Header: React.FC = () => {
     clearSearch();
     setIsSearchExpanded(false);
 
-    // モバイルの場合、わずかな遅延後に「戻るボタン」を表示
-    if (isMobile) {
-      setTimeout(() => {
-        setHideBackButton(false);
-      }, 300);
-    }
+    // タイトルと戻るボタンはトランジション完了後に表示する
+    // hideTitleCompletelyはすぐには変更せず、トランジション完了後に変更
+    setTimeout(() => {
+      setHideBackButton(false);
+      setHideTitleCompletely(false);
+    }, 300); // 300msはsearch barのtransition durationと同じ値
   };
 
   // 検索バーを開く
   const expandSearchBar = () => {
-    // モバイルの場合、「戻るボタン」を非表示
+    // モバイルの場合、「戻るボタン」とタイトルを即時非表示
     if (isMobile) {
       setHideBackButton(true);
+      setHideTitleCompletely(true);
     }
 
     setIsSearchExpanded(true);
@@ -165,21 +168,23 @@ const Header: React.FC = () => {
             />
           </button>
 
-          {/* App title - モバイルの検索バー展開時は非表示 */}
-          <Link
-            to="/"
-            className={`flex items-center ${
-              isSearchExpanded && isMobile ? "hidden sm:flex" : "flex"
-            }`}
-          >
-            <h1
-              className={`font-bold tracking-wide transition-all duration-300 ${
-                isScrolled ? "text-slate-800 text-lg" : "text-white text-lg"
+          {/* App title - hideTitleCompletelyに基づいて完全に表示/非表示 */}
+          {!hideTitleCompletely && (
+            <Link
+              to="/"
+              className={`flex items-center transition-opacity duration-300 ${
+                isSearchExpanded && isMobile ? "opacity-0" : "opacity-100"
               }`}
             >
-              POLITICS HUB
-            </h1>
-          </Link>
+              <h1
+                className={`font-bold tracking-wide transition-all duration-300 ${
+                  isScrolled ? "text-slate-800 text-lg" : "text-white text-lg"
+                }`}
+              >
+                POLITICS HUB
+              </h1>
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center">
@@ -229,7 +234,7 @@ const Header: React.FC = () => {
             </div>
           )}
 
-          {/* Back button - モバイルかつ検索バー展開時は非表示 */}
+          {/* Back button - hideBackButtonに基づいて表示/非表示 */}
           {!hideBackButton && isPoliticianDetail && (
             <button
               onClick={() => navigate(-1)}
@@ -244,7 +249,7 @@ const Header: React.FC = () => {
             </button>
           )}
 
-          {/* Back button for party detail - モバイルかつ検索バー展開時は非表示 */}
+          {/* Back button for party detail - hideBackButtonに基づいて表示/非表示 */}
           {!hideBackButton && isPartyDetail && (
             <button
               onClick={() => navigate("/parties")}
@@ -277,7 +282,7 @@ const Header: React.FC = () => {
               >
                 <Search
                   size={16}
-                  className={`${isScrolled ? "text-slate-500" : "text-white"}`}
+                  className={isScrolled ? "text-slate-500" : "text-white"}
                 />
               </div>
 
