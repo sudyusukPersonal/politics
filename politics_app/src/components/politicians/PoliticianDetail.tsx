@@ -15,21 +15,15 @@ import TrendIcon from "../common/TrendIcon";
 import VoteButtons from "../common/VoteButtons";
 import VoteForm from "./VoteForm";
 import CommentSection from "../comments/CommentSection";
-import PremiumBanner from "../common/PremiumBanner";
-import LoadingAnimation from "../common/LoadingAnimation"; // ローディングアニメーションをインポート
-import { getPoliticianById, getPartyById } from "../../utils/dataUtils";
-import { Politician, Party } from "../../types";
+import LoadingAnimation from "../common/LoadingAnimation";
+import { getPoliticianById } from "../../utils/dataUtils";
+import { Politician } from "../../types";
 
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    handlePartySelect,
-    voteType,
-    showReasonForm,
-    parties,
-    setSelectedPolitician,
-  } = useData();
+  const { handlePartySelect, voteType, showReasonForm, setSelectedPolitician } =
+    useData();
 
   const [politician, setPolitician] = useState<Politician | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,8 +149,6 @@ const PoliticianDetail: React.FC = () => {
               </div>
               <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 mt-1">
                 <span>{politician.position}</span>
-                <span className="mx-2">•</span>
-                <span>{politician.age}歳</span>
                 {politician.furigana && (
                   <>
                     <span className="mx-2">•</span>
@@ -259,7 +251,6 @@ const PoliticianDetail: React.FC = () => {
           {!showReasonForm ? <VoteButtons /> : <VoteForm voteType={voteType} />}
         </div>
       </div>
-      <PremiumBanner />
 
       {/* Comments section */}
       <div

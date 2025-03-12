@@ -12,7 +12,7 @@ import {
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
-import LoadingAnimation from "../common/LoadingAnimation"; // ローディングアニメーションをインポート
+import LoadingAnimation from "../common/LoadingAnimation";
 import { processPoliticiansData, getPartyById } from "../../utils/dataUtils";
 import { Party, Politician } from "../../types";
 

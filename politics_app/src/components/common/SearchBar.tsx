@@ -7,7 +7,7 @@ import { Politician } from "../../types";
 
 interface SearchBarProps {
   isScrolled: boolean;
-  onExpandChange?: (expanded: boolean) => void; // 展開状態が変わったときに通知するコールバック
+  onExpandChange?: (expanded: boolean) => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -132,21 +132,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <div ref={searchBarRef} className="relative flex items-center">
+    <div ref={searchBarRef} className="relative">
       <div
         className={`flex items-center overflow-hidden transition-all duration-300 ${
           isScrolled ? "bg-gray-100" : "bg-white/20 backdrop-blur-sm"
         } rounded-full ${
-          isExpanded ? "w-56 sm:w-64 pl-3" : "w-8 sm:w-9 cursor-pointer"
+          isExpanded ? "w-40 sm:w-56" : "w-8 sm:w-8 cursor-pointer"
         }`}
       >
-        <Search
-          size={18}
-          className={`flex-shrink-0 ${
-            isScrolled ? "text-gray-500" : "text-white"
-          } ${isExpanded ? "mr-2" : "mx-auto"} cursor-pointer`}
+        {/* 虫眼鏡アイコンはボタンの中央に配置（非拡張時） */}
+        <div
+          className={`flex items-center justify-center ${
+            isExpanded ? "pl-3 pr-2" : "w-full"
+          }`}
           onClick={toggleSearch}
-        />
+        >
+          <Search
+            size={16}
+            className={`${
+              isScrolled ? "text-gray-500" : "text-white"
+            } cursor-pointer`}
+          />
+        </div>
 
         <input
           ref={inputRef}
@@ -157,15 +164,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onFocus={() => setShowResults(searchResults.length > 0)}
           className={`${
             isScrolled ? "text-gray-900" : "text-white placeholder-white/70"
-          } bg-transparent border-none outline-none text-sm w-full py-2 transition-opacity duration-300 ${
-            isExpanded ? "opacity-100" : "opacity-0 w-0 p-0"
+          } bg-transparent border-none outline-none text-sm flex-grow py-2 transition-opacity duration-300 ${
+            isExpanded ? "opacity-100 w-full" : "opacity-0 w-0 p-0"
           }`}
         />
 
         {isExpanded && searchTerm && (
           <button
             onClick={clearSearch}
-            className={`mr-2 p-1 rounded-full ${
+            className={`p-1 rounded-full mr-1 ${
               isScrolled
                 ? "text-gray-500 hover:bg-gray-200"
                 : "text-white hover:bg-white/20"
@@ -180,7 +187,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       {showResults && (
         <div
           ref={resultsRef}
-          className="absolute top-full right-0 mt-2 w-64 sm:w-80 bg-white rounded-lg shadow-lg overflow-hidden z-50 max-h-96 overflow-y-auto animate-fadeIn"
+          className="absolute top-full right-0 mt-2 w-64 sm:w-72 bg-white rounded-lg shadow-lg overflow-hidden z-50 max-h-96 overflow-y-auto animate-fadeIn"
         >
           {searchResults.length > 0 ? (
             <div className="divide-y divide-gray-100">
