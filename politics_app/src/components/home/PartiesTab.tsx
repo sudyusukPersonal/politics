@@ -1,3 +1,4 @@
+// src/components/home/PartiesTab.tsx
 import React, { useEffect, useState } from "react";
 import {
   TrendingUp,
@@ -10,43 +11,35 @@ import {
 import { useData } from "../../context/DataContext";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
+import { processPartiesData } from "../../utils/dataUtils"; // 新しいユーティリティをインポート
+import { Party } from "../../types";
 
 const PartiesTab: React.FC = () => {
-  const { parties, getPoliticiansByParty, handlePartySelect } = useData();
+  const { getPoliticiansByParty, handlePartySelect } = useData();
 
-  interface Party {
-    id: string;
-    name: string;
-    color: string;
-    supportRate: number;
-    opposeRate: number;
-    totalVotes: number;
-    members: number;
-    keyPolicies: string[];
-    description: string;
-  }
-
-  interface PertyResponse {
-    parties: Party[];
-  }
-
-  const [po, setPo] = useState<Party[]>([]);
+  const [parties, setParties] = useState<Party[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPoliticians = async () => {
+    // バックエンドAPIの代わりにJSONファイルからデータを読み込む
+    const loadParties = () => {
       try {
-        const response = await fetch("http://localhost:8080/parties");
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        const data: PertyResponse = await response.json();
-        setPo(data.parties);
+        setLoading(true);
+        const data = processPartiesData();
+        setParties(data);
       } catch (error) {
-        console.error("Failed to fetch politicians:", error);
+        console.error("政党データの読み込みに失敗しました:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchPoliticians();
+
+    loadParties();
   }, []);
+
+  if (loading) {
+    return <div className="text-center py-4">データを読み込んでいます...</div>;
+  }
 
   return (
     <section className="space-y-6">
@@ -65,7 +58,7 @@ const PartiesTab: React.FC = () => {
         </div>
 
         <div className="p-4 space-y-6">
-          {po.map((party, index) => (
+          {parties.map((party, index) => (
             <React.Fragment key={party.id}>
               <div
                 className="relative hover:bg-gray-50 p-2 rounded-lg transition cursor-pointer"
@@ -135,9 +128,7 @@ const PartiesTab: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 mb-2">
                     <div className="flex items-center mb-1 sm:mb-0">
                       <Users size={12} className="mr-1 flex-shrink-0" />
-                      <span>
-                        所属議員: {getPoliticiansByParty(party.id).length}名
-                      </span>
+                      <span>所属議員: {party.members}名</span>
                     </div>
                     <span className="flex items-center">
                       <Activity size={12} className="mr-1 flex-shrink-0" />

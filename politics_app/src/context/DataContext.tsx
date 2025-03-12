@@ -1,4 +1,4 @@
-// politics_app/src/context/DataContext.tsx
+// src/context/DataContext.tsx
 import React, {
   createContext,
   useState,
@@ -8,11 +8,10 @@ import React, {
   JSX,
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { politicians as initialPoliticians } from "../data/politicians";
-import { parties as initialParties } from "../data/parties";
-import { reasonsData as initialReasonsData } from "../data/reasons";
 import { Politician, Party, ReasonsData } from "../types";
 import { TrendingUp, Activity } from "lucide-react";
+import { processPoliticiansData, processPartiesData } from "../utils/dataUtils"; // 新しいユーティリティをインポート
+import { reasonsData as initialReasonsData } from "../data/reasons"; // この部分はそのまま
 
 // Create context type
 interface DataContextType {
@@ -95,12 +94,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // State
-  const [politicians, setPoliticians] =
-    useState<Politician[]>(initialPoliticians);
-  const [parties, setParties] = useState<Party[]>(initialParties);
+  // JSONファイルから読み込んだデータで初期化
+  const [politicians, setPoliticians] = useState<Politician[]>(
+    processPoliticiansData()
+  );
+  const [parties, setParties] = useState<Party[]>(processPartiesData());
   const [reasonsData, setReasonsData] =
     useState<ReasonsData>(initialReasonsData);
+
   const [selectedPolitician, setSelectedPolitician] =
     useState<Politician | null>(null);
   const [selectedParty, setSelectedParty] = useState<Party | null>(null);
@@ -124,11 +125,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Helper functions
-  const getPoliticianById = (id: string) => {
+  // 特定のIDの政治家を取得する関数
+  const getPoliticianByIdHelper = (id: string) => {
     return politicians.find((politician) => politician.id === id);
   };
 
-  const getPartyById = (id: string) => {
+  // 特定のIDの政党を取得する関数
+  const getPartyByIdHelper = (id: string) => {
     return parties.find((party) => party.id === id);
   };
 
@@ -460,8 +463,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setMobileMenuOpen,
 
         // Helper functions
-        getPoliticianById,
-        getPartyById,
+        getPoliticianById: getPoliticianByIdHelper,
+        getPartyById: getPartyByIdHelper,
         handlePoliticianSelect,
         handlePartySelect,
         handleBackToParties,

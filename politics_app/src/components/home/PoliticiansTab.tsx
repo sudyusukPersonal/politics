@@ -1,9 +1,12 @@
+// src/components/home/PoliticiansTab.tsx
 import React, { useEffect, useState } from "react";
 import { Users, BarChart3, ChevronRight } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
+import { processPoliticiansData } from "../../utils/dataUtils"; // 新しいユーティリティをインポート
+import { Politician } from "../../types";
 
 const PoliticiansTab: React.FC = () => {
   const {
@@ -12,58 +15,37 @@ const PoliticiansTab: React.FC = () => {
     handlePoliticianSelect,
   } = useData();
 
-  interface Party {
-    id: string;
-    name: string;
-    color: string;
-    supportRate: number;
-    // その他のパーティプロパティ
-  }
-
-  interface Politician {
-    id: string;
-    name: string;
-    position: string;
-    age: number;
-    party: Party;
-    supportRate: number;
-    opposeRate: number;
-    totalVotes: number;
-    activity: number;
-    image: string;
-    trending: string;
-    recentActivity: string;
-  }
-
-  interface PoliticiansResponse {
-    politicians: Politician[];
-  }
-
-  const [po, setPo] = useState<Politician[]>([]);
+  const [politicians, setPoliticians] = useState<Politician[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPoliticians = async () => {
+    // バックエンドAPIの代わりにJSONファイルからデータを読み込む
+    const loadPoliticians = () => {
       try {
-        const response = await fetch("http://localhost:8080/politicians");
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        const data: PoliticiansResponse = await response.json();
-        setPo(data.politicians);
+        setLoading(true);
+        const data = processPoliticiansData();
+        setPoliticians(data);
       } catch (error) {
-        console.error("Failed to fetch politicians:", error);
+        console.error("政治家データの読み込みに失敗しました:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchPoliticians();
+
+    loadPoliticians();
   }, []);
 
-  // Get top politicians by support rate
-  const topPoliticians = getSortedPoliticians(po).slice(0, 3);
+  // 支持率順にトップの政治家を取得
+  const topPoliticians = getSortedPoliticians(politicians).slice(0, 3);
 
-  // Get top politicians by activity
-  const mostActivePoliticians = [...po]
+  // 活動指数順に政治家を取得
+  const mostActivePoliticians = [...politicians]
     .sort((a, b) => b.activity - a.activity)
     .slice(0, 3);
+
+  if (loading) {
+    return <div className="text-center py-4">データを読み込んでいます...</div>;
+  }
 
   return (
     <section className="space-y-6">

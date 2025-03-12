@@ -1,3 +1,4 @@
+// src/components/politicians/PoliticianCard.tsx
 import React from "react";
 import { Calendar, ChevronRight } from "lucide-react";
 import { Politician } from "../../types";
@@ -48,7 +49,7 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
           </div>
 
           <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-1">
-            <span className="truncate">{politician.position}</span>
+            <span className="truncate">{politician.party.name}</span>
             <span className="mx-2 flex-shrink-0">•</span>
             <span className="flex-shrink-0">{politician.age}歳</span>
           </div>

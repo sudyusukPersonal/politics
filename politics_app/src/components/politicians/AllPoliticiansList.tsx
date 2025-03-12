@@ -1,3 +1,4 @@
+// src/components/politicians/AllPoliticiansList.tsx
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, Users } from "lucide-react";
 import { useData } from "../../context/DataContext";
@@ -5,62 +6,39 @@ import PoliticianCard from "./PoliticianCard";
 import SortDropdown from "../common/SortDropdown";
 import PremiumBanner from "../common/PremiumBanner";
 import InlineAdBanner from "../ads/InlineAdBanner";
+import { processPoliticiansData } from "../../utils/dataUtils"; // 新しいユーティリティをインポート
+import { Politician } from "../../types";
 
 const AllPoliticiansList: React.FC = () => {
-  const {
-    handleBackToPoliticians,
-    getSortedPoliticians,
-    politicians,
-    selectedPolitician,
-  } = useData();
+  const { handleBackToPoliticians, getSortedPoliticians, selectedPolitician } =
+    useData();
 
-  interface Party {
-    id: string;
-    name: string;
-    color: string;
-    supportRate: number;
-    // その他のパーティプロパティ
-  }
-
-  interface Politician {
-    id: string;
-    name: string;
-    position: string;
-    age: number;
-    party: Party;
-    supportRate: number;
-    opposeRate: number;
-    totalVotes: number;
-    activity: number;
-    image: string;
-    trending: string;
-    recentActivity: string;
-  }
-
-  interface PoliticiansResponse {
-    politicians: Politician[];
-  }
-
-  const [po, setPo] = useState<Politician[]>([]);
+  const [politicians, setPoliticians] = useState<Politician[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPoliticians = async () => {
+    // バックエンドAPIの代わりにJSONファイルからデータを読み込む
+    const loadPoliticians = () => {
       try {
-        const response = await fetch("http://localhost:8080/politicians");
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        const data: PoliticiansResponse = await response.json();
-        setPo(data.politicians);
+        setLoading(true);
+        const data = processPoliticiansData();
+        setPoliticians(data);
       } catch (error) {
-        console.error("Failed to fetch politicians:", error);
+        console.error("政治家データの読み込みに失敗しました:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchPoliticians();
+
+    loadPoliticians();
   }, []);
 
   // Get sorted politicians based on the current sort method
-  const sortedPoliticians = getSortedPoliticians(po);
+  const sortedPoliticians = getSortedPoliticians(politicians);
+
+  if (loading) {
+    return <div className="text-center py-4">データを読み込んでいます...</div>;
+  }
 
   return (
     <section className="space-y-4">

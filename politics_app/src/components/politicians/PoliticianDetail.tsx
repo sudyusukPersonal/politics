@@ -1,4 +1,4 @@
-// politics_app/src/components/politicians/PoliticianDetail.tsx
+// src/components/politicians/PoliticianDetail.tsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -16,6 +16,8 @@ import VoteButtons from "../common/VoteButtons";
 import VoteForm from "./VoteForm";
 import CommentSection from "../comments/CommentSection";
 import PremiumBanner from "../common/PremiumBanner";
+import { getPoliticianById, getPartyById } from "../../utils/dataUtils"; // 新しいユーティリティをインポート
+import { Politician, Party } from "../../types";
 
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,54 +27,34 @@ const PoliticianDetail: React.FC = () => {
     voteType,
     showReasonForm,
     parties,
-
     setSelectedPolitician,
   } = useData();
-  ////////////////////////////////////////
-
-  interface Party {
-    id: string;
-    name: string;
-    color: string;
-    supportRate: number;
-    // その他のパーティプロパティ
-  }
-
-  interface Politician {
-    id: string;
-    name: string;
-    position: string;
-    age: number;
-    party: Party;
-    supportRate: number;
-    opposeRate: number;
-    totalVotes: number;
-    activity: number;
-    image: string;
-    trending: string;
-    recentActivity: string;
-  }
 
   const [politician, setPolitician] = useState<Politician | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPoliticians = async () => {
-      setIsLoading(true);
+    // バックエンドAPIの代わりにJSONファイルからデータを読み込む
+    const loadPolitician = () => {
       try {
-        const response = await fetch("http://localhost:8080/politicians/" + id);
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+        setIsLoading(true);
+        if (!id) {
+          throw new Error("政治家IDが見つかりません");
         }
-        const data: Politician = await response.json();
-        setPolitician(data);
+        const data = getPoliticianById(id);
+        if (data) {
+          setPolitician(data);
+        } else {
+          throw new Error("指定されたIDの政治家が見つかりません");
+        }
       } catch (error) {
-        console.error("Failed to fetch politicians:", error);
+        console.error("政治家データの読み込みに失敗しました:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchPoliticians();
+
+    loadPolitician();
   }, [id]);
 
   useEffect(() => {
@@ -89,6 +71,22 @@ const PoliticianDetail: React.FC = () => {
     window.scrollTo(0, 0);
   }, [politician, isLoading, navigate, setSelectedPolitician]);
 
+  // 政党詳細ページへの移動
+  const handlePartyClick = () => {
+    if (politician) {
+      // 政党IDをもとに政党データを取得して移動
+      navigate(`/parties/${politician.party.id}`);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="text-center py-4">データを読み込んでいます...</div>;
+  }
+
+  if (!politician) {
+    return <div className="text-center py-4">政治家が見つかりません</div>;
+  }
+
   return (
     <section className="space-y-4">
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
@@ -98,43 +96,35 @@ const PoliticianDetail: React.FC = () => {
             <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
               <div
                 className="absolute inset-0 rounded-full blur-sm opacity-30"
-                style={{ backgroundColor: politician?.party.color }}
+                style={{ backgroundColor: politician.party.color }}
               ></div>
               <img
-                src={politician?.image}
-                alt={politician?.name}
+                src={politician.image}
+                alt={politician.name}
                 className="w-20 h-20 relative rounded-full object-cover border-2 z-10"
-                style={{ borderColor: politician?.party.color }}
+                style={{ borderColor: politician.party.color }}
               />
             </div>
             <div className="sm:ml-6 text-center sm:text-left">
               <div className="flex flex-col sm:flex-row sm:items-center">
-                <h2 className="text-xl font-bold">{politician?.name}</h2>
+                <h2 className="text-xl font-bold">{politician.name}</h2>
                 <div className="mt-1 sm:mt-0 sm:ml-3">
-                  {politician && <TrendIcon trend={politician.trending} />}
+                  <TrendIcon trend={politician.trending} />
                 </div>
               </div>
               <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 mt-1">
-                <span>{politician?.position}</span>
+                <span>{politician.position}</span>
                 <span className="mx-2">•</span>
-                <span>{politician?.age}歳</span>
+                <span>{politician.age}歳</span>
               </div>
               {/* Party badge/button */}
               <div
                 className="mt-2 px-3 py-1 rounded-full text-white text-xs inline-flex items-center cursor-pointer"
-                style={{ backgroundColor: politician?.party.color }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const party = parties.find(
-                    (p) => p.id === politician?.party.id
-                  );
-                  if (party) {
-                    handlePartySelect(party);
-                  }
-                }}
+                style={{ backgroundColor: politician.party.color }}
+                onClick={handlePartyClick}
               >
                 <Building size={12} className="mr-1" />
-                {politician?.party.name}
+                {politician.party.name}
               </div>
             </div>
           </div>
@@ -144,7 +134,7 @@ const PoliticianDetail: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
               <h3 className="font-bold text-gray-700 mb-1 sm:mb-0">市民評価</h3>
               <span className="text-sm text-gray-500">
-                総投票数: {politician?.totalVotes.toLocaleString()}
+                総投票数: {politician.totalVotes.toLocaleString()}
               </span>
             </div>
 
@@ -157,13 +147,13 @@ const PoliticianDetail: React.FC = () => {
                     <span className="text-sm font-medium">支持</span>
                   </div>
                   <span className="text-xl font-bold text-green-600">
-                    {politician?.supportRate}%
+                    {politician.supportRate}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
                   <div
                     className="h-full rounded-full bg-green-500"
-                    style={{ width: `${politician?.supportRate}%` }}
+                    style={{ width: `${politician.supportRate}%` }}
                   ></div>
                 </div>
               </div>
@@ -175,13 +165,13 @@ const PoliticianDetail: React.FC = () => {
                     <span className="text-sm font-medium">不支持</span>
                   </div>
                   <span className="text-xl font-bold text-red-600">
-                    {politician?.opposeRate}%
+                    {politician.opposeRate}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
                   <div
                     className="h-full rounded-full bg-red-500"
-                    style={{ width: `${politician?.opposeRate}%` }}
+                    style={{ width: `${politician.opposeRate}%` }}
                   ></div>
                 </div>
               </div>
@@ -192,14 +182,14 @@ const PoliticianDetail: React.FC = () => {
               <div
                 className="h-full rounded-l-full transition-all duration-700 ease-in-out"
                 style={{
-                  width: `${politician?.supportRate}%`,
+                  width: `${politician.supportRate}%`,
                   backgroundColor: "#10B981",
                 }}
               ></div>
               <div
                 className="h-full rounded-r-full transition-all duration-700 ease-in-out"
                 style={{
-                  width: `${politician?.opposeRate}%`,
+                  width: `${politician.opposeRate}%`,
                   backgroundColor: "#EF4444",
                 }}
               ></div>
@@ -209,11 +199,11 @@ const PoliticianDetail: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500">
               <span className="flex items-center mb-1 sm:mb-0">
                 <Eye size={12} className="mr-1" />
-                最近の活動: {politician?.recentActivity}
+                最近の活動: {politician.recentActivity}
               </span>
               <span className="flex items-center">
                 <Activity size={12} className="mr-1" />
-                活動指数: {politician?.activity}
+                活動指数: {politician.activity}
               </span>
             </div>
           </div>
