@@ -2,12 +2,12 @@
 import React, { useState } from "react";
 import { Send, CornerDownRight } from "lucide-react";
 import { Comment, Reply } from "../../types";
-// addReplyToComment
-import { addReplyToComment } from "../../services/commentService";
+import { useReplyData } from "../../context/ReplyDataContext"; // 新しいコンテキストを使用
+import { useParams } from "react-router-dom";
 
 // 仮のユーザー情報（後で本格的な認証に置き換える）
 const MOCK_CURRENT_USER = {
-  uid: "user_123",
+  uid: "user_anonymous",
   displayName: "匿名ユーザー",
   email: "anonymous@example.com",
 };
@@ -23,6 +23,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
   replyingTo,
   onClose,
 }) => {
+  const { id: politicianId } = useParams<{ id: string }>();
   // State to manage the text input for the reply
   const [replyText, setReplyText] = useState("");
 
@@ -31,6 +32,9 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
 
   // State to manage any submission errors
   const [error, setError] = useState<string | null>(null);
+
+  // Use the ReplyData context
+  const { addReply, refreshComments } = useReplyData();
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -47,23 +51,31 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      // Prepare the new reply object
-      const newReply: Omit<Reply, "id" | "createdAt"> = {
+      // Prepare reply data according to Firestore structure
+      const newReply = {
         text: replyText,
         userID: MOCK_CURRENT_USER.uid,
         userName: MOCK_CURRENT_USER.displayName || "匿名ユーザー",
-        likes: 0,
+        // Firestore用の命名規則に合わせて構築
         replyTo: replyingTo
           ? {
               replyID: replyingTo.id,
-              replyToUserID: replyingTo.userID,
-              replyToUserName: replyingTo.userName,
+              replyToUserID: replyingTo.userID || replyingTo.user_id,
+              replyToUserName: replyingTo.userName || replyingTo.user_name,
             }
           : undefined,
       };
 
-      // Add reply to the comment in Firestore
-      await addReplyToComment(comment.id, newReply);
+      // Add reply using the context method
+      await addReply(comment.id, newReply);
+      console.log("返信が正常に送信されました");
+
+      // Refresh comments to show the new reply
+      if (politicianId) {
+        setTimeout(() => {
+          refreshComments(politicianId);
+        }, 500); // 少し遅延させてFirestoreの更新を確実に反映させる
+      }
 
       // Reset form and close
       setReplyText("");
@@ -78,6 +90,12 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
     }
   };
 
+  // Helper function to get display name for the reply target
+  const getReplyTargetName = () => {
+    if (!replyingTo) return "";
+    return replyingTo.userName || replyingTo.user_name || "不明なユーザー";
+  };
+
   return (
     <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200 animate-slideUp">
       <form onSubmit={handleSubmit}>
@@ -86,7 +104,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
           <div className="flex items-center text-xs text-gray-500 mb-2">
             <CornerDownRight size={12} className="mr-1" />
             <span className="font-medium text-gray-600">
-              @{replyingTo.userName}
+              @{getReplyTargetName()}
             </span>
             <span className="ml-1">に返信</span>
           </div>

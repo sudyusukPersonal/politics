@@ -51,24 +51,30 @@ export interface ReasonsData {
   support: Comment[];
   oppose: Comment[];
 }
-
-// Updated comment types to match Firebase structure
+// Updated Reply types to match Firebase structure
 export interface ReplyTo {
-  replyID?: string;
-  replyToUserID: string;
-  replyToUserName: string;
+  reply_id: string;
+  reply_to_user_id: string;
+  reply_to_username: string;
 }
 
 export interface Reply {
-  user_name: string;
-  reply_to: any;
   id: string;
   text: string;
-  userID: string;
-  userName: string;
+  userID?: string; // クライアント側の命名規則
+  user_id?: string; // Firestore側の命名規則
+  userName?: string; // クライアント側の命名規則
+  user_name?: string; // Firestore側の命名規則
   createdAt: string | Date;
+  created_at?: string | Date; // Firestore側の命名規則
   likes: number;
-  replyTo?: ReplyTo;
+  reply_to?: ReplyTo; // Firestore側の構造
+  replyTo?: {
+    // クライアント側向けの構造
+    replyID: string;
+    replyToUserID: string;
+    replyToUserName: string;
+  };
 }
 
 export interface Comment {

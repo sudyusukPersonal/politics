@@ -8,8 +8,9 @@ import {
   doc,
   getDoc,
   Timestamp,
+  arrayUnion,
 } from "firebase/firestore";
-import { db } from "../config/firebaseConfig"; // Ensure you have a Firebase config file
+import { db } from "../config/firebaseConfig";
 import { Comment, Reply } from "../types";
 
 // Helper to convert Firestore timestamp to Date
@@ -39,7 +40,7 @@ export const fetchCommentsByPoliticianId = async (
       likes: doc.data().likes || 0,
       replies: (doc.data().replies || []).map((reply: any) => ({
         ...reply,
-        createdAt: convertTimestamp(reply.createdAt),
+        createdAt: convertTimestamp(reply.created_at),
       })),
       repliesCount: doc.data().replies?.length || 0,
       type: doc.data().type,
@@ -71,24 +72,43 @@ export const fetchCommentById = async (commentId: string): Promise<void> => {
 // Add a reply to an existing comment
 export const addReplyToComment = async (
   commentId: string,
-  newReply: Omit<Reply, "id" | "createdAt">
+  newReply: any
 ): Promise<void> => {
   try {
     // Reference to the specific comment document
     const commentRef = doc(db, "comments", commentId);
 
-    // Prepare the reply with server timestamp
+    // Get the current comment data to check existing replies
+    const commentSnap = await getDoc(commentRef);
+    if (!commentSnap.exists()) {
+      throw new Error("コメントが見つかりません");
+    }
+
+    // Format the reply object to match Firestore structure
     const replyToAdd = {
-      ...newReply,
-      createdAt: Timestamp.now(),
-      id: "", // Firebase will generate a unique ID
+      id: `reply_${Date.now()}`, // 一意のIDを生成
+      text: newReply.text,
+      user_id: newReply.userID,
+      user_name: newReply.userName,
+      created_at: Timestamp.now(),
+      likes: 0,
+      reply_to: newReply.replyTo
+        ? {
+            reply_id: newReply.replyTo.replyID,
+            reply_to_user_id: newReply.replyTo.replyToUserID,
+            reply_to_username: newReply.replyTo.replyToUserName,
+          }
+        : null,
     };
 
-    // Update the comment document to add the new reply
+    // Update the comment document by adding the new reply to the replies array
     await updateDoc(commentRef, {
-      replies: [...(replyToAdd.replies || []), replyToAdd],
-      repliesCount: (replyToAdd.repliesCount || 0) + 1,
+      replies: arrayUnion(replyToAdd),
+      // Update the reply count
+      repliesCount: (commentSnap.data().replies?.length || 0) + 1,
     });
+
+    console.log("返信が正常に追加されました", replyToAdd);
   } catch (error) {
     console.error("返信の追加中にエラーが発生しました:", error);
     throw error;
@@ -102,10 +122,14 @@ export const addNewComment = async (
   try {
     // Add the comment to Firestore
     const commentRef = await addDoc(collection(db, "comments"), {
-      ...newComment,
-      createdAt: Timestamp.now(),
+      text: newComment.text,
+      user_id: newComment.userID,
+      user_name: newComment.userName,
+      politician_id: newComment.politicianID,
+      created_at: Timestamp.now(),
+      likes: 0,
       replies: [],
-      repliesCount: 0,
+      type: newComment.type,
     });
 
     return commentRef.id;
@@ -115,25 +139,35 @@ export const addNewComment = async (
   }
 };
 
-// Like a comment or reply
-
+// Like a comment
 export const likeComment = async (
   commentId: string,
   replyId?: string
 ): Promise<void> => {
   try {
     const commentRef = doc(db, "comments", commentId);
+    const commentSnap = await getDoc(commentRef);
 
-    // Logic to increment likes depends on whether it's a main comment or a reply
+    if (!commentSnap.exists()) {
+      throw new Error("コメントが見つかりません");
+    }
+
     if (replyId) {
-      // For replies, you'd need to update a specific reply's likes
-      await updateDoc(commentRef, {
-        // Specific logic to update reply likes
+      // For replies, we need to find and update a specific reply's likes
+      const commentData = commentSnap.data();
+      const replies = commentData.replies || [];
+      const updatedReplies = replies.map((reply: any) => {
+        if (reply.id === replyId) {
+          return { ...reply, likes: (reply.likes || 0) + 1 };
+        }
+        return reply;
       });
+
+      await updateDoc(commentRef, { replies: updatedReplies });
     } else {
-      // For main comments
+      // For main comments, simply increment the likes counter
       await updateDoc(commentRef, {
-        likes: increment(1),
+        likes: (commentSnap.data().likes || 0) + 1,
       });
     }
   } catch (error) {

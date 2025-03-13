@@ -1,39 +1,26 @@
-// Updated CommentSection to work with Firebase comments
-import React, { useEffect, useState } from "react";
+// Updated CommentSection to work with ReplyDataContext
+import React, { useEffect } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useParams } from "react-router-dom";
-import { useData } from "../../context/DataContext";
 import CommentItem from "./CommentItem";
 import InlineAdBanner from "../ads/InlineAdBanner";
-import { Comment } from "../../types";
-import { fetchCommentsByPoliticianId } from "../../services/commentService";
+import { useReplyData } from "../../context/ReplyDataContext"; // 新しいコンテキストを使用
 
 const CommentSection: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    comments,
+    isLoadingComments,
+    commentError,
+    fetchCommentsByPolitician,
+  } = useReplyData();
 
   useEffect(() => {
-    const loadComments = async () => {
-      if (!id) return;
-
-      try {
-        setIsLoading(true);
-        const fetchedComments = await fetchCommentsByPoliticianId(id);
-        // console.log(fetchedComments);
-        setComments(fetchedComments);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch comments:", err);
-        setError("コメントの読み込みに失敗しました");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadComments();
-  }, [id]);
+    // 政治家IDがある場合、そのコメントを取得
+    if (id) {
+      fetchCommentsByPolitician(id);
+    }
+  }, [id, fetchCommentsByPolitician]);
 
   // Separate comments by type
   const supportComments = comments.filter(
@@ -43,12 +30,31 @@ const CommentSection: React.FC = () => {
     (comment) => comment.type === "oppose"
   );
 
-  if (isLoading) {
-    return <div>読み込み中...</div>;
+  if (isLoadingComments) {
+    return (
+      <div className="p-4 flex justify-center items-center">
+        <div className="animate-pulse flex space-x-2">
+          <div className="h-2 w-2 bg-indigo-500 rounded-full"></div>
+          <div className="h-2 w-2 bg-indigo-500 rounded-full"></div>
+          <div className="h-2 w-2 bg-indigo-500 rounded-full"></div>
+        </div>
+        <span className="ml-2 text-gray-500">読み込み中...</span>
+      </div>
+    );
   }
 
-  if (error) {
-    return <div>{error}</div>;
+  if (commentError) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-100 rounded-lg text-red-500 text-center">
+        <p>{commentError}</p>
+        <button
+          onClick={() => id && fetchCommentsByPolitician(id)}
+          className="mt-2 text-sm bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-full"
+        >
+          再読み込み
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -82,6 +88,12 @@ const CommentSection: React.FC = () => {
                 )}
             </React.Fragment>
           ))}
+
+          {supportComments.length === 0 && (
+            <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
+              まだ支持するコメントはありません。
+            </div>
+          )}
         </div>
       </div>
 
@@ -101,6 +113,12 @@ const CommentSection: React.FC = () => {
           {opposeComments.map((comment) => (
             <CommentItem key={comment.id} comment={comment} type="oppose" />
           ))}
+
+          {opposeComments.length === 0 && (
+            <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
+              まだ不支持のコメントはありません。
+            </div>
+          )}
         </div>
       </div>
     </>
