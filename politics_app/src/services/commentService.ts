@@ -45,8 +45,6 @@ export const fetchCommentsByPoliticianId = async (
       type: doc.data().type,
     }));
 
-    console.log("Fetched Comments:", comments);
-
     return comments;
   } catch (error) {
     console.error("コメントの取得中にエラーが発生しました:", error);

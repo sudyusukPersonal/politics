@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Send, CornerDownRight } from "lucide-react";
 import { Comment, Reply } from "../../types";
+// addReplyToComment
 import { addReplyToComment } from "../../services/commentService";
 
 // 仮のユーザー情報（後で本格的な認証に置き換える）
