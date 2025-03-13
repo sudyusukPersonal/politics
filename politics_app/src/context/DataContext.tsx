@@ -12,7 +12,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Politician, Party, ReasonsData } from "../types";
 import { TrendingUp, Activity } from "lucide-react";
 import { processPoliticiansData, processPartiesData } from "../utils/dataUtils";
-import { reasonsData as initialReasonsData } from "../data/reasons";
+// import { reasonsData as initialReasonsData } from "../data/reasons";
 
 // Context type definition
 interface DataContextType {
@@ -137,8 +137,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   // Application state
   const [politicians, setPoliticians] = useState<Politician[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
-  const [reasonsData, setReasonsData] =
-    useState<ReasonsData>(initialReasonsData);
+  // const [reasonsData, setReasonsData] =
+  //   useState<ReasonsData>(initialReasonsData);
 
   const [selectedPolitician, setSelectedPolitician] =
     useState<Politician | null>(null);
@@ -258,96 +258,96 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setReplyText("");
   };
 
-  const handleSubmitReply = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // const handleSubmitReply = (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
 
-    if (!replyText.trim() || !replyingTo) return;
+  //   if (!replyText.trim() || !replyingTo) return;
 
-    const newReply = {
-      id: `reply-${Date.now()}`,
-      text: replyText,
-      user: "あなた",
-      likes: 0,
-      date: "たった今",
-      replyTo: replyingTo.comment.user,
-      replies: [],
-    };
+  //   const newReply = {
+  //     id: `reply-${Date.now()}`,
+  //     text: replyText,
+  //     user: "あなた",
+  //     likes: 0,
+  //     date: "たった今",
+  //     replyTo: replyingTo.comment.user,
+  //     replies: [],
+  //   };
 
-    const updatedReasonsData = { ...reasonsData };
+  //   const updatedReasonsData = { ...reasonsData };
 
-    // Direct reply to parent comment
-    if (!replyingTo.parentComment) {
-      const type = replyingTo.comment.id.startsWith("r")
-        ? reasonsData.support.some((r) => r.id === replyingTo.comment.id)
-          ? "support"
-          : "oppose"
-        : null;
+  //   // Direct reply to parent comment
+  //   if (!replyingTo.parentComment) {
+  //     const type = replyingTo.comment.id.startsWith("r")
+  //       ? reasonsData.support.some((r) => r.id === replyingTo.comment.id)
+  //         ? "support"
+  //         : "oppose"
+  //       : null;
 
-      if (type) {
-        const commentIndex = updatedReasonsData[type].findIndex(
-          (c) => c.id === replyingTo.comment.id
-        );
-        if (commentIndex !== -1) {
-          updatedReasonsData[type][commentIndex].replies.push(newReply);
-        }
-      }
-    }
-    // Reply to a nested reply
-    else {
-      const type = replyingTo.parentComment.id.startsWith("r")
-        ? reasonsData.support.some((r) => r.id === replyingTo.parentComment.id)
-          ? "support"
-          : "oppose"
-        : null;
+  //     if (type) {
+  //       const commentIndex = updatedReasonsData[type].findIndex(
+  //         (c) => c.id === replyingTo.comment.id
+  //       );
+  //       if (commentIndex !== -1) {
+  //         updatedReasonsData[type][commentIndex].replies.push(newReply);
+  //       }
+  //     }
+  //   }
+  //   // Reply to a nested reply
+  //   else {
+  //     const type = replyingTo.parentComment.id.startsWith("r")
+  //       ? reasonsData.support.some((r) => r.id === replyingTo.parentComment.id)
+  //         ? "support"
+  //         : "oppose"
+  //       : null;
 
-      if (type) {
-        const commentIndex = updatedReasonsData[type].findIndex(
-          (c) => c.id === replyingTo.parentComment.id
-        );
-        if (commentIndex !== -1) {
-          // Find the target reply and add the new reply to it
-          const findAndAddReply = (replies: any[], targetId: string) => {
-            for (let i = 0; i < replies.length; i++) {
-              if (replies[i].id === targetId) {
-                replies[i].replies.push(newReply);
-                return true;
-              }
+  //     if (type) {
+  //       const commentIndex = updatedReasonsData[type].findIndex(
+  //         (c) => c.id === replyingTo.parentComment.id
+  //       );
+  //       if (commentIndex !== -1) {
+  //         // Find the target reply and add the new reply to it
+  //         const findAndAddReply = (replies: any[], targetId: string) => {
+  //           for (let i = 0; i < replies.length; i++) {
+  //             if (replies[i].id === targetId) {
+  //               replies[i].replies.push(newReply);
+  //               return true;
+  //             }
 
-              // Recursively search deeper levels
-              if (replies[i].replies && replies[i].replies.length) {
-                if (findAndAddReply(replies[i].replies, targetId)) {
-                  return true;
-                }
-              }
-            }
-            return false;
-          };
+  //             // Recursively search deeper levels
+  //             if (replies[i].replies && replies[i].replies.length) {
+  //               if (findAndAddReply(replies[i].replies, targetId)) {
+  //                 return true;
+  //               }
+  //             }
+  //           }
+  //           return false;
+  //         };
 
-          findAndAddReply(
-            updatedReasonsData[type][commentIndex].replies,
-            replyingTo.comment.id
-          );
-        }
-      }
-    }
+  //         findAndAddReply(
+  //           updatedReasonsData[type][commentIndex].replies,
+  //           replyingTo.comment.id
+  //         );
+  //       }
+  //     }
+  //   }
 
-    setReasonsData(updatedReasonsData);
-    setReplyingTo(null);
-    setReplyText("");
+  //   setReasonsData(updatedReasonsData);
+  //   setReplyingTo(null);
+  //   setReplyText("");
 
-    // Expand the replied comment thread
-    if (replyingTo.parentComment) {
-      setExpandedComments((prev) => ({
-        ...prev,
-        [replyingTo.parentComment.id]: true,
-      }));
-    } else {
-      setExpandedComments((prev) => ({
-        ...prev,
-        [replyingTo.comment.id]: true,
-      }));
-    }
-  };
+  //   // Expand the replied comment thread
+  //   if (replyingTo.parentComment) {
+  //     setExpandedComments((prev) => ({
+  //       ...prev,
+  //       [replyingTo.parentComment.id]: true,
+  //     }));
+  //   } else {
+  //     setExpandedComments((prev) => ({
+  //       ...prev,
+  //       [replyingTo.comment.id]: true,
+  //     }));
+  //   }
+  // };
 
   const handleCancelReply = () => {
     setReplyingTo(null);
@@ -500,7 +500,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         // State
         politicians,
         parties,
-        reasonsData,
+        // reasonsData,
         selectedPolitician,
         selectedParty,
         voteType,
@@ -524,7 +524,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         // State setters
         setPoliticians,
         setParties,
-        setReasonsData,
+        // setReasonsData,
         setSelectedPolitician,
         setSelectedParty,
         setVoteType,
@@ -551,7 +551,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         showAllPoliticiansList,
         toggleCommentReplies,
         handleReplyClick,
-        handleSubmitReply,
+        // handleSubmitReply,
         handleCancelReply,
         countAllReplies,
         getSortedPoliticians,
