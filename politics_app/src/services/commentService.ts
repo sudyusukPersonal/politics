@@ -69,11 +69,11 @@ export const fetchCommentById = async (commentId: string): Promise<void> => {
   }
 };
 
-// Add a reply to an existing comment
+// Add a reply to an existing comment - now returns the created reply object
 export const addReplyToComment = async (
   commentId: string,
   newReply: any
-): Promise<void> => {
+): Promise<Reply> => {
   try {
     // Reference to the specific comment document
     const commentRef = doc(db, "comments", commentId);
@@ -109,6 +109,28 @@ export const addReplyToComment = async (
     });
 
     console.log("返信が正常に追加されました", replyToAdd);
+
+    // Convert the reply to the format expected by the client
+    const clientReply: Reply = {
+      id: replyToAdd.id,
+      text: replyToAdd.text,
+      userID: replyToAdd.user_id,
+      userName: replyToAdd.user_name,
+      createdAt: convertTimestamp(replyToAdd.created_at),
+      likes: replyToAdd.likes,
+      reply_to: replyToAdd.reply_to || undefined,
+      // Also include client-side format for compatibility
+      replyTo: replyToAdd.reply_to
+        ? {
+            replyID: replyToAdd.reply_to.reply_id,
+            replyToUserID: replyToAdd.reply_to.reply_to_user_id,
+            replyToUserName: replyToAdd.reply_to.reply_to_username,
+          }
+        : undefined,
+    };
+
+    // Return the reply for UI update
+    return clientReply;
   } catch (error) {
     console.error("返信の追加中にエラーが発生しました:", error);
     throw error;

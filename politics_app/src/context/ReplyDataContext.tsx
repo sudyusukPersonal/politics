@@ -21,8 +21,10 @@ interface ReplyDataContextType {
 
   // Methods
   fetchCommentsByPolitician: (politicianId: string) => Promise<void>;
-  addReply: (commentId: string, replyData: any) => Promise<void>;
+  addReply: (commentId: string, replyData: any) => Promise<Reply>;
   refreshComments: (politicianId: string) => Promise<void>;
+  // New method to update local comments state
+  updateLocalComments: (commentId: string, newReply: Reply) => void;
 }
 
 // Context creation
@@ -67,29 +69,41 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
     [fetchCommentsByPolitician]
   );
 
+  // New method to update local comments state without fetching from database
+  const updateLocalComments = useCallback(
+    (commentId: string, newReply: Reply) => {
+      setComments((prevComments) => {
+        return prevComments.map((comment) => {
+          if (comment.id === commentId) {
+            // Create a new comment object with updated replies array and incremented repliesCount
+            return {
+              ...comment,
+              replies: [...comment.replies, newReply],
+              repliesCount: comment.repliesCount + 1,
+            };
+          }
+          return comment;
+        });
+      });
+    },
+    []
+  );
+
   // Add a reply to a comment
   const addReply = useCallback(
-    async (commentId: string, replyData: any) => {
+    async (commentId: string, replyData: any): Promise<Reply> => {
       try {
-        await addReplyToComment(commentId, replyData);
+        // Call API to add reply to the database
+        const createdReply = await addReplyToComment(commentId, replyData);
 
-        // Find the comment that was updated
-        const currentPoliticianId = comments.find(
-          (c) => c.id === commentId
-        )?.politicianID;
-
-        // Refresh comments if possible
-        if (currentPoliticianId) {
-          await refreshComments(currentPoliticianId);
-        }
-
-        return Promise.resolve();
+        // Return the created reply to be used in UI update
+        return createdReply;
       } catch (error) {
         console.error("返信の追加中にエラーが発生しました:", error);
         return Promise.reject(error);
       }
     },
-    [comments, refreshComments]
+    []
   );
 
   return (
@@ -101,6 +115,7 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
         fetchCommentsByPolitician,
         addReply,
         refreshComments,
+        updateLocalComments, // Export the new method
       }}
     >
       {children}

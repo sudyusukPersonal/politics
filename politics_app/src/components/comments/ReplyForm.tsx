@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Send, CornerDownRight } from "lucide-react";
 import { Comment, Reply } from "../../types";
-import { useReplyData } from "../../context/ReplyDataContext"; // 新しいコンテキストを使用
+import { useReplyData } from "../../context/ReplyDataContext";
 import { useParams } from "react-router-dom";
 
 // 仮のユーザー情報（後で本格的な認証に置き換える）
@@ -33,8 +33,8 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
   // State to manage any submission errors
   const [error, setError] = useState<string | null>(null);
 
-  // Use the ReplyData context
-  const { addReply, refreshComments } = useReplyData();
+  // Use the ReplyData context with new updateLocalComments method
+  const { addReply, updateLocalComments } = useReplyData();
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -66,16 +66,13 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
           : undefined,
       };
 
-      // Add reply using the context method
-      await addReply(comment.id, newReply);
-      console.log("返信が正常に送信されました");
+      // Add reply using the context method - now gets the created reply back
+      const createdReply = await addReply(comment.id, newReply);
 
-      // Refresh comments to show the new reply
-      if (politicianId) {
-        setTimeout(() => {
-          refreshComments(politicianId);
-        }, 500); // 少し遅延させてFirestoreの更新を確実に反映させる
-      }
+      // Update the local UI state with the new reply
+      updateLocalComments(comment.id, createdReply);
+
+      console.log("返信が正常に送信されました");
 
       // Reset form and close
       setReplyText("");

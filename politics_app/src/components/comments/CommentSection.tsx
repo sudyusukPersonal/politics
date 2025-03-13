@@ -1,10 +1,10 @@
-// Updated CommentSection to work with ReplyDataContext
-import React, { useEffect } from "react";
+// Updated CommentSection with optimized rendering
+import React, { useEffect, useMemo } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useParams } from "react-router-dom";
 import CommentItem from "./CommentItem";
 import InlineAdBanner from "../ads/InlineAdBanner";
-import { useReplyData } from "../../context/ReplyDataContext"; // 新しいコンテキストを使用
+import { useReplyData } from "../../context/ReplyDataContext";
 
 const CommentSection: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +15,7 @@ const CommentSection: React.FC = () => {
     fetchCommentsByPolitician,
   } = useReplyData();
 
+  // Initial fetch of comments when component mounts
   useEffect(() => {
     // 政治家IDがある場合、そのコメントを取得
     if (id) {
@@ -22,13 +23,12 @@ const CommentSection: React.FC = () => {
     }
   }, [id, fetchCommentsByPolitician]);
 
-  // Separate comments by type
-  const supportComments = comments.filter(
-    (comment) => comment.type === "support"
-  );
-  const opposeComments = comments.filter(
-    (comment) => comment.type === "oppose"
-  );
+  // Memoize the separated comments to avoid unnecessary re-renders
+  const { supportComments, opposeComments } = useMemo(() => {
+    const support = comments.filter((comment) => comment.type === "support");
+    const oppose = comments.filter((comment) => comment.type === "oppose");
+    return { supportComments: support, opposeComments: oppose };
+  }, [comments]);
 
   if (isLoadingComments) {
     return (

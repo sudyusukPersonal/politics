@@ -1,4 +1,4 @@
-// Updated ReplyItem to work with Firebase comment structure
+// Updated ReplyItem with optimized rendering
 import React, { useState } from "react";
 import { CornerDownRight, ThumbsUp } from "lucide-react";
 import { Reply, Comment } from "../../types";
@@ -30,17 +30,28 @@ const ReplyItem: React.FC<ReplyItemProps> = ({ reply, parentComment }) => {
   const closeReplyForm = () => {
     setIsReplyFormVisible(false);
   };
-  console.log(reply);
+
+  // Use normalized properties to handle both client and server naming conventions
+  const userName = reply.userName || reply.user_name;
+  const replyTo =
+    reply.reply_to ||
+    (reply.replyTo
+      ? {
+          reply_id: reply.replyTo.replyID,
+          reply_to_user_id: reply.replyTo.replyToUserID,
+          reply_to_username: reply.replyTo.replyToUserName,
+        }
+      : null);
 
   return (
     <div className="mt-2 animate-fadeIn">
       <div className="rounded-lg p-3 border bg-white border-gray-100">
         {/* Reply reference header */}
-        {reply.reply_to && (
+        {replyTo && (
           <div className="flex items-center mb-2 text-xs text-gray-500">
             <CornerDownRight size={12} className="mr-1" />
             <span className="font-medium text-gray-600">
-              @{reply.reply_to.reply_to_username}
+              @{replyTo.reply_to_username}
             </span>
             <span className="ml-1">への返信</span>
           </div>
@@ -52,7 +63,7 @@ const ReplyItem: React.FC<ReplyItemProps> = ({ reply, parentComment }) => {
         {/* Reply metadata and actions */}
         <div className="flex justify-between mt-2 items-center">
           <div className="flex items-center text-xs text-gray-500">
-            <span className="font-medium">{reply.user_name}</span>
+            <span className="font-medium">{userName}</span>
             <span className="mx-2">•</span>
             <span>{formatDate(reply.createdAt)}</span>
           </div>

@@ -1,9 +1,10 @@
-// Updated CommentItem to work with Firebase comment structure
-import React, { useState } from "react";
+// Updated CommentItem to work with Firebase comment structure and optimize rendering
+import React, { useState, useEffect } from "react";
 import { MessageCircle, ThumbsUp, ChevronUp, ChevronDown } from "lucide-react";
 import { Comment, Reply } from "../../types";
 import ReplyItem from "./ReplyItem";
 import ReplyForm from "./ReplyForm";
+import { useReplyData } from "../../context/ReplyDataContext";
 
 interface CommentItemProps {
   comment: Comment;
@@ -13,6 +14,17 @@ interface CommentItemProps {
 const CommentItem: React.FC<CommentItemProps> = ({ comment, type }) => {
   const [isRepliesExpanded, setIsRepliesExpanded] = useState(false);
   const [isReplyFormVisible, setIsReplyFormVisible] = useState(false);
+  const { comments } = useReplyData(); // Access to track reply changes
+
+  // Use effect to expand replies section when new replies are added
+  useEffect(() => {
+    // Find this comment in the latest comments array to check if replies were added
+    const latestComment = comments.find((c) => c.id === comment.id);
+    if (latestComment && latestComment.repliesCount > 0 && isReplyFormVisible) {
+      // If we just added a reply (form is visible) and there are replies, expand them
+      setIsRepliesExpanded(true);
+    }
+  }, [comments, comment.id, isReplyFormVisible]);
 
   const toggleReplies = () => {
     setIsRepliesExpanded(!isRepliesExpanded);
@@ -36,7 +48,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, type }) => {
       minute: "2-digit",
     });
   };
-  // console.log(comment);
+
   return (
     <div className="mb-3">
       {/* Parent comment */}
