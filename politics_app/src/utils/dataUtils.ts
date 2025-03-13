@@ -1,5 +1,5 @@
 // src/utils/dataUtils.ts
-import politiciansData from "../data/merged_politicians.json";
+import politiciansData from "../data/politicians_with_id.json";
 import { Politician, Party } from "../types";
 
 // キャッシング用のグローバル変数
@@ -113,7 +113,7 @@ export const processPoliticiansData = (): Politician[] => {
       const furigana = item.furigana || extractFurigana(item.name);
 
       return {
-        id: `p${index + 1}`, // 一意のIDを生成
+        id: item.id, // 一意のIDを生成
         name: item.name,
         furigana: furigana, // ふりがなフィールドを追加
         position: item.type || "議員",
