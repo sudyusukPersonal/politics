@@ -127,7 +127,7 @@ export const processPoliticiansData = (): Politician[] => {
         opposeRate: 0, // あとで計算
         totalVotes: Math.floor(Math.random() * 5000) + 2000, // ランダムな投票数
         activity: Math.floor(Math.random() * 40) + 50, // 50-90のランダムな活動指数
-        image: item.image_url || getLocalImagePath(item.name), // 画像URLがある場合はそれを使用、無い場合はローカル画像を参照
+        image: getLocalImagePath(item.name) || item.image_url, // 画像URLがある場合はそれを使用、無い場合はローカル画像を参照
         trending: Math.random() > 0.5 ? "up" : "down", // ランダムなトレンド
         recentActivity: "最近の活動情報",
       };
