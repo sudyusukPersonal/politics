@@ -210,3 +210,59 @@ export const fetchPoliticiansByPartyWithPagination = async (
     throw error;
   }
 };
+
+// 全政治家を15件ずつページネーションで取得
+export const fetchPoliticiansWithPagination = async (
+  lastDocumentId?: string,
+  limitCount: number = 15
+): Promise<{
+  politicians: Politician[];
+  lastDocumentId?: string;
+  hasMore: boolean;
+}> => {
+  try {
+    const politiciansRef = collection(db, "politicians");
+
+    let q;
+    if (!lastDocumentId) {
+      // 初回: 最初の15件のみを取得
+      q = query(
+        politiciansRef,
+        orderBy("supportCount", "desc"),
+        limit(limitCount)
+      );
+    } else {
+      // 追加読み込み: 前回の最後のドキュメントから次の15件
+      const lastDoc = await getDoc(doc(db, "politicians", lastDocumentId));
+
+      q = query(
+        politiciansRef,
+        orderBy("supportCount", "desc"),
+        startAfter(lastDoc),
+        limit(limitCount)
+      );
+    }
+
+    const querySnapshot = await getDocs(q);
+    console.log("querySnapshot", querySnapshot.docs);
+
+    const politicians = querySnapshot.docs.map((doc) =>
+      convertToPolitician(doc.id, doc.data())
+    );
+
+    // 次のページがあるかどうかを確認
+    const hasMore = politicians.length === limitCount;
+
+    const lastVisibleDocument =
+      querySnapshot.docs[querySnapshot.docs.length - 1];
+
+    return {
+      politicians,
+      lastDocumentId: lastVisibleDocument ? lastVisibleDocument.id : undefined,
+      hasMore,
+    };
+  } catch (error) {
+    console.error("全政治家取得エラー:", error);
+    throw error;
+  }
+};

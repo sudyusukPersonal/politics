@@ -1,48 +1,71 @@
 // src/components/politicians/AllPoliticiansList.tsx
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, Users } from "lucide-react";
+import { Politician } from "../../types";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "./PoliticianCard";
 import SortDropdown from "../common/SortDropdown";
 import PremiumBanner from "../common/PremiumBanner";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
+import { fetchPoliticiansWithPagination } from "../../services/politicianService"; // Assume this service is implemented
 
 const AllPoliticiansList: React.FC = () => {
-  const {
-    handleBackToPoliticians,
-    getSortedPoliticians,
-    globalPoliticians,
-    dataInitialized,
-    sortMethod,
-  } = useData();
+  const { handleBackToPoliticians, sortMethod, getSortedPoliticians } =
+    useData();
 
-  const [loading, setLoading] = useState(true);
+  const [politicians, setPoliticians] = useState<Politician[]>([]);
+  const [lastDocumentId, setLastDocumentId] = useState<string | undefined>(
+    undefined
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
-  // グローバルデータの初期化状態に基づいてローディング状態を更新
-  useEffect(() => {
-    if (dataInitialized) {
-      setLoading(false);
+  // 政治家読み込み関数
+  const loadMorePoliticians = async () => {
+    if (!isLoading && hasMore) {
+      try {
+        setIsLoading(true);
+        const result = await fetchPoliticiansWithPagination(lastDocumentId);
+
+        // マージソート方法を使用して新しく読み込んだ政治家をソート
+        const newPoliticians = getSortedPoliticians([
+          ...politicians,
+          ...result.politicians,
+        ]);
+
+        setPoliticians(newPoliticians);
+        setLastDocumentId(result.lastDocumentId);
+        setHasMore(result.hasMore);
+      } catch (error) {
+        console.error("政治家の読み込みに失敗しました:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [dataInitialized]);
+  };
 
-  // 現在のソート方法に基づいた政治家リストをメモ化
-  const sortedPoliticians = useMemo(() => {
-    return getSortedPoliticians(globalPoliticians);
-  }, [globalPoliticians, getSortedPoliticians, sortMethod]);
+  // 初回読み込み
+  useEffect(() => {
+    loadMorePoliticians();
+  }, []);
 
-  // モダンなローディング表示
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[300px] bg-white rounded-lg shadow-sm p-6">
-        <LoadingAnimation
-          type="spinner"
-          message="政治家データを読み込んでいます"
-          color="#4361EE"
-        />
-      </div>
-    );
-  }
+  // スクロール検出
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop + 100 >=
+          document.documentElement.offsetHeight &&
+        !isLoading &&
+        hasMore
+      ) {
+        loadMorePoliticians();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastDocumentId, isLoading, hasMore]);
 
   return (
     <section className="space-y-4">
@@ -73,9 +96,9 @@ const AllPoliticiansList: React.FC = () => {
           </p>
         </div>
 
-        {sortedPoliticians.length > 0 ? (
+        {politicians.length > 0 ? (
           <div>
-            {sortedPoliticians.map((politician, index) => (
+            {politicians.map((politician, index) => (
               <React.Fragment key={politician.id}>
                 <PoliticianCard politician={politician} index={index} />
 
@@ -87,11 +110,30 @@ const AllPoliticiansList: React.FC = () => {
                 )}
               </React.Fragment>
             ))}
+
+            {/* ローディング中のインジケーター */}
+            {isLoading && (
+              <div className="flex justify-center py-4">
+                <LoadingAnimation
+                  type="dots"
+                  message="政治家を読み込んでいます"
+                />
+              </div>
+            )}
+
+            {/* すべての政治家を読み込んだ場合のメッセージ */}
+            {!hasMore && (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                すべての政治家を表示しました
+              </div>
+            )}
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-500">
-            表示できる政治家データがありません
-          </div>
+          !isLoading && (
+            <div className="p-8 text-center text-gray-500">
+              表示できる政治家データがありません
+            </div>
+          )
         )}
       </div>
     </section>
