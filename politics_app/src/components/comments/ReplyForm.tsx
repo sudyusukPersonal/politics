@@ -33,8 +33,8 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
   // State to manage any submission errors
   const [error, setError] = useState<string | null>(null);
 
-  // Use the ReplyData context with new updateLocalComments method
-  const { addReply, updateLocalComments } = useReplyData();
+  // Use the ReplyData context with updateLocalReplies method
+  const { addReply, updateLocalReplies } = useReplyData();
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -69,8 +69,8 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
       // Add reply using the context method - now gets the created reply back
       const createdReply = await addReply(comment.id, newReply);
 
-      // Update the local UI state with the new reply
-      updateLocalComments(comment.id, createdReply);
+      // 改善点: Firestoreからの再取得なしでUIを更新
+      updateLocalReplies(comment.id, createdReply);
 
       console.log("返信が正常に送信されました");
 
