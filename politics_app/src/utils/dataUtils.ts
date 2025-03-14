@@ -130,6 +130,7 @@ export const processPoliticiansData = (): Politician[] => {
         image: getLocalImagePath(item.name) || item.image_url, // 画像URLがある場合はそれを使用、無い場合はローカル画像を参照
         trending: Math.random() > 0.5 ? "up" : "down", // ランダムなトレンド
         recentActivity: "最近の活動情報",
+        region: item.region || "未設定", // 地域情報を追加
       };
     })
     .map((politician) => {

@@ -14,6 +14,7 @@ export interface Party {
 }
 
 export interface Politician {
+  region: any;
   id: string;
   name: string;
   furigana?: string; // ふりがなフィールドを追加（オプション）

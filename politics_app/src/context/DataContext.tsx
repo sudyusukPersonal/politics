@@ -10,17 +10,16 @@ import React, {
   useCallback,
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Politician, Party, ReasonsData } from "../types";
+import { Politician, Party } from "../types";
 import { TrendingUp, Activity } from "lucide-react";
 import { processPoliticiansData, processPartiesData } from "../utils/dataUtils";
-// import { reasonsData as initialReasonsData } from "../data/reasons";
+import { fetchPoliticianById } from "../services/politicianService";
 
 // Context type definition
 interface DataContextType {
   // State
   politicians: Politician[];
   parties: Party[];
-  reasonsData: ReasonsData;
   selectedPolitician: Politician | null;
   selectedParty: Party | null;
   voteType: "support" | "oppose" | null;
@@ -39,12 +38,12 @@ interface DataContextType {
   showAllPoliticians: boolean;
   globalPoliticians: Politician[]; // Global politicians data
   globalParties: Party[]; // Global parties data
-  dataInitialized: boolean; // New flag to track if data is initialized
+  dataInitialized: boolean; // Flag to track if data is initialized
+  isLoadingPolitician: boolean; // New flag for politician loading state
 
   // State setters
   setPoliticians: React.Dispatch<React.SetStateAction<Politician[]>>;
   setParties: React.Dispatch<React.SetStateAction<Party[]>>;
-  setReasonsData: React.Dispatch<React.SetStateAction<ReasonsData>>;
   setSelectedPolitician: React.Dispatch<
     React.SetStateAction<Politician | null>
   >;
@@ -73,7 +72,6 @@ interface DataContextType {
   showAllPoliticiansList: () => void;
   toggleCommentReplies: (commentId: string) => void;
   handleReplyClick: (comment: any, parentComment?: any) => void;
-  handleSubmitReply: (e: React.FormEvent<HTMLFormElement>) => void;
   handleCancelReply: () => void;
   countAllReplies: (replies: any[]) => number;
   getSortedPoliticians: (politicianList: Politician[]) => Politician[];
@@ -86,8 +84,11 @@ interface DataContextType {
   >;
   setReason: React.Dispatch<React.SetStateAction<string>>;
   setShowReasonForm: React.Dispatch<React.SetStateAction<boolean>>;
-
   resetVoteData: () => void;
+
+  // New Firebase-specific functions
+  fetchPoliticianFromFirebase: (id: string) => Promise<Politician | null>;
+  refreshSelectedPolitician: (id: string) => Promise<void>;
 }
 
 // Context creation
@@ -100,6 +101,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   // React Router hooks
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Reset vote data handler
   const resetVoteData = useCallback(() => {
     setReason("");
     setVoteType(null);
@@ -111,6 +114,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [globalParties, setGlobalParties] = useState<Party[]>([]);
   const [dataInitialized, setDataInitialized] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [isLoadingPolitician, setIsLoadingPolitician] = useState(false);
 
   // Initialize global data on first load
   useEffect(() => {
@@ -144,9 +148,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   // Application state
   const [politicians, setPoliticians] = useState<Politician[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
-  // const [reasonsData, setReasonsData] =
-  //   useState<ReasonsData>(initialReasonsData);
-
   const [selectedPolitician, setSelectedPolitician] =
     useState<Politician | null>(null);
   const [selectedParty, setSelectedParty] = useState<Party | null>(null);
@@ -168,6 +169,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [showFixedBottomAd, setShowFixedBottomAd] = useState(true);
   const [showInlineAd] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAllPoliticians, setShowAllPoliticians] = useState(false);
 
   // Update local state from global data once it's initialized
   useEffect(() => {
@@ -176,6 +178,52 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
       setParties(globalParties);
     }
   }, [dataInitialized, dataLoading, globalPoliticians, globalParties]);
+
+  // Firebase-specific function to fetch a politician by ID directly from Firestore
+  const fetchPoliticianFromFirebase = useCallback(
+    async (id: string): Promise<Politician | null> => {
+      try {
+        setIsLoadingPolitician(true);
+        const politicianData = await fetchPoliticianById(id);
+        return politicianData;
+      } catch (error) {
+        console.error("Error fetching politician from Firebase:", error);
+        return null;
+      } finally {
+        setIsLoadingPolitician(false);
+      }
+    },
+    []
+  );
+
+  // Function to refresh the selected politician data from Firebase
+  const refreshSelectedPolitician = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        setIsLoadingPolitician(true);
+        const politicianData = await fetchPoliticianById(id);
+        if (politicianData) {
+          setSelectedPolitician(politicianData);
+
+          // Also update in the global politicians array if it exists there
+          setGlobalPoliticians((prev) => {
+            const index = prev.findIndex((p) => p.id === id);
+            if (index !== -1) {
+              const updatedPoliticians = [...prev];
+              updatedPoliticians[index] = politicianData;
+              return updatedPoliticians;
+            }
+            return prev;
+          });
+        }
+      } catch (error) {
+        console.error("Error refreshing politician data:", error);
+      } finally {
+        setIsLoadingPolitician(false);
+      }
+    },
+    []
+  );
 
   // Helper functions using memoization for efficiency
   // Get politician by ID using the global data
@@ -192,177 +240,96 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     };
   }, [globalParties]);
 
-  const handlePoliticianSelect = (politician: Politician) => {
-    setVoteType(null);
-    setShowReasonForm(false);
-    setExpandedComments({});
-    setReplyingTo(null);
-    setMobileMenuOpen(false);
+  // Modified to support Firebase integration
+  const handlePoliticianSelect = useCallback(
+    (politician: Politician) => {
+      // Reset UI states
+      setVoteType(null);
+      setShowReasonForm(false);
+      setExpandedComments({});
+      setReplyingTo(null);
+      setMobileMenuOpen(false);
 
-    // Navigate to politician detail page
-    navigate(`/politicians/${politician.id}`);
+      // Set the selected politician directly (the detail page will fetch fresh data)
+      setSelectedPolitician(politician);
 
-    // Scroll to top
-    window.scrollTo(0, 0);
-  };
+      // Navigate to politician detail page
+      navigate(`/politicians/${politician.id}`);
 
-  const handlePartySelect = (party: Party) => {
-    setMobileMenuOpen(false);
+      // Scroll to top
+      window.scrollTo(0, 0);
+    },
+    [
+      navigate,
+      setVoteType,
+      setShowReasonForm,
+      setExpandedComments,
+      setReplyingTo,
+      setMobileMenuOpen,
+    ]
+  );
 
-    // Navigate to party detail page
-    navigate(`/parties/${party.id}`);
+  const handlePartySelect = useCallback(
+    (party: Party) => {
+      setMobileMenuOpen(false);
+      setSelectedParty(party);
 
-    // Scroll to top
-    window.scrollTo(0, 0);
-  };
+      // Navigate to party detail page
+      navigate(`/parties/${party.id}`);
 
-  const handleBackToParties = () => {
+      // Scroll to top
+      window.scrollTo(0, 0);
+    },
+    [navigate, setMobileMenuOpen]
+  );
+
+  const handleBackToParties = useCallback(() => {
     navigate("/parties");
-  };
+  }, [navigate]);
 
-  const handleBackToPoliticians = () => {
+  const handleBackToPoliticians = useCallback(() => {
     navigate("/politicians");
-  };
+  }, [navigate]);
 
-  const handleVoteClick = (type: "support" | "oppose") => {
+  const handleVoteClick = useCallback((type: "support" | "oppose") => {
     setVoteType(type);
     setShowReasonForm(true);
-  };
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Submit vote
-    alert(
-      `${
-        voteType === "support" ? "支持" : "不支持"
-      }の理由を送信しました: ${reason}`
-    );
-    setReason("");
-    setVoteType(null);
-    setShowReasonForm(false);
-  };
-
-  const handleSortChange = (method: string) => {
+  const handleSortChange = useCallback((method: string) => {
     setSortMethod(method);
-  };
+  }, []);
 
-  const showAllPoliticiansList = () => {
+  const showAllPoliticiansList = useCallback(() => {
+    setShowAllPoliticians(true);
     navigate("/politicians");
-  };
+  }, [navigate]);
 
-  const toggleCommentReplies = (commentId: string) => {
+  const toggleCommentReplies = useCallback((commentId: string) => {
     setExpandedComments((prev) => ({
       ...prev,
       [commentId]: !prev[commentId],
     }));
-  };
+  }, []);
 
-  const handleReplyClick = (comment: any, parentComment: any = null) => {
-    setReplyingTo({
-      comment,
-      parentComment,
-    });
-    setReplyText("");
-  };
+  const handleReplyClick = useCallback(
+    (comment: any, parentComment: any = null) => {
+      setReplyingTo({
+        comment,
+        parentComment,
+      });
+      setReplyText("");
+    },
+    []
+  );
 
-  // const handleSubmitReply = (e: React.FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-
-  //   if (!replyText.trim() || !replyingTo) return;
-
-  //   const newReply = {
-  //     id: `reply-${Date.now()}`,
-  //     text: replyText,
-  //     user: "あなた",
-  //     likes: 0,
-  //     date: "たった今",
-  //     replyTo: replyingTo.comment.user,
-  //     replies: [],
-  //   };
-
-  //   const updatedReasonsData = { ...reasonsData };
-
-  //   // Direct reply to parent comment
-  //   if (!replyingTo.parentComment) {
-  //     const type = replyingTo.comment.id.startsWith("r")
-  //       ? reasonsData.support.some((r) => r.id === replyingTo.comment.id)
-  //         ? "support"
-  //         : "oppose"
-  //       : null;
-
-  //     if (type) {
-  //       const commentIndex = updatedReasonsData[type].findIndex(
-  //         (c) => c.id === replyingTo.comment.id
-  //       );
-  //       if (commentIndex !== -1) {
-  //         updatedReasonsData[type][commentIndex].replies.push(newReply);
-  //       }
-  //     }
-  //   }
-  //   // Reply to a nested reply
-  //   else {
-  //     const type = replyingTo.parentComment.id.startsWith("r")
-  //       ? reasonsData.support.some((r) => r.id === replyingTo.parentComment.id)
-  //         ? "support"
-  //         : "oppose"
-  //       : null;
-
-  //     if (type) {
-  //       const commentIndex = updatedReasonsData[type].findIndex(
-  //         (c) => c.id === replyingTo.parentComment.id
-  //       );
-  //       if (commentIndex !== -1) {
-  //         // Find the target reply and add the new reply to it
-  //         const findAndAddReply = (replies: any[], targetId: string) => {
-  //           for (let i = 0; i < replies.length; i++) {
-  //             if (replies[i].id === targetId) {
-  //               replies[i].replies.push(newReply);
-  //               return true;
-  //             }
-
-  //             // Recursively search deeper levels
-  //             if (replies[i].replies && replies[i].replies.length) {
-  //               if (findAndAddReply(replies[i].replies, targetId)) {
-  //                 return true;
-  //               }
-  //             }
-  //           }
-  //           return false;
-  //         };
-
-  //         findAndAddReply(
-  //           updatedReasonsData[type][commentIndex].replies,
-  //           replyingTo.comment.id
-  //         );
-  //       }
-  //     }
-  //   }
-
-  //   setReasonsData(updatedReasonsData);
-  //   setReplyingTo(null);
-  //   setReplyText("");
-
-  //   // Expand the replied comment thread
-  //   if (replyingTo.parentComment) {
-  //     setExpandedComments((prev) => ({
-  //       ...prev,
-  //       [replyingTo.parentComment.id]: true,
-  //     }));
-  //   } else {
-  //     setExpandedComments((prev) => ({
-  //       ...prev,
-  //       [replyingTo.comment.id]: true,
-  //     }));
-  //   }
-  // };
-
-  const handleCancelReply = () => {
+  const handleCancelReply = useCallback(() => {
     setReplyingTo(null);
     setReplyText("");
-  };
+  }, []);
 
   // Recursively count all replies
-  const countAllReplies = (replies: any[]) => {
+  const countAllReplies = useCallback((replies: any[]) => {
     let count = replies.length;
     for (const reply of replies) {
       if (reply.replies && reply.replies.length) {
@@ -370,7 +337,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
       }
     }
     return count;
-  };
+  }, []);
 
   // Sort politicians based on current method
   const getSortedPoliticians = useMemo(() => {
@@ -406,7 +373,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   }, [globalPoliticians]);
 
   // Trend icon component
-  const getTrendIcon = (trend: string) => {
+  const getTrendIcon = useCallback((trend: string) => {
     if (trend === "up") {
       return (
         <div className="inline-flex items-center text-green-500">
@@ -422,10 +389,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         </div>
       );
     }
-  };
+  }, []);
 
   // Sort label text
-  const getSortLabel = (method: string) => {
+  const getSortLabel = useCallback((method: string) => {
     switch (method) {
       case "supportDesc":
         return "支持率（高い順）";
@@ -442,7 +409,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
       default:
         return "ソート基準";
     }
-  };
+  }, []);
 
   // Search politicians by name or furigana
   const searchPoliticians = useMemo(() => {
@@ -504,14 +471,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <DataContext.Provider
       value={{
-        setVoteType,
-        setReason,
-        setShowReasonForm,
-        resetVoteData,
         // State
         politicians,
         parties,
-        // reasonsData,
         selectedPolitician,
         selectedParty,
         voteType,
@@ -527,15 +489,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         showFixedBottomAd,
         showInlineAd,
         mobileMenuOpen,
-        showAllPoliticians: false,
+        showAllPoliticians,
         globalPoliticians,
         globalParties,
         dataInitialized,
+        isLoadingPolitician,
 
         // State setters
         setPoliticians,
         setParties,
-        // setReasonsData,
         setSelectedPolitician,
         setSelectedParty,
         setActiveTab,
@@ -545,8 +507,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setSortMethod,
         setShowPremiumBanner,
         setMobileMenuOpen,
+        setVoteType,
+        setReason,
+        setShowReasonForm,
 
         // Helper functions
+        resetVoteData,
         getPoliticianById,
         getPartyById,
         handlePoliticianSelect,
@@ -558,7 +524,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         showAllPoliticiansList,
         toggleCommentReplies,
         handleReplyClick,
-        // handleSubmitReply,
         handleCancelReply,
         countAllReplies,
         getSortedPoliticians,
@@ -566,6 +531,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         getTrendIcon,
         getSortLabel,
         searchPoliticians,
+
+        // Firebase-specific functions
+        fetchPoliticianFromFirebase,
+        refreshSelectedPolitician,
       }}
     >
       {children}

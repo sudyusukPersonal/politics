@@ -1,5 +1,5 @@
 // src/components/politicians/PoliticianDetail.tsx
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Building,
@@ -17,54 +17,56 @@ import VoteForm from "./VoteForm";
 import CommentSection from "../comments/CommentSection";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { Politician } from "../../types";
+import { fetchPoliticianById } from "../../services/politicianService";
 
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    handlePartySelect,
-    voteType,
-    showReasonForm,
-    setSelectedPolitician,
-    getPoliticianById,
-    globalPoliticians,
-    dataInitialized,
-  } = useData();
+  const { handlePartySelect, voteType, showReasonForm, setSelectedPolitician } =
+    useData();
 
+  // Local state for politician data
   const [politician, setPolitician] = useState<Politician | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // グローバルデータから政治家データを取得（メモ化）
-  const selectedPolitician = useMemo(() => {
-    if (!id || !dataInitialized) return null;
-    return getPoliticianById(id);
-  }, [id, dataInitialized, getPoliticianById]);
-
-  // データ読み込み状態の管理
+  // Fetch politician data from Firebase when component mounts or ID changes
   useEffect(() => {
-    // データが初期化されたかチェック
-    if (dataInitialized) {
-      if (selectedPolitician) {
-        setPolitician(selectedPolitician);
+    const loadPolitician = async () => {
+      if (!id) {
+        setError("政治家IDが指定されていません");
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false);
-    }
-  }, [dataInitialized, selectedPolitician]);
 
-  // 政治家が読み込まれたらコンテキストに設定
-  useEffect(() => {
-    if (politician) {
-      setSelectedPolitician(politician);
-      window.scrollTo(0, 0);
-    }
-  }, [politician, setSelectedPolitician]);
+      try {
+        setIsLoading(true);
+        setError(null);
 
-  // リダイレクト処理（データロード後に政治家が見つからない場合）
-  useEffect(() => {
-    if (!isLoading && !politician && dataInitialized) {
-      navigate("/politicians");
-    }
-  }, [politician, isLoading, navigate, dataInitialized]);
+        // Fetch politician data from Firebase
+        const politicianData = await fetchPoliticianById(id);
+
+        if (politicianData) {
+          setPolitician(politicianData);
+          // Update in DataContext so other components can access it
+          setSelectedPolitician(politicianData);
+        } else {
+          setError("指定された政治家データが見つかりませんでした");
+        }
+      } catch (err) {
+        console.error("政治家データの取得中にエラーが発生しました:", err);
+        setError(
+          "政治家データの読み込みに失敗しました。もう一度お試しください。"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPolitician();
+    // Scroll to top when loading a new politician
+    window.scrollTo(0, 0);
+  }, [id, setSelectedPolitician]);
 
   // 政党詳細ページへの移動
   const handlePartyClick = () => {
@@ -82,7 +84,8 @@ const PoliticianDetail: React.FC = () => {
     );
   }
 
-  if (!politician) {
+  // エラー表示
+  if (error || !politician) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 text-center">
         <div className="text-red-500 mb-2">
@@ -105,7 +108,7 @@ const PoliticianDetail: React.FC = () => {
           政治家が見つかりません
         </h3>
         <p className="mt-2 text-gray-600">
-          指定されたIDの政治家情報を取得できませんでした。
+          {error || "指定されたIDの政治家情報を取得できませんでした。"}
         </p>
         <button
           onClick={() => navigate("/politicians")}
@@ -144,6 +147,12 @@ const PoliticianDetail: React.FC = () => {
               </div>
               <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 mt-1">
                 <span>{politician.position}</span>
+                {politician.region && (
+                  <>
+                    <span className="mx-2">•</span>
+                    <span className="truncate">{politician.region}</span>
+                  </>
+                )}
                 {politician.furigana && (
                   <>
                     <span className="mx-2">•</span>

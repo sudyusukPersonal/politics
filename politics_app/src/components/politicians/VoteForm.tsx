@@ -5,6 +5,7 @@ import { useData } from "../../context/DataContext";
 import { useReplyData } from "../../context/ReplyDataContext";
 import { useParams } from "react-router-dom";
 import { Comment } from "../../types";
+import { addVoteToPolitician } from "../../services/politicianService"; // Add this import
 
 interface VoteFormProps {
   voteType: "support" | "oppose" | null;
@@ -41,11 +42,19 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
       return;
     }
 
+    if (!voteType) {
+      setSubmitError("投票タイプが指定されていません");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      // Firebaseサービスを使ってコメントを追加
+      // 1. 政治家のvoteカウントを更新（Firebaseに反映）
+      await addVoteToPolitician(politicianId, voteType);
+
+      // 2. コメントを追加
       const { addNewComment } = await import("../../services/commentService");
 
       // 新しいコメントを作成して保存
@@ -54,7 +63,7 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
         userID: MOCK_CURRENT_USER.uid,
         userName: MOCK_CURRENT_USER.displayName,
         politicianID: politicianId,
-        type: voteType || "support", // voteTypeがnullの場合はデフォルトで"support"
+        type: voteType,
         likes: 0,
       });
 
@@ -69,13 +78,11 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
         likes: 0,
         replies: [],
         repliesCount: 0,
-        type: voteType || "support",
+        type: voteType,
       };
 
       // ローカルUIのコメント一覧に新しいコメントを追加
       updateLocalComments(newComment, true);
-
-      // スクロール処理はReplyDataContextに任せる
 
       // フォームをリセット
       resetVoteData();
