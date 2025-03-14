@@ -111,9 +111,16 @@ const CommentSection: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          {supportComments.map((comment) => (
+          {supportComments.map((comment, index) => (
             <React.Fragment key={comment.id}>
-              <CommentItem comment={comment} type="support" />
+              <CommentItem
+                comment={comment}
+                type="support"
+                isNew={
+                  index === 0 &&
+                  Date.now() - new Date(comment.createdAt).getTime() < 5000
+                }
+              />
 
               {/* Show ad after 3rd comment if more than 3 */}
               {supportComments.indexOf(comment) === 2 &&
@@ -153,8 +160,16 @@ const CommentSection: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          {opposeComments.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} type="oppose" />
+          {opposeComments.map((comment, index) => (
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              type="oppose"
+              isNew={
+                index === 0 &&
+                Date.now() - new Date(comment.createdAt).getTime() < 5000
+              }
+            />
           ))}
 
           {opposeComments.length === 0 && (

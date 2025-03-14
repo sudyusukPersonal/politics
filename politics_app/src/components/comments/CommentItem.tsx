@@ -1,4 +1,6 @@
-// Updated CommentItem to work with Firebase comment structure and optimize rendering
+// src/components/comments/CommentItem.tsx
+// 新しいコメントにIDを設定して、スクロール可能にする
+
 import React, { useState, useEffect } from "react";
 import { MessageCircle, ThumbsUp, ChevronUp, ChevronDown } from "lucide-react";
 import { Comment, Reply } from "../../types";
@@ -9,12 +11,28 @@ import { useReplyData } from "../../context/ReplyDataContext";
 interface CommentItemProps {
   comment: Comment;
   type: "support" | "oppose";
+  isNew?: boolean; // 新しく追加されたコメントかどうか
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ comment, type }) => {
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  type,
+  isNew = false,
+}) => {
   const [isRepliesExpanded, setIsRepliesExpanded] = useState(false);
   const [isReplyFormVisible, setIsReplyFormVisible] = useState(false);
-  const { comments } = useReplyData(); // Access to track reply changes
+  const [highlighted, setHighlighted] = useState(isNew); // 新しいコメントをハイライト
+  const { comments } = useReplyData();
+
+  // 新しいコメントがハイライトされた状態を一定時間後に解除
+  useEffect(() => {
+    if (isNew) {
+      const timer = setTimeout(() => {
+        setHighlighted(false);
+      }, 3000); // 3秒後にハイライトを解除
+      return () => clearTimeout(timer);
+    }
+  }, [isNew]);
 
   // Use effect to expand replies section when new replies are added
   useEffect(() => {
@@ -50,13 +68,17 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, type }) => {
   };
 
   return (
-    <div className="mb-3">
+    <div className="mb-3" id={`comment-${comment.id}`}>
       {/* Parent comment */}
       <div
-        className={`rounded-xl p-4 border hover:shadow-md transition ${
-          type === "support"
-            ? "bg-green-50 border-green-100"
-            : "bg-red-50 border-red-100"
+        className={`rounded-xl p-4 border transition duration-500 ${
+          highlighted
+            ? type === "support"
+              ? "bg-green-100 border-green-300 shadow-md animate-pulse"
+              : "bg-red-100 border-red-300 shadow-md animate-pulse"
+            : type === "support"
+            ? "bg-green-50 border-green-100 hover:shadow-md"
+            : "bg-red-50 border-red-100 hover:shadow-md"
         }`}
       >
         <p className="text-gray-700">{comment.text}</p>
