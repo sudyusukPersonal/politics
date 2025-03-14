@@ -7,6 +7,7 @@ import React, {
   useEffect,
   JSX,
   useMemo,
+  useCallback,
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Politician, Party, ReasonsData } from "../types";
@@ -48,11 +49,7 @@ interface DataContextType {
     React.SetStateAction<Politician | null>
   >;
   setSelectedParty: React.Dispatch<React.SetStateAction<Party | null>>;
-  setVoteType: React.Dispatch<
-    React.SetStateAction<"support" | "oppose" | null>
-  >;
   setActiveTab: React.Dispatch<React.SetStateAction<string>>;
-  setShowReasonForm: React.Dispatch<React.SetStateAction<boolean>>;
   setExpandedComments: React.Dispatch<
     React.SetStateAction<Record<string, boolean>>
   >;
@@ -60,7 +57,6 @@ interface DataContextType {
     React.SetStateAction<{ comment?: any; parentComment?: any } | null>
   >;
   setReplyText: React.Dispatch<React.SetStateAction<string>>;
-  setReason: React.Dispatch<React.SetStateAction<string>>;
   setSortMethod: React.Dispatch<React.SetStateAction<string>>;
   setShowPremiumBanner: React.Dispatch<React.SetStateAction<boolean>>;
   setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -73,7 +69,6 @@ interface DataContextType {
   handleBackToParties: () => void;
   handleBackToPoliticians: () => void;
   handleVoteClick: (type: "support" | "oppose") => void;
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   handleSortChange: (method: string) => void;
   showAllPoliticiansList: () => void;
   toggleCommentReplies: (commentId: string) => void;
@@ -86,6 +81,13 @@ interface DataContextType {
   getTrendIcon: (trend: string) => JSX.Element;
   getSortLabel: (method: string) => string;
   searchPoliticians: (term: string) => Politician[]; // Search function
+  setVoteType: React.Dispatch<
+    React.SetStateAction<"support" | "oppose" | null>
+  >;
+  setReason: React.Dispatch<React.SetStateAction<string>>;
+  setShowReasonForm: React.Dispatch<React.SetStateAction<boolean>>;
+
+  resetVoteData: () => void;
 }
 
 // Context creation
@@ -98,6 +100,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   // React Router hooks
   const navigate = useNavigate();
   const location = useLocation();
+  const resetVoteData = useCallback(() => {
+    setReason("");
+    setVoteType(null);
+    setShowReasonForm(false);
+  }, []);
 
   // Global data states
   const [globalPoliticians, setGlobalPoliticians] = useState<Politician[]>([]);
@@ -497,6 +504,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <DataContext.Provider
       value={{
+        setVoteType,
+        setReason,
+        setShowReasonForm,
+        resetVoteData,
         // State
         politicians,
         parties,
@@ -527,10 +538,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         // setReasonsData,
         setSelectedPolitician,
         setSelectedParty,
-        setVoteType,
-        setReason,
         setActiveTab,
-        setShowReasonForm,
         setExpandedComments,
         setReplyingTo,
         setReplyText,
@@ -546,7 +554,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         handleBackToParties,
         handleBackToPoliticians,
         handleVoteClick,
-        handleSubmit,
         handleSortChange,
         showAllPoliticiansList,
         toggleCommentReplies,

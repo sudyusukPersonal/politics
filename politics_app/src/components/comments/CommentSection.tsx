@@ -1,10 +1,11 @@
-// Updated CommentSection with optimized rendering
-import React, { useEffect, useMemo } from "react";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+// src/components/comments/CommentSection.tsx
+import React, { useEffect, useMemo, useState } from "react";
+import { ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 import { useParams } from "react-router-dom";
 import CommentItem from "./CommentItem";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import { useReplyData } from "../../context/ReplyDataContext";
+import { useData } from "../../context/DataContext"; // 追加: DataContextをインポート
 
 const CommentSection: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,12 @@ const CommentSection: React.FC = () => {
     commentError,
     fetchCommentsByPolitician,
   } = useReplyData();
+
+  // 追加: DataContextから投票関連の状態を取得
+  const { handleVoteClick } = useData();
+
+  // 追加: 新規コメント投稿オプションの表示状態
+  const [showAddComment, setShowAddComment] = useState(false);
 
   // Initial fetch of comments when component mounts
   useEffect(() => {
@@ -29,6 +36,32 @@ const CommentSection: React.FC = () => {
     const oppose = comments.filter((comment) => comment.type === "oppose");
     return { supportComments: support, opposeComments: oppose };
   }, [comments]);
+
+  // 追加: 新規コメント追加ボタン
+  const renderAddCommentButton = () => (
+    <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 my-6 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+      <span className="text-sm text-gray-700">
+        <MessageSquare size={16} className="inline mr-1" />
+        あなたもこの政治家に対する評価を投稿できます
+      </span>
+      <div className="flex space-x-2">
+        <button
+          onClick={() => handleVoteClick("support")}
+          className="px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-full flex items-center transition"
+        >
+          <ThumbsUp size={14} className="mr-1" />
+          支持する
+        </button>
+        <button
+          onClick={() => handleVoteClick("oppose")}
+          className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-full flex items-center transition"
+        >
+          <ThumbsDown size={14} className="mr-1" />
+          支持しない
+        </button>
+      </div>
+    </div>
+  );
 
   if (isLoadingComments) {
     return (
@@ -62,6 +95,9 @@ const CommentSection: React.FC = () => {
       {/* Ad banner above comments */}
       <InlineAdBanner format="rectangle" showCloseButton={true} />
 
+      {/* 追加: コメント投稿ボタン */}
+      {renderAddCommentButton()}
+
       {/* Support comments */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -92,6 +128,13 @@ const CommentSection: React.FC = () => {
           {supportComments.length === 0 && (
             <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
               まだ支持するコメントはありません。
+              <button
+                onClick={() => handleVoteClick("support")}
+                className="mt-2 ml-2 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 text-sm rounded-full transition"
+              >
+                <ThumbsUp size={14} className="inline mr-1" />
+                支持する理由を投稿
+              </button>
             </div>
           )}
         </div>
@@ -117,6 +160,13 @@ const CommentSection: React.FC = () => {
           {opposeComments.length === 0 && (
             <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
               まだ不支持のコメントはありません。
+              <button
+                onClick={() => handleVoteClick("oppose")}
+                className="mt-2 ml-2 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-sm rounded-full transition"
+              >
+                <ThumbsDown size={14} className="inline mr-1" />
+                不支持の理由を投稿
+              </button>
             </div>
           )}
         </div>
