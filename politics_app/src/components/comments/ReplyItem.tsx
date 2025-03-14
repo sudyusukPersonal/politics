@@ -1,8 +1,9 @@
-// Updated ReplyItem with optimized rendering
+// src/components/comments/ReplyItem.tsx
 import React, { useState } from "react";
 import { CornerDownRight, ThumbsUp } from "lucide-react";
 import { Reply, Comment } from "../../types";
 import ReplyForm from "./ReplyForm";
+import { useReplyData } from "../../context/ReplyDataContext";
 
 interface ReplyItemProps {
   reply: Reply;
@@ -11,6 +12,10 @@ interface ReplyItemProps {
 
 const ReplyItem: React.FC<ReplyItemProps> = ({ reply, parentComment }) => {
   const [isReplyFormVisible, setIsReplyFormVisible] = useState(false);
+  const { likeComment, hasUserLikedComment } = useReplyData();
+
+  // この返信がいいね済みか確認
+  const isLiked = hasUserLikedComment(parentComment.id, reply.id);
 
   const formatDate = (dateString: string | Date) => {
     const date = new Date(dateString);
@@ -29,6 +34,14 @@ const ReplyItem: React.FC<ReplyItemProps> = ({ reply, parentComment }) => {
 
   const closeReplyForm = () => {
     setIsReplyFormVisible(false);
+  };
+
+  // 返信へのいいねハンドラー
+  const handleLike = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // イベントの伝播を停止
+    if (!isLiked) {
+      likeComment(parentComment.id, reply.id);
+    }
   };
 
   // Use normalized properties to handle both client and server naming conventions
@@ -68,10 +81,18 @@ const ReplyItem: React.FC<ReplyItemProps> = ({ reply, parentComment }) => {
             <span>{formatDate(reply.createdAt)}</span>
           </div>
           <div className="flex items-center space-x-3">
-            <div className="flex items-center text-xs text-gray-600 px-2 py-1 rounded-full bg-gray-100">
+            <button
+              onClick={handleLike}
+              disabled={isLiked}
+              className={`flex items-center text-xs ${
+                isLiked
+                  ? "bg-indigo-100 text-indigo-600 cursor-default"
+                  : "bg-gray-100 text-gray-600 hover:bg-indigo-50 hover:text-indigo-700"
+              } px-2 py-1 rounded-full transition`}
+            >
               <ThumbsUp size={10} className="mr-1" />
               <span>{reply.likes}</span>
-            </div>
+            </button>
             <button
               className="text-xs text-indigo-600 hover:text-indigo-800 transition"
               onClick={openReplyForm}

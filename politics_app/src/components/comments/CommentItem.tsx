@@ -20,8 +20,17 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const [isRepliesExpanded, setIsRepliesExpanded] = useState(false);
   const [isReplyFormVisible, setIsReplyFormVisible] = useState(false);
   const [highlighted, setHighlighted] = useState(isNew); // 新しいコメントをハイライト
-  const { comments, newCommentId, clearNewCommentId } = useReplyData();
+  const {
+    comments,
+    newCommentId,
+    clearNewCommentId,
+    likeComment,
+    hasUserLikedComment,
+  } = useReplyData();
   const commentRef = useRef<HTMLDivElement>(null);
+
+  // コメントがいいね済みか確認
+  const isLiked = hasUserLikedComment(comment.id);
 
   // 新しいコメントの場合、ハイライト表示を一定時間後に解除
   useEffect(() => {
@@ -73,6 +82,14 @@ const CommentItem: React.FC<CommentItemProps> = ({
     });
   };
 
+  // いいねボタンのハンドラー
+  const handleLike = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // イベントの伝播を停止
+    if (!isLiked) {
+      likeComment(comment.id);
+    }
+  };
+
   return (
     <div className="mb-3" id={`comment-${comment.id}`} ref={commentRef}>
       {/* Parent comment */}
@@ -97,10 +114,18 @@ const CommentItem: React.FC<CommentItemProps> = ({
           </div>
 
           <div className="flex items-center space-x-3">
-            <div className="flex items-center text-xs text-gray-600 bg-white px-2 py-1 rounded-full shadow-sm">
+            <button
+              onClick={handleLike}
+              disabled={isLiked}
+              className={`flex items-center text-xs ${
+                isLiked
+                  ? "bg-indigo-100 text-indigo-600 cursor-default"
+                  : "bg-white text-gray-600 hover:bg-indigo-50 hover:text-indigo-700"
+              } px-2 py-1 rounded-full shadow-sm transition`}
+            >
               <ThumbsUp size={12} className="mr-1" />
               <span>{comment.likes}</span>
-            </div>
+            </button>
 
             <button
               className="text-xs text-indigo-600 hover:text-indigo-800 transition"

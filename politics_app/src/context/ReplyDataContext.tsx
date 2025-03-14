@@ -6,11 +6,13 @@ import React, {
   ReactNode,
   useCallback,
   useRef,
+  useEffect,
 } from "react";
 import { Comment, Reply } from "../types";
 import {
   addReplyToComment,
   fetchCommentsByPoliticianId,
+  likeComment as likeCommentApi,
 } from "../services/commentService";
 
 // Context type definition
@@ -32,6 +34,9 @@ interface ReplyDataContextType {
   scrollToComment: (commentId: string) => void;
   // Method to clear new comment ID
   clearNewCommentId: () => void;
+  // いいね関連のメソッド
+  likeComment: (commentId: string, replyId?: string) => Promise<void>;
+  hasUserLikedComment: (commentId: string, replyId?: string) => boolean;
 }
 
 // Context creation
@@ -47,9 +52,30 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [newCommentId, setNewCommentId] = useState<string | null>(null);
+  // いいねしたコメントを追跡する状態
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
 
   // Ref to track timeout for auto-scrolling
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 初期化時にlocal storageからいいね済みコメントを読み込む
+  useEffect(() => {
+    try {
+      const savedLikes = localStorage.getItem("likedComments");
+      if (savedLikes) {
+        setLikedComments(new Set(JSON.parse(savedLikes)));
+      }
+    } catch (error) {
+      console.error("いいね済みコメントの読み込みエラー:", error);
+    }
+  }, []);
+
+  // いいね済みコメントの更新時にlocal storageに保存
+  useEffect(() => {
+    if (likedComments.size > 0) {
+      localStorage.setItem("likedComments", JSON.stringify([...likedComments]));
+    }
+  }, [likedComments]);
 
   // Fetch comments for a specific politician
   const fetchCommentsByPolitician = useCallback(
@@ -170,6 +196,91 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
     []
   );
 
+  // ユーザーが既にコメントにいいねしているか確認
+  const hasUserLikedComment = useCallback(
+    (commentId: string, replyId?: string) => {
+      const likeId = replyId ? `${commentId}:${replyId}` : commentId;
+      return likedComments.has(likeId);
+    },
+    [likedComments]
+  );
+
+  // コメントにいいねしてUIを更新
+  const likeComment = useCallback(
+    async (commentId: string, replyId?: string) => {
+      const likeId = replyId ? `${commentId}:${replyId}` : commentId;
+
+      // 既にいいね済みならスキップ
+      if (likedComments.has(likeId)) {
+        return;
+      }
+
+      try {
+        // 楽観的にUI更新（まずUIを先に更新）
+        setComments((prevComments) => {
+          return prevComments.map((comment) => {
+            if (comment.id === commentId) {
+              if (replyId) {
+                // 特定の返信を更新
+                return {
+                  ...comment,
+                  replies: comment.replies.map((reply) =>
+                    reply.id === replyId
+                      ? { ...reply, likes: reply.likes + 1 }
+                      : reply
+                  ),
+                };
+              } else {
+                // メインコメントを更新
+                return { ...comment, likes: comment.likes + 1 };
+              }
+            }
+            return comment;
+          });
+        });
+
+        // いいね済みとしてマーク
+        setLikedComments((prev) => new Set([...prev, likeId]));
+
+        // APIを呼び出してデータベースを更新
+        await likeCommentApi(commentId, replyId);
+
+        console.log("いいねを追加しました");
+      } catch (error) {
+        console.error("いいねの追加に失敗しました:", error);
+
+        // エラー時にUI更新を元に戻す
+        setComments((prevComments) => {
+          return prevComments.map((comment) => {
+            if (comment.id === commentId) {
+              if (replyId) {
+                return {
+                  ...comment,
+                  replies: comment.replies.map((reply) =>
+                    reply.id === replyId
+                      ? { ...reply, likes: reply.likes - 1 }
+                      : reply
+                  ),
+                };
+              } else {
+                return { ...comment, likes: comment.likes - 1 };
+              }
+            }
+            return comment;
+          });
+        });
+
+        // いいね済みリストから削除
+        setLikedComments((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(likeId);
+          return newSet;
+        });
+      }
+    },
+    [likedComments]
+  );
+
   return (
     <ReplyDataContext.Provider
       value={{
@@ -184,6 +295,8 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
         updateLocalReplies,
         scrollToComment,
         clearNewCommentId,
+        likeComment,
+        hasUserLikedComment,
       }}
     >
       {children}
