@@ -5,6 +5,7 @@ import React, {
   useContext,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import { Comment, Reply } from "../types";
 import {
@@ -18,13 +19,19 @@ interface ReplyDataContextType {
   comments: Comment[];
   isLoadingComments: boolean;
   commentError: string | null;
+  newCommentId: string | null;
 
   // Methods
   fetchCommentsByPolitician: (politicianId: string) => Promise<void>;
   addReply: (commentId: string, replyData: any) => Promise<Reply>;
   refreshComments: (politicianId: string) => Promise<void>;
-  // New method to update local comments state
-  updateLocalComments: (commentId: string, newReply: Reply) => void;
+  // Method to update local comments state
+  updateLocalComments: (newComment: Comment, isNew?: boolean) => void;
+  updateLocalReplies: (commentId: string, newReply: Reply) => void;
+  // Method to scroll to comment
+  scrollToComment: (commentId: string) => void;
+  // Method to clear new comment ID
+  clearNewCommentId: () => void;
 }
 
 // Context creation
@@ -39,6 +46,10 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [newCommentId, setNewCommentId] = useState<string | null>(null);
+
+  // Ref to track timeout for auto-scrolling
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch comments for a specific politician
   const fetchCommentsByPolitician = useCallback(
@@ -61,7 +72,7 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
     []
   );
 
-  // Refresh comments for a politician
+  // Refresh comments for a politician - only use when absolutely necessary
   const refreshComments = useCallback(
     async (politicianId: string) => {
       await fetchCommentsByPolitician(politicianId);
@@ -69,8 +80,61 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
     [fetchCommentsByPolitician]
   );
 
-  // New method to update local comments state without fetching from database
+  // Method to scroll to a specific comment
+  const scrollToComment = useCallback((commentId: string) => {
+    // Clear any existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    // Set a small timeout to ensure the comment has been rendered
+    scrollTimeoutRef.current = setTimeout(() => {
+      const commentElement = document.getElementById(`comment-${commentId}`);
+      if (commentElement) {
+        commentElement.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Briefly highlight the element for visibility
+        commentElement.classList.add("comment-highlight");
+        setTimeout(() => {
+          commentElement.classList.remove("comment-highlight");
+        }, 2000);
+      }
+    }, 100);
+  }, []);
+
+  // Clear new comment ID
+  const clearNewCommentId = useCallback(() => {
+    setNewCommentId(null);
+  }, []);
+
+  // Method to add a new comment to local state without fetch
+  // isNew flag indicates if this is a newly created comment
   const updateLocalComments = useCallback(
+    (newComment: Comment, isNew: boolean = false) => {
+      setComments((prevComments) => {
+        // Sort comments, placing the newest at the top if it's a new comment
+        const updatedComments = isNew
+          ? [newComment, ...prevComments]
+          : [...prevComments, newComment];
+
+        // Sort by type if needed
+        return updatedComments;
+      });
+
+      // Set the new comment ID to trigger scrolling
+      if (isNew) {
+        setNewCommentId(newComment.id);
+        // Auto-scroll to the new comment after a short delay
+        setTimeout(() => {
+          scrollToComment(newComment.id);
+        }, 200);
+      }
+    },
+    [scrollToComment]
+  );
+
+  // Method to update local comments state with a new reply without fetching from database
+  const updateLocalReplies = useCallback(
     (commentId: string, newReply: Reply) => {
       setComments((prevComments) => {
         return prevComments.map((comment) => {
@@ -112,10 +176,14 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
         comments,
         isLoadingComments,
         commentError,
+        newCommentId,
         fetchCommentsByPolitician,
         addReply,
         refreshComments,
-        updateLocalComments, // Export the new method
+        updateLocalComments,
+        updateLocalReplies,
+        scrollToComment,
+        clearNewCommentId,
       }}
     >
       {children}

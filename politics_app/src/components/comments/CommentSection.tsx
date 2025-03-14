@@ -1,11 +1,25 @@
 // src/components/comments/CommentSection.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 import { useParams } from "react-router-dom";
 import CommentItem from "./CommentItem";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import { useReplyData } from "../../context/ReplyDataContext";
-import { useData } from "../../context/DataContext"; // 追加: DataContextをインポート
+import { useData } from "../../context/DataContext";
+
+// コメントセクションのスタイルを追加
+const commentHighlightStyle = `
+  @keyframes highlight-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+  }
+  
+  .comment-highlight {
+    animation: highlight-pulse 2s 1;
+    scroll-margin-top: 80px;
+  }
+`;
 
 const CommentSection: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,15 +28,13 @@ const CommentSection: React.FC = () => {
     isLoadingComments,
     commentError,
     fetchCommentsByPolitician,
+    newCommentId,
   } = useReplyData();
 
-  // 追加: DataContextから投票関連の状態を取得
+  // DataContextから投票関連の状態を取得
   const { handleVoteClick } = useData();
 
-  // 追加: 新規コメント投稿オプションの表示状態
-  const [showAddComment, setShowAddComment] = useState(false);
-
-  // Initial fetch of comments when component mounts
+  // 最初のマウント時にコメントを取得
   useEffect(() => {
     // 政治家IDがある場合、そのコメントを取得
     if (id) {
@@ -30,14 +42,14 @@ const CommentSection: React.FC = () => {
     }
   }, [id, fetchCommentsByPolitician]);
 
-  // Memoize the separated comments to avoid unnecessary re-renders
+  // Support/Opposeで区分けしたコメント
   const { supportComments, opposeComments } = useMemo(() => {
     const support = comments.filter((comment) => comment.type === "support");
     const oppose = comments.filter((comment) => comment.type === "oppose");
     return { supportComments: support, opposeComments: oppose };
   }, [comments]);
 
-  // 追加: 新規コメント追加ボタン
+  // 新規コメント追加ボタン
   const renderAddCommentButton = () => (
     <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 my-6 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
       <span className="text-sm text-gray-700">
@@ -92,10 +104,13 @@ const CommentSection: React.FC = () => {
 
   return (
     <>
+      {/* スタイルを追加 */}
+      <style>{commentHighlightStyle}</style>
+
       {/* Ad banner above comments */}
       <InlineAdBanner format="rectangle" showCloseButton={true} />
 
-      {/* 追加: コメント投稿ボタン */}
+      {/* コメント投稿ボタン */}
       {renderAddCommentButton()}
 
       {/* Support comments */}
@@ -116,10 +131,7 @@ const CommentSection: React.FC = () => {
               <CommentItem
                 comment={comment}
                 type="support"
-                isNew={
-                  index === 0 &&
-                  Date.now() - new Date(comment.createdAt).getTime() < 5000
-                }
+                isNew={newCommentId === comment.id}
               />
 
               {/* Show ad after 3rd comment if more than 3 */}
@@ -160,15 +172,12 @@ const CommentSection: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          {opposeComments.map((comment, index) => (
+          {opposeComments.map((comment) => (
             <CommentItem
               key={comment.id}
               comment={comment}
               type="oppose"
-              isNew={
-                index === 0 &&
-                Date.now() - new Date(comment.createdAt).getTime() < 5000
-              }
+              isNew={newCommentId === comment.id}
             />
           ))}
 

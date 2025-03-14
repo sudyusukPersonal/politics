@@ -2,8 +2,9 @@
 import React, { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useData } from "../../context/DataContext";
-import { useReplyData } from "../../context/ReplyDataContext"; // 追加: ReplyDataContextをインポート
-import { useParams } from "react-router-dom"; // 追加: useParamsをインポート
+import { useReplyData } from "../../context/ReplyDataContext";
+import { useParams } from "react-router-dom";
+import { Comment } from "../../types";
 
 interface VoteFormProps {
   voteType: "support" | "oppose" | null;
@@ -16,17 +17,16 @@ const MOCK_CURRENT_USER = {
 };
 
 const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
-  const { id: politicianId } = useParams<{ id: string }>(); // 政治家IDを取得
-  const { reason, setReason, setShowReasonForm, setVoteType } = useData();
-  // 追加: ReplyDataContextから必要な関数を取得
-  const { refreshComments } = useReplyData();
+  const { id: politicianId } = useParams<{ id: string }>();
+  const { reason, setReason, setShowReasonForm, setVoteType, resetVoteData } =
+    useData();
+  const { updateLocalComments } = useReplyData();
 
-  // 追加: 送信状態管理
+  // 送信状態管理
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // 更新: コメント送信処理
+  // コメント送信処理
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -49,7 +49,7 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
       const { addNewComment } = await import("../../services/commentService");
 
       // 新しいコメントを作成して保存
-      await addNewComment({
+      const newCommentId = await addNewComment({
         text: reason,
         userID: MOCK_CURRENT_USER.uid,
         userName: MOCK_CURRENT_USER.displayName,
@@ -58,19 +58,27 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
         likes: 0,
       });
 
-      // 送信成功フラグを設定
-      setSubmitSuccess(true);
+      // UIを即時更新するための新しいコメントオブジェクトを作成
+      const newComment: Comment = {
+        id: newCommentId,
+        text: reason,
+        userID: MOCK_CURRENT_USER.uid,
+        userName: MOCK_CURRENT_USER.displayName,
+        politicianID: politicianId,
+        createdAt: new Date(),
+        likes: 0,
+        replies: [],
+        repliesCount: 0,
+        type: voteType || "support",
+      };
 
-      // コメント一覧を更新
-      await refreshComments(politicianId);
+      // ローカルUIのコメント一覧に新しいコメントを追加
+      updateLocalComments(newComment, true);
 
-      // 3秒後にフォームを閉じる
-      setTimeout(() => {
-        setReason("");
-        setVoteType(null);
-        setShowReasonForm(false);
-        setSubmitSuccess(false);
-      }, 3000);
+      // スクロール処理はReplyDataContextに任せる
+
+      // フォームをリセット
+      resetVoteData();
     } catch (error) {
       console.error("評価の送信中にエラーが発生しました:", error);
       setSubmitError("評価の送信に失敗しました。もう一度お試しください。");
@@ -113,13 +121,6 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
             </div>
           )}
 
-          {/* 成功メッセージ表示 */}
-          {submitSuccess && (
-            <div className="mb-3 p-2 bg-green-50 text-green-600 text-sm rounded-lg animate-pulse">
-              評価を送信しました！画面を更新しています...
-            </div>
-          )}
-
           <textarea
             value={reason}
             onChange={(e) => {
@@ -136,7 +137,7 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
             rows={4}
             placeholder="あなたの意見を書いてください..."
             required
-            disabled={isSubmitting || submitSuccess}
+            disabled={isSubmitting}
             maxLength={500}
           ></textarea>
 
@@ -148,15 +149,13 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
             <button
               type="submit"
               className={`py-2.5 rounded-lg text-white font-medium transition transform active:scale-95 flex items-center justify-center ${
-                isSubmitting || submitSuccess
-                  ? "opacity-70 cursor-not-allowed"
-                  : ""
+                isSubmitting ? "opacity-70 cursor-not-allowed" : ""
               } ${
                 voteType === "support"
                   ? "bg-green-500 hover:bg-green-600"
                   : "bg-red-500 hover:bg-red-600"
               }`}
-              disabled={isSubmitting || submitSuccess}
+              disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
@@ -180,22 +179,17 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  処理中...
+                  送信中...
                 </>
-              ) : submitSuccess ? (
-                "送信完了"
               ) : (
                 "評価を送信"
               )}
             </button>
             <button
               type="button"
-              onClick={() => {
-                setReason("");
-                setShowReasonForm(false);
-              }}
+              onClick={resetVoteData}
               className="py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition"
-              disabled={isSubmitting || submitSuccess}
+              disabled={isSubmitting}
             >
               キャンセル
             </button>

@@ -1,7 +1,5 @@
 // src/components/comments/CommentItem.tsx
-// 新しいコメントにIDを設定して、スクロール可能にする
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MessageCircle, ThumbsUp, ChevronUp, ChevronDown } from "lucide-react";
 import { Comment, Reply } from "../../types";
 import ReplyItem from "./ReplyItem";
@@ -22,17 +20,25 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const [isRepliesExpanded, setIsRepliesExpanded] = useState(false);
   const [isReplyFormVisible, setIsReplyFormVisible] = useState(false);
   const [highlighted, setHighlighted] = useState(isNew); // 新しいコメントをハイライト
-  const { comments } = useReplyData();
+  const { comments, newCommentId, clearNewCommentId } = useReplyData();
+  const commentRef = useRef<HTMLDivElement>(null);
 
-  // 新しいコメントがハイライトされた状態を一定時間後に解除
+  // 新しいコメントの場合、ハイライト表示を一定時間後に解除
   useEffect(() => {
-    if (isNew) {
+    // APIからのnewCommentIdと現在のコメントIDが一致する場合もハイライト
+    if (isNew || (newCommentId && newCommentId === comment.id)) {
+      setHighlighted(true);
       const timer = setTimeout(() => {
         setHighlighted(false);
+        // ハイライトが消えたら新規コメントIDもクリア
+        if (newCommentId) {
+          clearNewCommentId();
+        }
       }, 3000); // 3秒後にハイライトを解除
+
       return () => clearTimeout(timer);
     }
-  }, [isNew]);
+  }, [isNew, newCommentId, comment.id, clearNewCommentId]);
 
   // Use effect to expand replies section when new replies are added
   useEffect(() => {
@@ -68,7 +74,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   return (
-    <div className="mb-3" id={`comment-${comment.id}`}>
+    <div className="mb-3" id={`comment-${comment.id}`} ref={commentRef}>
       {/* Parent comment */}
       <div
         className={`rounded-xl p-4 border transition duration-500 ${
