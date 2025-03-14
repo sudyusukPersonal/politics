@@ -8,7 +8,10 @@ import {
   where,
   updateDoc,
   increment,
+  limit,
   Firestore,
+  orderBy,
+  startAfter,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { Politician, Party } from "../types";
@@ -143,6 +146,67 @@ export const fetchPoliticiansByParty = async (
     );
   } catch (error) {
     console.error("Error fetching politicians by party:", error);
+    throw error;
+  }
+};
+
+// 政党に所属する議員を支持率の高い順に取得（ページネーション対応）
+export const fetchPoliticiansByPartyWithPagination = async (
+  partyName: string,
+  lastDocumentId?: string,
+  limitCount: number = 15
+): Promise<{
+  politicians: Politician[];
+  lastDocumentId?: string;
+  hasMore: boolean;
+}> => {
+  try {
+    const politiciansRef = collection(db, "politicians");
+
+    let q;
+    if (!lastDocumentId) {
+      // 初回: 最初の15件のみを取得
+      q = query(
+        politiciansRef,
+        where("affiliation", "==", partyName),
+        orderBy("supportCount", "desc"),
+        limit(limitCount)
+      );
+    } else {
+      // 追加読み込み: 前回の最後のドキュメントから次の15件
+      const lastDoc = await getDoc(doc(db, "politicians", lastDocumentId));
+
+      q = query(
+        politiciansRef,
+        where("affiliation", "==", partyName),
+        orderBy("supportCount", "desc"),
+        startAfter(lastDoc),
+        limit(limitCount)
+      );
+    }
+
+    const querySnapshot = await getDocs(q);
+
+    const politicians = querySnapshot.docs.map((doc) =>
+      convertToPolitician(doc.id, doc.data())
+    );
+
+    // 次のページがあるかどうかを確認（取得した件数が15件未満なら追加データなし）
+    const hasMore = politicians.length === limitCount;
+
+    const lastVisibleDocument =
+      querySnapshot.docs[querySnapshot.docs.length - 1];
+
+    return {
+      politicians,
+      lastDocumentId: lastVisibleDocument ? lastVisibleDocument.id : undefined,
+      hasMore,
+    };
+  } catch (error) {
+    console.error(
+      "Error fetching politicians by party with pagination:",
+      error
+    );
     throw error;
   }
 };

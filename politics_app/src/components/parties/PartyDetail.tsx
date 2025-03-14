@@ -13,6 +13,7 @@ import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
+import { fetchPoliticiansByPartyWithPagination } from "../../services/politicianService";
 import { Party, Politician } from "../../types";
 
 const PartyDetail: React.FC = () => {
@@ -31,7 +32,11 @@ const PartyDetail: React.FC = () => {
 
   const [party, setParty] = useState<Party | null>(null);
   const [partyMembers, setPartyMembers] = useState<Politician[]>([]);
+  const [lastDocumentId, setLastDocumentId] = useState<string | undefined>(
+    undefined
+  );
   const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
 
   // グローバルデータから政党データを取得（メモ化）
   const selectedParty = useMemo(() => {
@@ -47,19 +52,64 @@ const PartyDetail: React.FC = () => {
 
   // ソート済みの党員リスト（メモ化）
   const sortedPartyPoliticians = useMemo(() => {
-    return getSortedPoliticians(members);
-  }, [members, getSortedPoliticians, sortMethod]);
+    return getSortedPoliticians(partyMembers);
+  }, [partyMembers, getSortedPoliticians, sortMethod]);
+
+  // スクロール検出のuseEffect
+  useEffect(() => {
+    const handleScroll = () => {
+      // スクロール位置を検出し、追加読み込みのロジックを実装
+      if (
+        window.innerHeight + document.documentElement.scrollTop + 100 >=
+          document.documentElement.offsetHeight &&
+        !isLoading &&
+        hasMore
+      ) {
+        loadMorePoliticians();
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastDocumentId, isLoading, hasMore]);
+
+  // 政治家読み込み関数
+  const loadMorePoliticians = async () => {
+    if (party && !isLoading) {
+      try {
+        setIsLoading(true);
+        const result = await fetchPoliticiansByPartyWithPagination(
+          party.name,
+          lastDocumentId
+        );
+        if (result.politicians.length < 15) {
+          setHasMore(false);
+        }
+        setPartyMembers((prev) => [...prev, ...result.politicians]);
+        setLastDocumentId(result.lastDocumentId);
+      } catch (error) {
+        console.error("政治家の読み込みに失敗しました:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   // データ読み込み状態の管理
   useEffect(() => {
     if (dataInitialized) {
       if (selectedParty) {
         setParty(selectedParty);
-        setPartyMembers(members);
       }
       setIsLoading(false);
     }
-  }, [dataInitialized, selectedParty, members]);
+  }, [dataInitialized, selectedParty]);
+
+  // 初回読み込み時の処理
+  useEffect(() => {
+    if (party) {
+      loadMorePoliticians();
+    }
+  }, [party]);
 
   // 選択された政党をコンテキストに設定
   useEffect(() => {
@@ -77,7 +127,7 @@ const PartyDetail: React.FC = () => {
   }, [party, isLoading, navigate, dataInitialized]);
 
   // モダンなローディング表示
-  if (isLoading) {
+  if (isLoading && partyMembers.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 min-h-[400px] flex items-center justify-center">
         <LoadingAnimation type="pulse" message="政党情報を読み込んでいます" />
@@ -324,20 +374,43 @@ const PartyDetail: React.FC = () => {
         </div>
 
         {/* Party members list */}
+        {/* Party members list */}
         <div>
           {sortedPartyPoliticians.length > 0 ? (
-            sortedPartyPoliticians.map((politician, index) => (
-              <React.Fragment key={politician.id}>
-                <PoliticianCard politician={politician} index={index} />
+            <>
+              {sortedPartyPoliticians.map((politician, index) => (
+                <React.Fragment key={politician.id}>
+                  <PoliticianCard politician={politician} index={index} />
 
-                {/* Ad after 3rd politician */}
-                {index === 2 && sortedPartyPoliticians.length > 3 && (
-                  <div className="py-3 flex justify-center border-b border-gray-100">
-                    <InlineAdBanner format="rectangle" showCloseButton={true} />
-                  </div>
-                )}
-              </React.Fragment>
-            ))
+                  {/* Ad after 3rd politician */}
+                  {index === 2 && sortedPartyPoliticians.length > 3 && (
+                    <div className="py-3 flex justify-center border-b border-gray-100">
+                      <InlineAdBanner
+                        format="rectangle"
+                        showCloseButton={true}
+                      />
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+
+              {/* ローディング中インジケーター */}
+              {isLoading && (
+                <div className="text-center py-4">
+                  <LoadingAnimation
+                    type="dots"
+                    message="議員を読み込んでいます"
+                  />
+                </div>
+              )}
+
+              {/* すべての議員を読み込んだ後のメッセージ */}
+              {!hasMore && partyMembers.length > 0 && (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  すべての議員を読み込みました
+                </div>
+              )}
+            </>
           ) : (
             <div className="p-4 text-center text-gray-500">
               この政党に所属する議員は見つかりませんでした
