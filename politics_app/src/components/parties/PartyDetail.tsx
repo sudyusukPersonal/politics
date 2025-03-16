@@ -1,6 +1,6 @@
 // src/components/parties/PartyDetail.tsx
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Users,
@@ -19,6 +19,7 @@ import { Party, Politician } from "../../types";
 const PartyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     handleBackToParties,
     sortMethod,
@@ -37,6 +38,14 @@ const PartyDetail: React.FC = () => {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // URLからページ番号を取得する関数
+  const getPageFromUrl = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const page = searchParams.get("page");
+    return page ? parseInt(page, 10) : 1;
+  };
 
   // グローバルデータから政党データを取得（メモ化）
   const selectedParty = useMemo(() => {
@@ -54,6 +63,12 @@ const PartyDetail: React.FC = () => {
   const sortedPartyPoliticians = useMemo(() => {
     return getSortedPoliticians(partyMembers);
   }, [partyMembers, getSortedPoliticians, sortMethod]);
+
+  // URLからページ番号を設定
+  useEffect(() => {
+    const page = getPageFromUrl();
+    setCurrentPage(page);
+  }, [location.search]);
 
   // スクロール検出のuseEffect
   useEffect(() => {
@@ -74,18 +89,28 @@ const PartyDetail: React.FC = () => {
 
   // 政治家読み込み関数
   const loadMorePoliticians = async () => {
-    if (party && !isLoading) {
+    if (party && !isLoading && hasMore) {
       try {
         setIsLoading(true);
+
+        // 次のページ番号を計算
+        const nextPage = currentPage + 1;
+
         const result = await fetchPoliticiansByPartyWithPagination(
           party.name,
           lastDocumentId
         );
-        if (result.politicians.length < 15) {
+
+        if (result.politicians.length < 15 || !result.hasMore) {
           setHasMore(false);
         }
+
         setPartyMembers((prev) => [...prev, ...result.politicians]);
         setLastDocumentId(result.lastDocumentId);
+
+        // URLを更新（ページをリロードせずに）
+        navigate(`/parties/${id}?page=${nextPage}`, { replace: true });
+        setCurrentPage(nextPage);
       } catch (error) {
         console.error("政治家の読み込みに失敗しました:", error);
       } finally {
@@ -100,14 +125,54 @@ const PartyDetail: React.FC = () => {
       if (selectedParty) {
         setParty(selectedParty);
       }
-      setIsLoading(false);
     }
   }, [dataInitialized, selectedParty]);
 
   // 初回読み込み時の処理
   useEffect(() => {
     if (party) {
-      loadMorePoliticians();
+      // すでにURLにページ情報がある場合は、そのページまでデータを読み込む
+      const initialPage = getPageFromUrl();
+
+      const initialLoad = async () => {
+        let tempLastDocId: string | undefined = undefined;
+        let allPoliticians: Politician[] = [];
+
+        // 現在のページまでのデータをすべて取得
+        for (let i = 1; i <= initialPage; i++) {
+          setIsLoading(true);
+          try {
+            const result = await fetchPoliticiansByPartyWithPagination(
+              party.name,
+              tempLastDocId
+            );
+
+            allPoliticians = [...allPoliticians, ...result.politicians];
+
+            // 最後のページの情報を設定
+            if (i === initialPage) {
+              setPartyMembers(allPoliticians);
+              setLastDocumentId(result.lastDocumentId);
+              setHasMore(result.hasMore);
+            }
+
+            tempLastDocId = result.lastDocumentId;
+
+            // 全てのデータを取得した場合
+            if (result.politicians.length < 15 || !result.hasMore) {
+              setHasMore(false);
+              break;
+            }
+          } catch (error) {
+            console.error("初期データ読み込みに失敗しました:", error);
+            break;
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      };
+
+      initialLoad();
     }
   }, [party]);
 
@@ -172,7 +237,7 @@ const PartyDetail: React.FC = () => {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center mb-2">
+      <div className="flex items-center justify-between mb-2">
         <button
           onClick={handleBackToParties}
           className="flex items-center text-indigo-600 hover:text-indigo-800 transition"
@@ -180,6 +245,9 @@ const PartyDetail: React.FC = () => {
           <ArrowLeft size={16} className="mr-1" />
           <span>政党一覧に戻る</span>
         </button>
+
+        {/* 現在のページ表示 */}
+        <div className="text-sm text-gray-500">ページ: {currentPage}</div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
@@ -374,7 +442,6 @@ const PartyDetail: React.FC = () => {
         </div>
 
         {/* Party members list */}
-        {/* Party members list */}
         <div>
           {sortedPartyPoliticians.length > 0 ? (
             <>
@@ -393,6 +460,23 @@ const PartyDetail: React.FC = () => {
                   )}
                 </React.Fragment>
               ))}
+
+              {/* ページネーションコントロール */}
+              <div className="flex justify-between items-center p-4 border-t border-gray-100">
+                <div className="text-sm text-gray-500">
+                  表示中: {sortedPartyPoliticians.length}名 / ページ
+                  {currentPage}
+                </div>
+                {hasMore && (
+                  <button
+                    onClick={loadMorePoliticians}
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+                  >
+                    {isLoading ? "読み込み中..." : "もっと見る"}
+                  </button>
+                )}
+              </div>
 
               {/* ローディング中インジケーター */}
               {isLoading && (

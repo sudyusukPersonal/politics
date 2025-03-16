@@ -1,9 +1,9 @@
-// src/config/firebaseConfig.ts
+// Firebase configuration and initialization
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Your existing Firebase config
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyB6XXyfJ0oY11JLBioRoO4jniGBXnxEBWU",
   authDomain: "politics-77a64.firebaseapp.com",
@@ -13,7 +13,6 @@ const firebaseConfig = {
   appId: "1:129911974973:web:b58f16279e561afbcf8e54",
   measurementId: "G-PLBM7TFLQW",
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 

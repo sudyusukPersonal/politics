@@ -17,7 +17,7 @@ const LoginButton: React.FC = () => {
     if (result.success) {
       showAuthMessage(
         `認証できました。ようこそ、${
-          result.user.displayName || "ユーザー"
+          result.user?.displayName || "ユーザー"
         }さん！`
       );
     } else {
@@ -31,7 +31,7 @@ const LoginButton: React.FC = () => {
     if (result.success) {
       showAuthMessage(
         `認証できました。ようこそ、${
-          result.user.displayName || "ユーザー"
+          result.user?.displayName || "ユーザー"
         }さん！`
       );
     } else {

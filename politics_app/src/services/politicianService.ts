@@ -214,11 +214,13 @@ export const fetchPoliticiansByPartyWithPagination = async (
 // 全政治家を15件ずつページネーションで取得
 export const fetchPoliticiansWithPagination = async (
   lastDocumentId?: string,
-  limitCount: number = 15
+  limitCount: number = 15,
+  page: number = 1
 ): Promise<{
   politicians: Politician[];
   lastDocumentId?: string;
   hasMore: boolean;
+  currentPage: number;
 }> => {
   try {
     const politiciansRef = collection(db, "politicians");
@@ -260,6 +262,7 @@ export const fetchPoliticiansWithPagination = async (
       politicians,
       lastDocumentId: lastVisibleDocument ? lastVisibleDocument.id : undefined,
       hasMore,
+      currentPage: page,
     };
   } catch (error) {
     console.error("全政治家取得エラー:", error);

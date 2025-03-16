@@ -12,6 +12,7 @@ const AppRoutes: React.FC = () => {
         <Routes>
           <Route path="/" element={<HomeScreen initialTab="politicians" />} />
           <Route path="/politicians" element={<AllPoliticiansList />} />
+          {/* クエリパラメータでページ番号を受け取れるようにする */}
           <Route
             path="/politicians/:politicianId"
             element={<PoliticianDetail />}

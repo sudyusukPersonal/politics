@@ -40,6 +40,7 @@ interface DataContextType {
   globalParties: Party[]; // Global parties data
   dataInitialized: boolean; // Flag to track if data is initialized
   isLoadingPolitician: boolean; // New flag for politician loading state
+  currentPage: number; // New state for current page number
 
   // State setters
   setPoliticians: React.Dispatch<React.SetStateAction<Politician[]>>;
@@ -59,6 +60,7 @@ interface DataContextType {
   setSortMethod: React.Dispatch<React.SetStateAction<string>>;
   setShowPremiumBanner: React.Dispatch<React.SetStateAction<boolean>>;
   setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setCurrentPage: React.Dispatch<React.SetStateAction<number>>; // New setter for current page
 
   // Helper functions
   getPoliticianById: (id: string) => Politician | undefined;
@@ -69,7 +71,7 @@ interface DataContextType {
   handleBackToPoliticians: () => void;
   handleVoteClick: (type: "support" | "oppose") => void;
   handleSortChange: (method: string) => void;
-  showAllPoliticiansList: () => void;
+  showAllPoliticiansList: (page?: number) => void; // Modified to accept page parameter
   toggleCommentReplies: (commentId: string) => void;
   handleReplyClick: (comment: any, parentComment?: any) => void;
   handleCancelReply: () => void;
@@ -170,6 +172,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [showInlineAd] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAllPoliticians, setShowAllPoliticians] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1); // New state for current page
 
   // Update local state from global data once it's initialized
   useEffect(() => {
@@ -300,10 +303,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setSortMethod(method);
   }, []);
 
-  const showAllPoliticiansList = useCallback(() => {
-    setShowAllPoliticians(true);
-    navigate("/politicians");
-  }, [navigate]);
+  // Modified to accept a page parameter and include it in the URL
+  const showAllPoliticiansList = useCallback(
+    (page: number = 1) => {
+      setShowAllPoliticians(true);
+      setCurrentPage(page);
+      navigate(`/politicians?page=${page}`);
+    },
+    [navigate]
+  );
 
   const toggleCommentReplies = useCallback((commentId: string) => {
     setExpandedComments((prev) => ({
@@ -438,6 +446,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [location]);
 
+  // Parse URL parameters on location change
+  useEffect(() => {
+    // Extract page number from URL if present
+    const params = new URLSearchParams(location.search);
+    const pageParam = params.get("page");
+
+    if (pageParam) {
+      const pageNumber = parseInt(pageParam, 10);
+      if (!isNaN(pageNumber) && pageNumber > 0) {
+        setCurrentPage(pageNumber);
+      }
+    }
+  }, [location]);
+
   // Scroll detection effect
   useEffect(() => {
     const handleScroll = () => {
@@ -494,6 +516,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         globalParties,
         dataInitialized,
         isLoadingPolitician,
+        currentPage,
 
         // State setters
         setPoliticians,
@@ -510,6 +533,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setVoteType,
         setReason,
         setShowReasonForm,
+        setCurrentPage,
 
         // Helper functions
         resetVoteData,
