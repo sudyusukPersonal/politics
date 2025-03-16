@@ -1,8 +1,9 @@
-// politics_app/src/App.tsx
+// politics_app/src/App.tsx (Modified)
 import React from "react";
 import { BrowserRouter } from "react-router-dom";
 import { DataProvider } from "./context/DataContext";
-import { ReplyDataProvider } from "./context/ReplyDataContext"; // 新しいコンテキストをインポート
+import { ReplyDataProvider } from "./context/ReplyDataContext";
+import { AuthProvider } from "./context/AuthContext"; // Import the AuthProvider
 import AppContent from "./components/layout/AppContent";
 
 const App: React.FC = () => {
@@ -10,7 +11,11 @@ const App: React.FC = () => {
     <BrowserRouter>
       <DataProvider>
         <ReplyDataProvider>
-          <AppContent />
+          <AuthProvider>
+            {" "}
+            {/* Add AuthProvider wrapper */}
+            <AppContent />
+          </AuthProvider>
         </ReplyDataProvider>
       </DataProvider>
     </BrowserRouter>

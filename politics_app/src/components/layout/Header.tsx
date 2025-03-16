@@ -1,8 +1,9 @@
-// politics_app/src/components/layout/Header.tsx
+// politics_app/src/components/layout/Header.tsx (Modified)
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, ArrowLeft, Search, X } from "lucide-react";
 import { useData } from "../../context/DataContext";
+import LoginButtons from "../auth/LoginButtons"; // Import the login buttons component
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -357,6 +358,11 @@ const Header: React.FC = () => {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Add login buttons component */}
+          <div className="ml-3">
+            <LoginButtons />
           </div>
         </div>
       </div>
