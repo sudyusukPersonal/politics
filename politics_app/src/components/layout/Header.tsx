@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, ArrowLeft, Search, X } from "lucide-react";
 import { useData } from "../../context/DataContext";
+import LoginButton from "../auth/LoginButtons";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -185,6 +186,10 @@ const Header: React.FC = () => {
               </h1>
             </Link>
           )}
+        </div>
+
+        <div className="ml-3">
+          <LoginButton />
         </div>
 
         <div className="flex items-center">
