@@ -12,9 +12,9 @@ let cachedParties: Party[] | null = null;
 const getPartyColor = (affiliation: string): string => {
   switch (affiliation) {
     case "自由民主党":
-      return "#4361EE"; // 青
+      return "#555555"; // 青
     case "立憲民主党":
-      return "#F72585"; // 赤
+      return "#4361EE"; // 赤
     case "公明党":
       return "#7209B7"; // 紫
     case "日本維新の会":
@@ -24,11 +24,11 @@ const getPartyColor = (affiliation: string): string => {
     case "日本共産党":
       return "#E63946"; // 赤
     case "れいわ新選組":
-      return "#06D6A0"; // 緑
+      return "#F72585"; // 緑
     case "社民党":
       return "#118AB2"; // 青緑
     case "参政党":
-      return "#FFD166"; // 黄色
+      return "#FF4500"; // 黄色
     default:
       return "#808080"; // グレー
   }
@@ -93,14 +93,19 @@ export const processPartiesData = async (): Promise<Party[]> => {
     const parties = partiesSnapshot.docs.map((doc) => {
       const data = doc.data();
       const partyName = data.name;
+      const totalVotes = (data.supportCount || 0) + (data.oppositionCount || 0);
+      const supportRate =
+        totalVotes > 0
+          ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
+          : 50; // Default to 50% if no votes
 
       return {
         id: doc.id, // ドキュメントIDを政党IDとして使用
         name: partyName,
         color: getPartyColor(partyName),
-        supportRate: data.supportCount || 0,
-        opposeRate: data.oppositionCount || 0,
-        totalVotes: (data.supportCount || 0) + (data.oppositionCount || 0),
+        supportRate: supportRate,
+        opposeRate: 100 - supportRate,
+        totalVotes: totalVotes || 0,
         // 既存の方法でメンバー数をカウント（JSONデータから）
         members: politiciansData.filter((p) => p.affiliation === partyName)
           .length,

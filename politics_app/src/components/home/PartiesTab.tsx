@@ -132,7 +132,7 @@ const PartiesTab: React.FC = () => {
                         className="text-green-500 mr-1 flex-shrink-0"
                       />
                       <span className="font-medium text-green-700">
-                        {party.supportRate}%
+                        {party.supportRate}% %
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -151,21 +151,28 @@ const PartiesTab: React.FC = () => {
                 </div>
 
                 {/* Progress bar with animation */}
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex mb-2">
-                  <div
-                    className="h-full rounded-l-full transition-width duration-1000 ease-in-out"
-                    style={{
-                      width: `${party.supportRate}%`,
-                      backgroundColor: "#10B981",
-                    }}
-                  ></div>
-                  <div
-                    className="h-full rounded-r-full transition-width duration-1000 ease-in-out"
-                    style={{
-                      width: `${party.opposeRate}%`,
-                      backgroundColor: "#EF4444",
-                    }}
-                  ></div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex">
+                  {/* 支持率と不支持率の合計を計算 */}
+                  {(() => {
+                    return (
+                      <>
+                        <div
+                          className="h-full rounded-l-full transition-all duration-700 ease-in-out"
+                          style={{
+                            width: `${party.supportRate}%`,
+                            backgroundColor: "#10B981",
+                          }}
+                        ></div>
+                        <div
+                          className="h-full rounded-r-full transition-all duration-700 ease-in-out"
+                          style={{
+                            width: `${party.opposeRate}%`,
+                            backgroundColor: "#EF4444",
+                          }}
+                        ></div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Party details */}

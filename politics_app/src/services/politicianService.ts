@@ -20,9 +20,9 @@ import { Politician, Party } from "../types";
 const getPartyColor = (affiliation: string): string => {
   switch (affiliation) {
     case "自由民主党":
-      return "#4361EE"; // 青
+      return "#555555"; // 青
     case "立憲民主党":
-      return "#F72585"; // 赤
+      return "#4361EE"; // 赤
     case "公明党":
       return "#7209B7"; // 紫
     case "日本維新の会":
@@ -32,11 +32,11 @@ const getPartyColor = (affiliation: string): string => {
     case "日本共産党":
       return "#E63946"; // 赤
     case "れいわ新選組":
-      return "#06D6A0"; // 緑
+      return "#F72585"; // 緑
     case "社民党":
       return "#118AB2"; // 青緑
     case "参政党":
-      return "#FFD166"; // 黄色
+      return "#FF4500"; // 黄色
     default:
       return "#808080"; // グレー
   }

@@ -296,20 +296,27 @@ const PartyDetail: React.FC = () => {
 
             {/* Progress bar */}
             <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex">
-              <div
-                className="h-full rounded-l-full"
-                style={{
-                  width: `${party.supportRate}%`,
-                  backgroundColor: "#10B981",
-                }}
-              ></div>
-              <div
-                className="h-full rounded-r-full"
-                style={{
-                  width: `${party.opposeRate}%`,
-                  backgroundColor: "#EF4444",
-                }}
-              ></div>
+              {/* 支持率と不支持率の合計を計算 */}
+              {(() => {
+                return (
+                  <>
+                    <div
+                      className="h-full rounded-l-full transition-all duration-700 ease-in-out"
+                      style={{
+                        width: `${party.supportRate}%`,
+                        backgroundColor: "#10B981",
+                      }}
+                    ></div>
+                    <div
+                      className="h-full rounded-r-full transition-all duration-700 ease-in-out"
+                      style={{
+                        width: `${party.opposeRate}%`,
+                        backgroundColor: "#EF4444",
+                      }}
+                    ></div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
