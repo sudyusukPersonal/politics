@@ -122,7 +122,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     const initializeData = async () => {
       try {
-        console.time("Data Initialization");
         setDataLoading(true);
 
         // Process data only if not already loaded
@@ -132,11 +131,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
           const parties = processPartiesData();
 
           setGlobalPoliticians(politicians);
-          setGlobalParties(parties);
+          setGlobalParties(await parties);
         }
 
         setDataInitialized(true);
-        console.timeEnd("Data Initialization");
       } catch (error) {
         console.error("Failed to initialize global data:", error);
       } finally {

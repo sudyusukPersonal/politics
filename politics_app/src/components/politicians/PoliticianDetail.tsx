@@ -45,6 +45,7 @@ const PoliticianDetail: React.FC = () => {
 
         // Fetch politician data from Firebase
         const politicianData = await fetchPoliticianById(id);
+        console.log(politicianData);
 
         if (politicianData) {
           setPolitician(politicianData);

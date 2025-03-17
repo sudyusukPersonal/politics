@@ -58,11 +58,36 @@ const getLocalImagePath = (name: string): string => {
   }
 };
 
+const getPartyID = (affiliation: string): string => {
+  switch (affiliation) {
+    case "自由民主党":
+      return "mJV3F03DLgaLLeBzfCdG"; // 青
+    case "立憲民主党":
+      return "lMixB0EYLpBHl0uQlo16"; // 赤
+    case "公明党":
+      return "neEopBo0RyDA2yBBszOp"; // 紫
+    case "日本維新の会":
+      return "R4ZedESxj6ZRqfB4Ak4z"; // オレンジ
+    case "国民民主党":
+      return "YY0BG8CCjpeBaATG9KvF"; // 水色
+    case "日本共産党":
+      return "Mn7qK9AvCbZNtMaQY8Wz"; // 赤
+    case "れいわ新選組":
+      return "yFV5XVFt5GCdzA0LU5c0"; // 緑
+    case "社民党":
+      return "ufc1i9eAFULfldtQ04DQ"; // 青緑
+    case "参政党":
+      return "E9BuFD9eUKNMpCBDCSDM"; // 黄色
+    default:
+      return "#808080"; // グレー
+  }
+};
+
 // Function to convert Firestore data to Politician type
 const convertToPolitician = (id: string, data: any): Politician => {
   // Create a party object from the affiliation
   const party = {
-    id: generatePartyId(data.affiliation),
+    id: getPartyID(data.affiliation),
     name: data.affiliation,
     color: getPartyColor(data.affiliation),
   };

@@ -268,7 +268,7 @@ const PartyDetail: React.FC = () => {
                 {party.name}
               </h2>
               <div className="flex flex-wrap items-center text-sm text-gray-500 mt-1">
-                <span>所属議員: {members.length}名</span>
+                <span>所属議員: {party.members}名</span>
                 <span className="mx-2 hidden sm:inline">•</span>
                 <span>総投票数: {party.totalVotes.toLocaleString()}</span>
               </div>

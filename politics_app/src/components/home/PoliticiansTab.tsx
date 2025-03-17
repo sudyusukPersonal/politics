@@ -102,7 +102,7 @@ const PoliticiansTab: React.FC = () => {
           </div>
 
           <button
-            onClick={showAllPoliticiansList}
+            onClick={() => showAllPoliticiansList()}
             className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
           >
             全議員を見る

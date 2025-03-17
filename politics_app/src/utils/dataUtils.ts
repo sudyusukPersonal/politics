@@ -1,6 +1,8 @@
 // src/utils/dataUtils.ts
 import politiciansData from "../data/politicians_with_id.json";
 import { Politician, Party } from "../types";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../config/firebaseConfig"; // Firebaseの設定をインポート
 
 // キャッシング用のグローバル変数
 let cachedPoliticians: Politician[] | null = null;
@@ -32,6 +34,31 @@ const getPartyColor = (affiliation: string): string => {
   }
 };
 
+const getPartyID = (affiliation: string): string => {
+  switch (affiliation) {
+    case "自由民主党":
+      return "mJV3F03DLgaLLeBzfCdG"; // 青
+    case "立憲民主党":
+      return "lMixB0EYLpBHl0uQlo16"; // 赤
+    case "公明党":
+      return "neEopBo0RyDA2yBBszOp"; // 紫
+    case "日本維新の会":
+      return "R4ZedESxj6ZRqfB4Ak4z"; // オレンジ
+    case "国民民主党":
+      return "YY0BG8CCjpeBaATG9KvF"; // 水色
+    case "日本共産党":
+      return "Mn7qK9AvCbZNtMaQY8Wz"; // 赤
+    case "れいわ新選組":
+      return "yFV5XVFt5GCdzA0LU5c0"; // 緑
+    case "社民党":
+      return "ufc1i9eAFULfldtQ04DQ"; // 青緑
+    case "参政党":
+      return "E9BuFD9eUKNMpCBDCSDM"; // 黄色
+    default:
+      return "#808080"; // グレー
+  }
+};
+
 // 一意の政党IDを生成する関数
 const generatePartyId = (partyName: string): string => {
   return `party-${partyName.replace(/\s+/g, "-")}`;
@@ -50,45 +77,47 @@ const getLocalImagePath = (name: string): string => {
   }
 };
 
-// JSONデータから政党一覧を生成する（キャッシング機能付き）
-export const processPartiesData = (): Party[] => {
+// Firestoreから政党データを取得して処理する（キャッシング機能付き）
+export const processPartiesData = async (): Promise<Party[]> => {
   // キャッシュがあれば、それを返す（処理の重複を避ける）
   if (cachedParties !== null) {
     return cachedParties;
   }
 
-  console.time("政党データ処理時間");
+  try {
+    // Firestoreのpartiesコレクションからデータを取得
+    const partiesCollection = collection(db, "parties");
+    const partiesSnapshot = await getDocs(partiesCollection);
 
-  // JSONデータから一意の政党リストを抽出
-  const uniqueParties = Array.from(
-    new Set(politiciansData.map((item) => item.affiliation))
-  );
+    // 取得したデータを処理
+    const parties = partiesSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const partyName = data.name;
 
-  // 政党データを作成
-  const parties = uniqueParties.map((partyName) => {
-    const supportRate = Math.floor(Math.random() * 40) + 30; // 30-70%のランダムな支持率
-    const partyId = generatePartyId(partyName);
+      return {
+        id: doc.id, // ドキュメントIDを政党IDとして使用
+        name: partyName,
+        color: getPartyColor(partyName),
+        supportRate: data.supportCount || 0,
+        opposeRate: data.oppositionCount || 0,
+        totalVotes: (data.supportCount || 0) + (data.oppositionCount || 0),
+        // 既存の方法でメンバー数をカウント（JSONデータから）
+        members: politiciansData.filter((p) => p.affiliation === partyName)
+          .length,
+        keyPolicies: data.majorPolicies || [],
+        description:
+          data.overview || `${partyName}の政策と理念に基づいた政党です。`,
+      };
+    });
 
-    return {
-      id: partyId,
-      name: partyName,
-      color: getPartyColor(partyName),
-      supportRate: supportRate,
-      opposeRate: 100 - supportRate, // 支持率と不支持率の合計が100%になるように
-      totalVotes: Math.floor(Math.random() * 10000) + 5000, // ランダムな投票数
-      members: politiciansData.filter((p) => p.affiliation === partyName)
-        .length,
-      keyPolicies: getRandomPolicies(partyName),
-      description: `${partyName}の政策と理念に基づいた政党です。`,
-    };
-  });
+    // 結果をキャッシュして今後の呼び出しで再利用できるようにする
+    cachedParties = parties;
 
-  console.timeEnd("政党データ処理時間");
-
-  // 結果をキャッシュして今後の呼び出しで再利用できるようにする
-  cachedParties = parties;
-
-  return parties;
+    return parties;
+  } catch (error) {
+    console.error("Firestoreからの政党データ取得に失敗しました:", error);
+    return [];
+  }
 };
 
 // JSONデータを処理してアプリケーションのデータモデルに合わせる（キャッシング機能付き）
@@ -106,7 +135,7 @@ export const processPoliticiansData = (): Politician[] => {
       (item): item is typeof item & { name: string } => item.name !== undefined
     )
     .map((item, index) => {
-      const partyId = generatePartyId(item.affiliation);
+      // const partyId = generatePartyId(item.affiliation);
 
       // ふりがなフィールドのサポート追加
       // JSONデータから直接furiganaを取得（存在する場合）
@@ -119,7 +148,7 @@ export const processPoliticiansData = (): Politician[] => {
         position: item.type || "議員",
         age: Math.floor(Math.random() * 30) + 35, // 35-65の乱数（元データにないため）
         party: {
-          id: partyId,
+          id: getPartyID(item.affiliation),
           name: item.affiliation,
           color: getPartyColor(item.affiliation),
         },
@@ -147,13 +176,6 @@ export const processPoliticiansData = (): Politician[] => {
   return politicians;
 };
 
-// キャッシュをクリアする関数（データ更新時などに使用）
-export const clearDataCache = () => {
-  cachedPoliticians = null;
-  cachedParties = null;
-  console.log("データキャッシュをクリアしました");
-};
-
 // 名前からふりがなを抽出する補助関数
 const extractFurigana = (name: string): string => {
   if (!name) return "";
@@ -169,30 +191,11 @@ const extractFurigana = (name: string): string => {
   return "";
 };
 
-// 政党ごとにランダムな政策を生成する補助関数
-const getRandomPolicies = (partyName: string): string[] => {
-  const allPolicies = [
-    "経済再生",
-    "社会保障拡充",
-    "教育改革",
-    "デジタル化推進",
-    "環境保護",
-    "地方創生",
-    "外交安全保障",
-    "憲法改正",
-    "財政再建",
-    "行政改革",
-    "農業振興",
-    "中小企業支援",
-    "エネルギー政策",
-    "少子化対策",
-    "働き方改革",
-  ];
-
-  // 政党ごとに3-5個のランダムな政策を選ぶ
-  const count = Math.floor(Math.random() * 3) + 3;
-  const shuffled = [...allPolicies].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
+// キャッシュをクリアする関数（データ更新時などに使用）
+export const clearDataCache = () => {
+  cachedPoliticians = null;
+  cachedParties = null;
+  console.log("データキャッシュをクリアしました");
 };
 
 // 特定の政党に所属する政治家を取得する（キャッシュ利用）
@@ -220,10 +223,10 @@ export const getPoliticianById = (id: string): Politician | undefined => {
 };
 
 // 特定のIDの政党を取得する（キャッシュ利用）
-export const getPartyById = (id: string): Party | undefined => {
+export const getPartyById = async (id: string): Promise<Party | undefined> => {
   // まずキャッシュをチェック
   if (!cachedParties) {
-    processPartiesData(); // キャッシュがなければデータを処理
+    await processPartiesData(); // キャッシュがなければデータを処理
   }
 
   // キャッシュから直接検索
