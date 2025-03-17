@@ -4,6 +4,7 @@ import HomeScreen from "../components/home/HomeScreen";
 import PoliticianDetail from "../components/politicians/PoliticianDetail";
 import PartyDetail from "../components/parties/PartyDetail";
 import AllPoliticiansList from "../components/politicians/AllPoliticiansList";
+import PolicyDiscussionPage from "../components/policies/PolicyDetail";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -18,6 +19,7 @@ const AppRoutes: React.FC = () => {
             element={<PoliticianDetail />}
           />
           <Route path="/parties/:partyId" element={<PartyDetail />} />
+          <Route path="/policy" element={<PolicyDiscussionPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
