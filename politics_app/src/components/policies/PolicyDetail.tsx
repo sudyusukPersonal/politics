@@ -113,18 +113,6 @@ const PolicyDiscussionPage = () => {
   return (
     <div className="flex flex-col w-full min-h-screen font-sans bg-slate-50">
       {/* Header for preview purposes */}
-      <header className="sticky top-0 z-20 bg-gradient-to-r from-teal-600 to-emerald-500 shadow-lg">
-        <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
-          <h1 className="font-bold tracking-wide text-white text-lg">
-            POLITICS HUB
-          </h1>
-          <div className="flex space-x-4">
-            <button className="text-white hover:text-teal-200 transition">
-              ログイン
-            </button>
-          </div>
-        </div>
-      </header>
 
       {/* Main content */}
       <main className="flex-1 p-4 pb-16 container mx-auto max-w-7xl">
