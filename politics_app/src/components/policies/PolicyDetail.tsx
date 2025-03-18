@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+// src/components/policies/PolicyDetail.tsx
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -14,60 +16,114 @@ import {
   Activity,
   Eye,
 } from "lucide-react";
+import { fetchPolicyById } from "../../services/policyService";
+import LoadingAnimation from "../common/LoadingAnimation";
 
 const PolicyDiscussionPage = () => {
-  // Sample policy data
-  const policy = {
-    id: "p1",
-    title: "所得税の「103万円の壁」撤廃",
-    description:
-      "国民民主党は所得税がかかり始める「年収103万円の壁」を178万円まで引き上げることを提案している。現制度では基礎控除48万円と給与所得控除55万円の合計103万円以下の所得は非課税だが、これを拡大する案だ。自民党が提示した年収200万円以下の場合に160万円まで引き上げる案に対し、国民民主党は所得制限なしの一律引き上げを要求している。",
-    category: "経済成長",
-    proposedDate: "2023年10月15日",
-    status: "審議中",
-    supportRate: 64,
-    opposeRate: 36,
-    totalVotes: 12583,
-    impactAreas: ["経済", "税制度", "国際関係"],
-    keyPoints: [
-      "年収103万円から178万円までの所得税を非課税に",
-      "約544万人（人口の約4.4%）が減税の恩恵を受ける",
-      "年間約1,033億円の税収減と試算される",
-      "所得制限なしの一律引き上げを国民民主党は主張",
-    ],
-    impacts: [
-      {
-        category: "経済的影響",
-        icon: "💰",
-        description:
-          "短期的には電気料金や化石燃料コストの上昇により家計負担が増加。長期的には再生可能エネルギーコストの低減や新産業の創出による経済成長が期待される。",
-        aspects: ["光熱費上昇", "新産業創出", "雇用構造変化", "省エネ投資促進"],
-      },
-      {
-        category: "生活への影響",
-        icon: "🏠",
-        description:
-          "生活様式の変化（電気自動車の普及、省エネ住宅の標準化）が必要になる一方、大気汚染の減少による健康改善効果や、気候変動による災害リスク低減が期待される。",
-        aspects: ["移動手段変化", "住環境向上", "健康増進", "災害リスク低減"],
-      },
-    ],
-    proposingParty: {
-      name: "国民民主党",
-      color: "#10B981",
-      logo: "🌱",
-      statement:
-        "気候変動対策は国家の最優先事項であり、産業構造の変革に踏み出す時です。",
-    },
-    opposingParty: {
-      name: "立憲民主党",
-      color: "#F43F5E",
-      logo: "⚙️",
-      statement:
-        "経済成長とのバランスを欠いた環境政策は国民生活を圧迫します。段階的な移行が必要です。",
-    },
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  // 状態管理
+  const [policy, setPolicy] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showVoteForm, setShowVoteForm] = useState(false);
+  const [voteType, setVoteType] = useState<string | null>(null);
+
+  // 政策データの取得
+  useEffect(() => {
+    const loadPolicy = async () => {
+      if (!id) {
+        setError("政策IDが指定されていません");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Firestoreから政策データを取得
+        const policyData = await fetchPolicyById(id);
+
+        if (policyData) {
+          setPolicy(policyData);
+          console.log("政策データを取得しました:", policyData);
+        } else {
+          setError("指定された政策データが見つかりませんでした");
+        }
+      } catch (err) {
+        console.error("政策データの取得中にエラーが発生しました:", err);
+        setError(
+          "政策データの読み込みに失敗しました。もう一度お試しください。"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPolicy();
+    // ページトップにスクロール
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  // UI handlers
+  const handleVoteClick = (type: string) => {
+    setVoteType(type);
+    setShowVoteForm(true);
   };
 
-  // Sample comments
+  // 戻るボタンのハンドラ
+  const handleBackToList = () => {
+    navigate("/policy");
+  };
+
+  const formatDate = (dateString: string | number | Date) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+    } catch (e) {
+      return dateString; // 日付形式でない場合はそのまま返す
+    }
+  };
+
+  // ローディング表示
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 min-h-[400px] flex items-center justify-center">
+        <LoadingAnimation type="dots" message="政策情報を読み込んでいます" />
+      </div>
+    );
+  }
+
+  // エラー表示
+  if (error || !policy) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+        <div className="text-red-500 mb-2">
+          <AlertCircle className="h-12 w-12 mx-auto" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900">
+          政策が見つかりません
+        </h3>
+        <p className="mt-2 text-gray-600">
+          {error || "指定されたIDの政策情報を取得できませんでした。"}
+        </p>
+        <button
+          onClick={handleBackToList}
+          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+        >
+          政策一覧に戻る
+        </button>
+      </div>
+    );
+  }
+
+  // サンプルコメント（実際の実装では、コメントデータもFirestoreから取得する）
   const comments = [
     {
       id: "c1",
@@ -89,37 +145,17 @@ const PolicyDiscussionPage = () => {
     },
   ];
 
-  // UI state
-  const [showVoteForm, setShowVoteForm] = useState(false);
-  const [voteType, setVoteType] = useState<string | null>(null);
-
-  // UI handlers
-  const handleVoteClick = (type: string) => {
-    setVoteType(type);
-    setShowVoteForm(true);
-  };
-
-  const formatDate = (dateString: string | number | Date) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   return (
     <div className="flex flex-col w-full min-h-screen font-sans bg-slate-50">
-      {/* Header for preview purposes */}
-
       {/* Main content */}
       <main className="flex-1 p-4 pb-16 container mx-auto max-w-7xl">
         <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
           <section className="space-y-4">
             <div className="flex items-center justify-between mb-2">
-              <button className="flex items-center text-teal-600 hover:text-teal-800 transition">
+              <button
+                className="flex items-center text-teal-600 hover:text-teal-800 transition"
+                onClick={handleBackToList}
+              >
                 <ArrowLeft size={16} className="mr-1" />
                 <span>政策一覧に戻る</span>
               </button>
@@ -144,22 +180,13 @@ const PolicyDiscussionPage = () => {
                   <div className="sparkles"></div>
                 </div>
 
-                {/* Removed trending indicator as requested */}
-
                 <h1 className="text-2xl sm:text-3xl font-bold mb-2 relative z-10 text-shadow-sm">
                   {policy.title}
                 </h1>
 
                 <div className="flex flex-wrap items-center text-sm mb-4 relative z-10">
                   <span className="bg-white bg-opacity-20 backdrop-blur-md px-2 py-1 rounded-md mr-2 mb-2">
-                    {policy.category}
-                  </span>
-                  <span className="flex items-center mr-2 mb-2">
-                    <Calendar size={14} className="mr-1" />
-                    提案: {policy.proposedDate}
-                  </span>
-                  <span className="bg-yellow-400 text-yellow-900 px-2 py-1 rounded-md mb-2">
-                    {policy.status}
+                    {policy.politicalParties[0].partyName}
                   </span>
                 </div>
 
@@ -172,7 +199,7 @@ const PolicyDiscussionPage = () => {
                     影響を受ける分野:
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {policy.impactAreas.map((area, i) => (
+                    {policy.affectedFields.map((area: string, i: number) => (
                       <span
                         key={i}
                         className="bg-white bg-opacity-20 backdrop-blur-md px-3 py-1 rounded-full text-xs"
@@ -189,7 +216,7 @@ const PolicyDiscussionPage = () => {
                 <div className="absolute inset-0 gradient-border opacity-10"></div>
                 <h3 className="font-bold text-gray-800 mb-3">主要ポイント</h3>
                 <ul className="space-y-3">
-                  {policy.keyPoints.map((point, i) => (
+                  {policy.keyPoints.map((point: string, i: number) => (
                     <li
                       key={i}
                       className="flex items-start hover:transform hover:scale-102 transition-transform"
@@ -211,43 +238,47 @@ const PolicyDiscussionPage = () => {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {policy.impacts.map((impact, i) => (
-                    <div
-                      key={i}
-                      className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-white to-slate-50 shadow-md transition-all duration-300 hover:shadow-xl"
-                    >
-                      {/* Decorative gradient accent */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  {/* 経済への影響 */}
+                  <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-white to-slate-50 shadow-md transition-all duration-300 hover:shadow-xl">
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute h-full w-1 bg-gradient-to-b from-teal-400 to-emerald-500 left-0 top-0"></div>
 
-                      <div className="absolute h-full w-1 bg-gradient-to-b from-teal-400 to-emerald-500 left-0 top-0"></div>
-
-                      <div className="p-6 relative z-10">
-                        <div className="flex items-center mb-4">
-                          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 shadow-inner text-2xl">
-                            {impact.icon}
-                          </div>
-                          <h4 className="font-bold text-xl ml-4 text-gray-800 group-hover:text-teal-800 transition-colors duration-300">
-                            {impact.category}
-                          </h4>
+                    <div className="p-6 relative z-10">
+                      <div className="flex items-center mb-4">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 shadow-inner text-2xl">
+                          💰
                         </div>
-
-                        <p className="text-gray-600 leading-relaxed mb-5 group-hover:text-gray-700 transition-colors duration-300">
-                          {impact.description}
-                        </p>
-
-                        <div className="flex flex-wrap gap-2 mt-auto">
-                          {impact.aspects.map((aspect, j) => (
-                            <span
-                              key={j}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-teal-50 to-emerald-50 text-teal-700 border border-teal-100"
-                            >
-                              {aspect}
-                            </span>
-                          ))}
-                        </div>
+                        <h4 className="font-bold text-xl ml-4 text-gray-800 group-hover:text-teal-800 transition-colors duration-300">
+                          経済的影響
+                        </h4>
                       </div>
+
+                      <p className="text-gray-600 leading-relaxed mb-5 group-hover:text-gray-700 transition-colors duration-300">
+                        {policy.economicImpact}
+                      </p>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* 生活への影響 */}
+                  <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-white to-slate-50 shadow-md transition-all duration-300 hover:shadow-xl">
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute h-full w-1 bg-gradient-to-b from-teal-400 to-emerald-500 left-0 top-0"></div>
+
+                    <div className="p-6 relative z-10">
+                      <div className="flex items-center mb-4">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 shadow-inner text-2xl">
+                          🏠
+                        </div>
+                        <h4 className="font-bold text-xl ml-4 text-gray-800 group-hover:text-teal-800 transition-colors duration-300">
+                          生活への影響
+                        </h4>
+                      </div>
+
+                      <p className="text-gray-600 leading-relaxed mb-5 group-hover:text-gray-700 transition-colors duration-300">
+                        {policy.lifeImpact}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -259,47 +290,52 @@ const PolicyDiscussionPage = () => {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Proposing party */}
-                  <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl p-4 border border-teal-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-emerald-400 flex items-center justify-center text-xl text-white shadow-sm mr-3">
-                        {policy.proposingParty.logo}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-teal-700">
-                          提案政党: {policy.proposingParty.name}
-                        </h4>
-                        <div className="h-1 w-16 bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full mt-1"></div>
-                      </div>
-                    </div>
-                    <p
-                      className="mt-3 text-sm text-gray-600 italic border-l-2 pl-3 ml-2"
-                      style={{ borderColor: policy.proposingParty.color }}
+                  {policy.politicalParties.map((party: any, index: number) => (
+                    <div
+                      key={index}
+                      className={`bg-gradient-to-br ${
+                        index === 0
+                          ? "from-teal-50 to-emerald-50 border-teal-100"
+                          : "from-rose-50 to-red-50 border-rose-100"
+                      } rounded-xl p-4 border shadow-sm hover:shadow-md transition-shadow`}
                     >
-                      "{policy.proposingParty.statement}"
-                    </p>
-                  </div>
-
-                  {/* Opposing party */}
-                  <div className="bg-gradient-to-br from-rose-50 to-red-50 rounded-xl p-4 border border-rose-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-rose-500 to-red-400 flex items-center justify-center text-xl text-white shadow-sm mr-3">
-                        {policy.opposingParty.logo}
+                      <div className="flex items-center">
+                        <div
+                          className={`w-10 h-10 rounded-full ${
+                            index === 0
+                              ? "bg-gradient-to-r from-teal-500 to-emerald-400"
+                              : "bg-gradient-to-r from-rose-500 to-red-400"
+                          } flex items-center justify-center text-xl text-white shadow-sm mr-3`}
+                        >
+                          {index === 0 ? "🌱" : "⚙️"}
+                        </div>
+                        <div>
+                          <h4
+                            className={`font-semibold ${
+                              index === 0 ? "text-teal-700" : "text-rose-700"
+                            }`}
+                          >
+                            {index === 0 ? "提案政党: " : "対立政党: "}
+                            {party.partyName}
+                          </h4>
+                          <div
+                            className={`h-1 w-16 ${
+                              index === 0
+                                ? "bg-gradient-to-r from-teal-500 to-emerald-400"
+                                : "bg-gradient-to-r from-rose-500 to-red-400"
+                            } rounded-full mt-1`}
+                          ></div>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-semibold text-rose-700">
-                          反対政党: {policy.opposingParty.name}
-                        </h4>
-                        <div className="h-1 w-16 bg-gradient-to-r from-rose-500 to-red-400 rounded-full mt-1"></div>
-                      </div>
+                      <p
+                        className={`mt-3 text-sm text-gray-600 italic border-l-2 pl-3 ml-2 ${
+                          index === 0 ? "border-teal-400" : "border-rose-400"
+                        }`}
+                      >
+                        "{party.claims}"
+                      </p>
                     </div>
-                    <p
-                      className="mt-3 text-sm text-gray-600 italic border-l-2 pl-3 ml-2"
-                      style={{ borderColor: policy.opposingParty.color }}
-                    >
-                      "{policy.opposingParty.statement}"
-                    </p>
-                  </div>
+                  ))}
                 </div>
               </div>
 
@@ -517,7 +553,7 @@ const PolicyDiscussionPage = () => {
                             {comment.userName}
                           </span>
                           <span className="mx-2">•</span>
-                          <span>{formatDate(comment.createdAt)}</span>
+                          <span>{comment.createdAt.toLocaleString()}</span>
                         </div>
 
                         <div className="flex items-center space-x-3">
@@ -544,118 +580,6 @@ const PolicyDiscussionPage = () => {
                     </div>
                   ))}
 
-                  {/* Sample expanded comment with replies */}
-                  <div className="rounded-xl p-4 border transition-all duration-300 hover:shadow-md bg-gradient-to-r from-green-50 to-emerald-50 border-green-100">
-                    <p className="text-gray-700">
-                      気候変動対策は待ったなしの状況です。この法案は明確な目標を示しており、産業界にも変化を促す良い政策だと思います。特に再生可能エネルギー比率の引き上げは非常に重要なポイントです。
-                    </p>
-
-                    <div className="flex justify-between mt-3 items-center">
-                      <div className="flex items-center text-xs text-gray-500">
-                        <span className="font-medium">匿名ユーザー</span>
-                        <span className="mx-2">•</span>
-                        <span>2023/10/15 16:45</span>
-                      </div>
-
-                      <div className="flex items-center space-x-3">
-                        <button className="flex items-center text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded-full shadow-sm">
-                          <ThumbsUp size={12} className="mr-1" />
-                          <span>156</span>
-                        </button>
-                        <button className="text-xs text-teal-600 hover:text-teal-800 transition">
-                          返信
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Replies section (expanded) */}
-                    <div className="mt-3 pt-2 border-t border-gray-200">
-                      <div className="pl-4 ml-2 border-l-2 border-green-200 space-y-3 mt-2">
-                        {/* Reply 1 */}
-                        <div className="bg-white rounded-lg p-3 border border-gray-100 shadow-sm mt-2 hover:shadow-md transition-shadow">
-                          <div className="flex items-center mb-2 text-xs text-gray-500">
-                            <svg
-                              className="w-3 h-3 mr-1 text-gray-400"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <polyline points="9 14 4 9 9 4"></polyline>
-                              <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                            </svg>
-                            <span className="font-medium text-gray-600">
-                              @匿名ユーザー
-                            </span>
-                            <span className="ml-1">への返信</span>
-                          </div>
-                          <p className="text-gray-700 text-sm">
-                            目標設定は良いですが、実現可能性はどうでしょうか？特に地方での対応が遅れそうです。
-                          </p>
-                          <div className="flex justify-between mt-2 items-center">
-                            <div className="flex items-center text-xs text-gray-500">
-                              <span className="font-medium">匿名ユーザー</span>
-                              <span className="mx-2">•</span>
-                              <span>2023/10/15 18:12</span>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <button className="flex items-center text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                                <ThumbsUp size={10} className="mr-1" />
-                                <span>32</span>
-                              </button>
-                              <button className="text-xs text-teal-600 hover:text-teal-800 transition">
-                                返信
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Reply 2 */}
-                        <div className="bg-white rounded-lg p-3 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex items-center mb-2 text-xs text-gray-500">
-                            <svg
-                              className="w-3 h-3 mr-1 text-gray-400"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <polyline points="9 14 4 9 9 4"></polyline>
-                              <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                            </svg>
-                            <span className="font-medium text-gray-600">
-                              @匿名ユーザー
-                            </span>
-                            <span className="ml-1">への返信</span>
-                          </div>
-                          <p className="text-gray-700 text-sm">
-                            地方こそ再生可能エネルギーの潜在力が高いですよ。太陽光や風力、バイオマスなど地域資源を活用できます。
-                          </p>
-                          <div className="flex justify-between mt-2 items-center">
-                            <div className="flex items-center text-xs text-gray-500">
-                              <span className="font-medium">匿名ユーザー</span>
-                              <span className="mx-2">•</span>
-                              <span>2023/10/15 19:05</span>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <button className="flex items-center text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                                <ThumbsUp size={10} className="mr-1" />
-                                <span>47</span>
-                              </button>
-                              <button className="text-xs text-teal-600 hover:text-teal-800 transition">
-                                返信
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* View more button */}
                   <div className="text-center mt-6">
                     <button className="bg-gradient-to-r from-teal-500 to-emerald-600 hover:shadow-lg text-white font-medium py-2 px-8 rounded-full text-sm transition-all duration-300 transform hover:-translate-y-1 shadow-md">
@@ -663,93 +587,6 @@ const PolicyDiscussionPage = () => {
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Related policies */}
-            <div
-              className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn"
-              style={{ animationDelay: "0.3s" }}
-            >
-              <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-gray-50">
-                <h3 className="font-bold text-gray-800 flex items-center">
-                  <AlertCircle size={18} className="mr-2 text-teal-600" />
-                  関連政策
-                </h3>
-              </div>
-
-              <div className="divide-y divide-gray-100">
-                <div className="p-4 hover:bg-gradient-to-r hover:from-teal-50 hover:to-white transition-colors transform hover:scale-[1.01] cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-800">
-                        再生可能エネルギー促進法
-                      </h4>
-                      <p className="text-sm text-gray-500 mt-1">
-                        太陽光・風力発電の導入を促進するための法案
-                      </p>
-                      <div className="flex items-center mt-2">
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full mr-2">
-                          支持率: 72%
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          投票数: 8,543
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="p-4 hover:bg-gradient-to-r hover:from-teal-50 hover:to-white transition-colors transform hover:scale-[1.01] cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-800">
-                        電気自動車普及拡大政策
-                      </h4>
-                      <p className="text-sm text-gray-500 mt-1">
-                        電気自動車の購入補助金と充電設備の拡充
-                      </p>
-                      <div className="flex items-center mt-2">
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full mr-2">
-                          支持率: 68%
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          投票数: 7,129
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-gray-400" />
-                  </div>
-                </div>
-
-                <div className="p-4 hover:bg-gradient-to-r hover:from-teal-50 hover:to-white transition-colors transform hover:scale-[1.01] cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-800">
-                        企業向け炭素排出権取引制度
-                      </h4>
-                      <p className="text-sm text-gray-500 mt-1">
-                        排出量に上限を設定し、企業間での排出枠取引を可能に
-                      </p>
-                      <div className="flex items-center mt-2">
-                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full mr-2">
-                          支持率: 52%
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          投票数: 5,872
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight size={20} className="text-gray-400" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 text-center">
-                <button className="text-teal-600 hover:text-teal-800 text-sm font-medium hover:underline transition-all">
-                  すべての関連政策を見る
-                </button>
               </div>
             </div>
           </section>
@@ -807,7 +644,7 @@ const PolicyDiscussionPage = () => {
           animation: pulse-subtle 2s infinite;
         }
         
-        .hover\:scale-102:hover {
+        .hover\\:scale-102:hover {
           transform: scale(1.02);
         }
         
