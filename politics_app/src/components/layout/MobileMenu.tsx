@@ -62,6 +62,19 @@ const MobileMenu: React.FC = () => {
                 ランキング
               </button>
             </li>
+
+            <li>
+              <button
+                onClick={() => {
+                  navigate("/policy");
+                  setMobileMenuOpen(false);
+                }}
+                className="flex items-center text-gray-700 font-medium"
+              >
+                <BarChart3 size={18} className="mr-2 text-indigo-600" />
+                政策一覧
+              </button>
+            </li>
             <li className="border-t border-gray-200 pt-4">
               <button className="flex items-center text-gray-700 font-medium">
                 <Crown size={18} className="mr-2 text-yellow-500" />

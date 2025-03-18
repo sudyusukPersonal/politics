@@ -464,7 +464,7 @@ const PolicyDiscussionPage = () => {
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-500 animate-expand"
+                        className="h-full rounded-full bg-green-500"
                         style={{ width: `${policy.supportRate}%` }}
                       ></div>
                     </div>
@@ -482,7 +482,7 @@ const PolicyDiscussionPage = () => {
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-red-400 to-rose-500 animate-expand"
+                        className="h-full rounded-full bg-red-500"
                         style={{ width: `${policy.opposeRate}%` }}
                       ></div>
                     </div>
