@@ -8,6 +8,7 @@ import PartyDetail from "../parties/PartyDetail";
 import AllPoliticiansList from "../politicians/AllPoliticiansList";
 import HomeScreen from "../home/HomeScreen";
 import PolicyDiscussionPage from "../policies/PolicyDetail";
+import PolicyListingPage from "../policies/PolicyListingPage";
 
 const AppContent: React.FC = () => {
   return (
@@ -30,6 +31,7 @@ const AppContent: React.FC = () => {
               element={<HomeScreen initialTab="parties" />}
             />
             <Route path="/parties/:id" element={<PartyDetail />} />
+            <Route path="/policys" element={<PolicyListingPage />} />
             <Route path="/policy" element={<PolicyDiscussionPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -5,6 +5,7 @@ import PoliticianDetail from "../components/politicians/PoliticianDetail";
 import PartyDetail from "../components/parties/PartyDetail";
 import AllPoliticiansList from "../components/politicians/AllPoliticiansList";
 import PolicyDiscussionPage from "../components/policies/PolicyDetail";
+import PolicyListingPage from "../components/policies/PolicyListingPage";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -20,6 +21,7 @@ const AppRoutes: React.FC = () => {
           />
           <Route path="/parties/:partyId" element={<PartyDetail />} />
           <Route path="/policy" element={<PolicyDiscussionPage />} />
+          <Route path="/policys" element={<PolicyListingPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
