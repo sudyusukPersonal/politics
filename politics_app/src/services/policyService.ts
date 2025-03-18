@@ -10,6 +10,8 @@ import {
   limit,
   startAfter,
   Firestore,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { getPartyColor } from "./politicianService";
@@ -252,6 +254,26 @@ export const fetchAllCategories = async (): Promise<string[]> => {
     return Array.from(categoriesSet);
   } catch (error) {
     console.error("カテゴリ取得エラー:", error);
+    throw error;
+  }
+};
+
+export const addVoteToPolicy = async (
+  policyId: string,
+  voteType: "support" | "oppose"
+): Promise<void> => {
+  try {
+    const policyRef = doc(db, "policy", policyId);
+
+    // 投票タイプに応じたフィールドを更新
+    // policy コレクションでは SupportRate と NonSupportRate フィールドを使用
+    await updateDoc(policyRef, {
+      [voteType === "support" ? "SupportRate" : "NonSupportRate"]: increment(1),
+    });
+
+    console.log(`政策 ${policyId} に ${voteType} 票を追加しました`);
+  } catch (error) {
+    console.error(`政策への ${voteType} 投票追加エラー:`, error);
     throw error;
   }
 };

@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { fetchPolicyById } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
+import CommentSection from "../comments/CommentSection";
+import { ReplyDataProvider } from "../../context/ReplyDataContext";
+import PolicyVoteForm from "./PolicyVoteForm"; // 修正したポリシー投票フォーム
 
 const PolicyDiscussionPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,8 +30,8 @@ const PolicyDiscussionPage = () => {
   const [policy, setPolicy] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showVoteForm, setShowVoteForm] = useState(false);
-  const [voteType, setVoteType] = useState<string | null>(null);
+  const [voteType, setVoteType] = useState<"support" | "oppose" | null>(null);
+  const [showReasonForm, setShowReasonForm] = useState(false);
 
   // 政策データの取得
   useEffect(() => {
@@ -68,9 +71,15 @@ const PolicyDiscussionPage = () => {
   }, [id]);
 
   // UI handlers
-  const handleVoteClick = (type: string) => {
+  const handleVoteClick = (type: "support" | "oppose") => {
     setVoteType(type);
-    setShowVoteForm(true);
+    setShowReasonForm(true);
+  };
+
+  // 投票フォームのリセット
+  const resetVoteData = () => {
+    setVoteType(null);
+    setShowReasonForm(false);
   };
 
   // 戻るボタンのハンドラ
@@ -91,7 +100,6 @@ const PolicyDiscussionPage = () => {
     }
   };
 
-  // 政党カラーからグラデーションを生成するヘルパー関数
   // 政党カラーからグラデーションを生成するヘルパー関数
   const getGradientFromPartyColor = (color: string) => {
     // カラーに透明度を付けたり、微妙に異なる色合いを作成
@@ -122,6 +130,7 @@ const PolicyDiscussionPage = () => {
       lightGradient: `linear-gradient(to right, ${color}10, ${lighter}10)`,
     };
   };
+
   // ローディング表示
   if (isLoading) {
     return (
@@ -157,28 +166,6 @@ const PolicyDiscussionPage = () => {
   // 政党カラーに基づくスタイル設定を取得
   const partyColor = policy.proposingParty.color;
   const colorStyles = getGradientFromPartyColor(partyColor);
-
-  // サンプルコメント（実際の実装では、コメントデータもFirestoreから取得する）
-  const comments = [
-    {
-      id: "c1",
-      type: "support",
-      text: "将来世代のためにもカーボンニュートラルは必須です。この法案を強く支持します。具体的な年次目標があり、企業の責任を明確にしている点が評価できます。",
-      userName: "匿名ユーザー",
-      createdAt: new Date("2023-10-17T09:30:00"),
-      likes: 247,
-      repliesCount: 12,
-    },
-    {
-      id: "c2",
-      type: "oppose",
-      text: "急激な移行は経済に打撃を与えます。もっと段階的なアプローチをとるべきです。特に中小企業への配慮が不足しています。地方経済への影響も懸念されます。",
-      userName: "匿名ユーザー",
-      createdAt: new Date("2023-10-16T14:22:00"),
-      likes: 183,
-      repliesCount: 8,
-    },
-  ];
 
   return (
     <div className="flex flex-col w-full min-h-screen font-sans bg-slate-50">
@@ -520,8 +507,8 @@ const PolicyDiscussionPage = () => {
                   ></div>
                 </div>
 
-                {/* Vote buttons */}
-                {!showVoteForm ? (
+                {/* 投票フォームを条件付きレンダリング */}
+                {!showReasonForm ? (
                   <div className="mt-4 flex flex-col sm:flex-row sm:justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                     <button
                       onClick={() => handleVoteClick("support")}
@@ -547,82 +534,12 @@ const PolicyDiscussionPage = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-6 animate-fadeIn">
-                    <div
-                      className={`rounded-xl p-4 mb-3 ${
-                        voteType === "support"
-                          ? "bg-green-50 border border-green-200"
-                          : "bg-red-50 border border-red-200"
-                      }`}
-                    >
-                      <h3 className="font-medium mb-1 flex items-center">
-                        {voteType === "support" ? (
-                          <>
-                            <ThumbsUp
-                              size={16}
-                              className="text-green-500 mr-2"
-                            />
-                            <span className="text-green-700">支持する理由</span>
-                          </>
-                        ) : (
-                          <>
-                            <ThumbsDown
-                              size={16}
-                              className="text-red-500 mr-2"
-                            />
-                            <span className="text-red-700">支持しない理由</span>
-                          </>
-                        )}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2">
-                        具体的な理由を記入してください（必須）
-                      </p>
-
-                      <form>
-                        <textarea
-                          className={`w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:outline-none transition-shadow ${
-                            voteType === "support"
-                              ? "focus:ring-green-300"
-                              : "focus:ring-red-300"
-                          }`}
-                          rows={4}
-                          placeholder="あなたの意見を書いてください..."
-                          required
-                        ></textarea>
-
-                        <div className="text-right text-xs text-gray-500 mt-1 mb-3">
-                          0/500文字
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 mt-3">
-                          <button
-                            type="button"
-                            className="py-2.5 rounded-lg text-white font-medium transition transform hover:scale-105 flex items-center justify-center"
-                            style={{
-                              background:
-                                voteType === "support"
-                                  ? "linear-gradient(to right, #10B981, #059669)"
-                                  : "linear-gradient(to right, #F43F5E, #E11D48)",
-                            }}
-                          >
-                            評価を送信
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowVoteForm(false)}
-                            className="py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition"
-                          >
-                            キャンセル
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
+                  <PolicyVoteForm voteType={voteType} />
                 )}
               </div>
             </div>
 
-            {/* Comments section - これは指示により変更しない */}
+            {/* コメントセクション - 新しい実装 */}
             <div
               className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn"
               style={{ animationDelay: "0.2s" }}
@@ -637,113 +554,26 @@ const PolicyDiscussionPage = () => {
                   議論フォーラム
                 </h3>
 
-                {/* Comment form */}
-                <div
-                  className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 my-6 p-4 rounded-lg border shadow-inner"
-                  style={{
-                    background: colorStyles.lightBg,
-                    borderColor: colorStyles.borderColor,
-                  }}
-                >
-                  <span className="text-sm text-gray-700">
-                    <MessageSquare size={16} className="inline mr-1" />
-                    あなたもこの政策について議論に参加できます
-                  </span>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleVoteClick("support")}
-                      className="px-4 py-1.5 hover:shadow-md text-white text-sm rounded-full flex items-center transition transform hover:scale-105"
-                      style={{
-                        background:
-                          "linear-gradient(to right, #10B981, #059669)",
-                      }}
-                    >
-                      <ThumbsUp size={14} className="mr-1" />
-                      支持する
-                    </button>
-                    <button
-                      onClick={() => handleVoteClick("oppose")}
-                      className="px-4 py-1.5 hover:shadow-md text-white text-sm rounded-full flex items-center transition transform hover:scale-105"
-                      style={{
-                        background:
-                          "linear-gradient(to right, #F43F5E, #E11D48)",
-                      }}
-                    >
-                      <ThumbsDown size={14} className="mr-1" />
-                      支持しない
-                    </button>
-                  </div>
-                </div>
-
-                {/* Comments */}
-                <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className={`rounded-xl p-4 border transition-all duration-300 hover:shadow-md ${
-                        comment.type === "support"
-                          ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100"
-                          : "bg-gradient-to-r from-red-50 to-rose-50 border-red-100"
-                      }`}
-                    >
-                      <p className="text-gray-700">{comment.text}</p>
-
-                      <div className="flex justify-between mt-3 items-center">
-                        <div className="flex items-center text-xs text-gray-500">
-                          <span className="font-medium">
-                            {comment.userName}
-                          </span>
-                          <span className="mx-2">•</span>
-                          <span>{comment.createdAt.toLocaleString()}</span>
-                        </div>
-
-                        <div className="flex items-center space-x-3">
-                          <button className="flex items-center text-xs bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-700 px-2 py-1 rounded-full shadow-sm transition">
-                            <ThumbsUp size={12} className="mr-1" />
-                            <span>{comment.likes}</span>
-                          </button>
-
-                          <button
-                            className="text-xs transition"
-                            style={{
-                              color: colorStyles.mainColor,
-                              hoverColor: colorStyles.textColor,
-                            }}
-                          >
-                            返信
-                          </button>
-                        </div>
-                      </div>
-
-                      {comment.repliesCount > 0 && (
-                        <div className="mt-3 pt-2 border-t border-gray-200">
-                          <button className="flex items-center text-xs text-gray-500 hover:text-gray-700">
-                            <MessageSquare size={14} className="mr-1" />
-                            <span>{comment.repliesCount} 返信</span>
-                            <ChevronRight size={14} className="ml-1" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {/* View more button */}
-                  <div className="text-center mt-6">
-                    <button
-                      className="text-white font-medium py-2 px-8 rounded-full text-sm transition-all duration-300 transform hover:-translate-y-1 shadow-md hover:shadow-lg"
-                      style={{
-                        background: `linear-gradient(to right, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`,
-                      }}
-                    >
-                      さらに表示する
-                    </button>
-                  </div>
-                </div>
+                {/* ReplyDataProviderでラップしたCommentSectionを使用 */}
+                <ReplyDataProvider>
+                  <CommentSection />
+                </ReplyDataProvider>
               </div>
             </div>
           </section>
         </div>
       </main>
+
+      {/* Floating action button */}
+      <div className="fixed bottom-6 right-6">
+        <button
+          className="w-12 h-12 bg-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-indigo-700 transition-colors"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="ページトップへ戻る"
+        >
+          <TrendingUp size={20} />
+        </button>
+      </div>
 
       {/* CSS animations */}
       <style>{`
