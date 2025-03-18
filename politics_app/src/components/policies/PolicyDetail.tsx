@@ -91,6 +91,37 @@ const PolicyDiscussionPage = () => {
     }
   };
 
+  // 政党カラーからグラデーションを生成するヘルパー関数
+  // 政党カラーからグラデーションを生成するヘルパー関数
+  const getGradientFromPartyColor = (color: string) => {
+    // カラーに透明度を付けたり、微妙に異なる色合いを作成
+    const lighterColor = color.replace(/^#/, "");
+    const r = parseInt(lighterColor.substr(0, 2), 16);
+    const g = parseInt(lighterColor.substr(2, 2), 16);
+    const b = parseInt(lighterColor.substr(4, 2), 16);
+
+    // 明るい色の輝度を抑え、暗めの色を生成する（テキストが見やすくなるよう）
+    const lighter = `rgba(${Math.min(r + 20, 255)}, ${Math.min(
+      g + 20,
+      255
+    )}, ${Math.min(b + 20, 255)}, 1)`;
+    const darker = `rgba(${Math.max(r - 50, 0)}, ${Math.max(
+      g - 50,
+      0
+    )}, ${Math.max(b - 50, 0)}, 1)`;
+
+    return {
+      mainColor: color,
+      gradient: `from-[${color}] via-[${lighter}] to-[${darker}]`,
+      // より暗めのグラデーションで背景を設定
+      heroBg: `linear-gradient(to bottom right, ${darker}, ${color}, ${darker})`,
+      lightBg: `${color}10`,
+      mediumBg: `${color}20`,
+      borderColor: `${color}30`,
+      textColor: `${color}`,
+      lightGradient: `linear-gradient(to right, ${color}10, ${lighter}10)`,
+    };
+  };
   // ローディング表示
   if (isLoading) {
     return (
@@ -123,6 +154,10 @@ const PolicyDiscussionPage = () => {
     );
   }
 
+  // 政党カラーに基づくスタイル設定を取得
+  const partyColor = policy.proposingParty.color;
+  const colorStyles = getGradientFromPartyColor(partyColor);
+
   // サンプルコメント（実際の実装では、コメントデータもFirestoreから取得する）
   const comments = [
     {
@@ -153,7 +188,7 @@ const PolicyDiscussionPage = () => {
           <section className="space-y-4">
             <div className="flex items-center justify-between mb-2">
               <button
-                className="flex items-center text-teal-600 hover:text-teal-800 transition"
+                className={`flex items-center text-[${colorStyles.mainColor}] hover:text-[${colorStyles.textColor}] transition`}
                 onClick={handleBackToList}
               >
                 <ArrowLeft size={16} className="mr-1" />
@@ -173,8 +208,11 @@ const PolicyDiscussionPage = () => {
 
             {/* Policy Card - Main Visual Focus */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn">
-              {/* Hero section with dramatic gradient */}
-              <div className="relative bg-gradient-to-br from-teal-600 via-emerald-500 to-cyan-600 p-6 text-white">
+              {/* Hero section with gradient based on party color */}
+              <div
+                className="relative p-6 text-white"
+                style={{ background: colorStyles.heroBg }}
+              >
                 {/* Sparkling animation overlay */}
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="sparkles"></div>
@@ -190,10 +228,9 @@ const PolicyDiscussionPage = () => {
                   </span>
                 </div>
 
-                <p className="mb-6 text-white text-opacity-90 relative z-10 text-sm sm:text-base leading-relaxed">
+                <p className="mb-6 relative z-10 text-sm sm:text-base leading-relaxed bg-white bg-opacity-20 backdrop-blur-md p-3 rounded-lg text-white font-normal">
                   {policy.description}
                 </p>
-
                 <div className="py-2 relative z-10">
                   <h3 className="text-sm font-semibold mb-2">
                     影響を受ける分野:
@@ -211,9 +248,16 @@ const PolicyDiscussionPage = () => {
                 </div>
               </div>
 
-              {/* Key points with animated gradient border */}
+              {/* Key points with animated gradient border based on party color */}
               <div className="relative p-5 border-b border-gray-100 overflow-hidden">
-                <div className="absolute inset-0 gradient-border opacity-10"></div>
+                <div
+                  className="absolute inset-0 opacity-10"
+                  style={{
+                    background: `linear-gradient(90deg, ${colorStyles.mainColor}, ${colorStyles.mainColor}99, ${colorStyles.mainColor}BB, ${colorStyles.mainColor})`,
+                    backgroundSize: "300% 100%",
+                    animation: "gradient-slide 4s linear infinite",
+                  }}
+                ></div>
                 <h3 className="font-bold text-gray-800 mb-3">主要ポイント</h3>
                 <ul className="space-y-3">
                   {policy.keyPoints.map((point: string, i: number) => (
@@ -221,7 +265,12 @@ const PolicyDiscussionPage = () => {
                       key={i}
                       className="flex items-start hover:transform hover:scale-102 transition-transform"
                     >
-                      <div className="bg-gradient-to-r from-teal-500 to-emerald-400 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3 shadow-sm">
+                      <div
+                        className="text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5 mr-3 shadow-sm"
+                        style={{
+                          background: `linear-gradient(to right, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`,
+                        }}
+                      >
                         {i + 1}
                       </div>
                       <span className="text-gray-700">{point}</span>
@@ -230,7 +279,7 @@ const PolicyDiscussionPage = () => {
                 </ul>
               </div>
 
-              {/* Impact on citizens section - SOPHISTICATED & INTEGRATED */}
+              {/* Impact on citizens section with party colors */}
               <div className="px-5 py-8 border-b border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-6 flex items-center">
                   <span className="mr-2 text-xl">👥</span>
@@ -240,15 +289,34 @@ const PolicyDiscussionPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 経済への影響 */}
                   <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-white to-slate-50 shadow-md transition-all duration-300 hover:shadow-xl">
-                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <div className="absolute h-full w-1 bg-gradient-to-b from-teal-400 to-emerald-500 left-0 top-0"></div>
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                      style={{ background: colorStyles.lightGradient }}
+                    ></div>
+                    <div
+                      className="absolute h-full w-1 left-0 top-0"
+                      style={{
+                        background: `linear-gradient(to bottom, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`,
+                      }}
+                    ></div>
 
                     <div className="p-6 relative z-10">
                       <div className="flex items-center mb-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 shadow-inner text-2xl">
+                        <div
+                          className="flex items-center justify-center w-12 h-12 rounded-full shadow-inner text-2xl"
+                          style={{
+                            background: `linear-gradient(to bottom right, ${colorStyles.mediumBg}, ${colorStyles.lightBg})`,
+                          }}
+                        >
                           💰
                         </div>
-                        <h4 className="font-bold text-xl ml-4 text-gray-800 group-hover:text-teal-800 transition-colors duration-300">
+                        <h4
+                          className="font-bold text-xl ml-4 text-gray-800 group-hover:transition-colors duration-300"
+                          style={{
+                            color: "inherit",
+                            groupHover: { color: colorStyles.mainColor },
+                          }}
+                        >
                           経済的影響
                         </h4>
                       </div>
@@ -261,15 +329,34 @@ const PolicyDiscussionPage = () => {
 
                   {/* 生活への影響 */}
                   <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-white to-slate-50 shadow-md transition-all duration-300 hover:shadow-xl">
-                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <div className="absolute h-full w-1 bg-gradient-to-b from-teal-400 to-emerald-500 left-0 top-0"></div>
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                      style={{ background: colorStyles.lightGradient }}
+                    ></div>
+                    <div
+                      className="absolute h-full w-1 left-0 top-0"
+                      style={{
+                        background: `linear-gradient(to bottom, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`,
+                      }}
+                    ></div>
 
                     <div className="p-6 relative z-10">
                       <div className="flex items-center mb-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 shadow-inner text-2xl">
+                        <div
+                          className="flex items-center justify-center w-12 h-12 rounded-full shadow-inner text-2xl"
+                          style={{
+                            background: `linear-gradient(to bottom right, ${colorStyles.mediumBg}, ${colorStyles.lightBg})`,
+                          }}
+                        >
                           🏠
                         </div>
-                        <h4 className="font-bold text-xl ml-4 text-gray-800 group-hover:text-teal-800 transition-colors duration-300">
+                        <h4
+                          className="font-bold text-xl ml-4 text-gray-800 group-hover:transition-colors duration-300"
+                          style={{
+                            color: "inherit",
+                            groupHover: { color: colorStyles.mainColor },
+                          }}
+                        >
                           生活への影響
                         </h4>
                       </div>
@@ -282,60 +369,86 @@ const PolicyDiscussionPage = () => {
                 </div>
               </div>
 
-              {/* Party positions - New section */}
+              {/* Party positions - with dynamic party colors */}
               <div className="px-5 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-                  <Building size={18} className="mr-2 text-teal-600" />
+                  <Building
+                    size={18}
+                    className="mr-2"
+                    style={{ color: colorStyles.mainColor }}
+                  />
                   政党の立場
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {policy.politicalParties.map((party: any, index: number) => (
-                    <div
-                      key={index}
-                      className={`bg-gradient-to-br ${
-                        index === 0
-                          ? "from-teal-50 to-emerald-50 border-teal-100"
-                          : "from-rose-50 to-red-50 border-rose-100"
-                      } rounded-xl p-4 border shadow-sm hover:shadow-md transition-shadow`}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`w-10 h-10 rounded-full ${
+                  {policy.politicalParties.map((party: any, index: number) => {
+                    // 対抗政党の色を決定（ここではシンプルに赤系統を使用）
+                    const opposingColor =
+                      index === 0
+                        ? colorStyles
+                        : getGradientFromPartyColor("#EF4444"); // 反対派は赤系統で固定
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-xl p-4 border shadow-sm hover:shadow-md transition-shadow"
+                        style={{
+                          background:
                             index === 0
-                              ? "bg-gradient-to-r from-teal-500 to-emerald-400"
-                              : "bg-gradient-to-r from-rose-500 to-red-400"
-                          } flex items-center justify-center text-xl text-white shadow-sm mr-3`}
-                        >
-                          {index === 0 ? "🌱" : "⚙️"}
-                        </div>
-                        <div>
-                          <h4
-                            className={`font-semibold ${
-                              index === 0 ? "text-teal-700" : "text-rose-700"
-                            }`}
-                          >
-                            {index === 0 ? "提案政党: " : "対立政党: "}
-                            {party.partyName}
-                          </h4>
-                          <div
-                            className={`h-1 w-16 ${
-                              index === 0
-                                ? "bg-gradient-to-r from-teal-500 to-emerald-400"
-                                : "bg-gradient-to-r from-rose-500 to-red-400"
-                            } rounded-full mt-1`}
-                          ></div>
-                        </div>
-                      </div>
-                      <p
-                        className={`mt-3 text-sm text-gray-600 italic border-l-2 pl-3 ml-2 ${
-                          index === 0 ? "border-teal-400" : "border-rose-400"
-                        }`}
+                              ? `linear-gradient(to bottom right, ${colorStyles.lightBg}, ${colorStyles.mediumBg})`
+                              : `linear-gradient(to bottom right, #FEE2E2, #FECACA)`,
+                          borderColor:
+                            index === 0 ? colorStyles.borderColor : "#FECACA",
+                        }}
                       >
-                        "{party.claims}"
-                      </p>
-                    </div>
-                  ))}
+                        <div className="flex items-center">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-xl text-white shadow-sm mr-3"
+                            style={{
+                              background:
+                                index === 0
+                                  ? `linear-gradient(to right, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`
+                                  : "linear-gradient(to right, #EF4444, #B91C1C)",
+                            }}
+                          >
+                            {index === 0 ? "🌱" : "⚙️"}
+                          </div>
+                          <div>
+                            <h4
+                              className="font-semibold"
+                              style={{
+                                color:
+                                  index === 0
+                                    ? colorStyles.mainColor
+                                    : "#B91C1C",
+                              }}
+                            >
+                              {index === 0 ? "提案政党: " : "対立政党: "}
+                              {party.partyName}
+                            </h4>
+                            <div
+                              className="h-1 w-16 rounded-full mt-1"
+                              style={{
+                                background:
+                                  index === 0
+                                    ? `linear-gradient(to right, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`
+                                    : "linear-gradient(to right, #EF4444, #B91C1C)",
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                        <p
+                          className="mt-3 text-sm text-gray-600 italic border-l-2 pl-3 ml-2"
+                          style={{
+                            borderColor:
+                              index === 0 ? colorStyles.mainColor : "#EF4444",
+                          }}
+                        >
+                          "{party.claims}"
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -350,7 +463,7 @@ const PolicyDiscussionPage = () => {
                   </span>
                 </div>
 
-                {/* Support/Oppose stats */}
+                {/* Support/Oppose stats - これらは一貫性のためオリジナルカラーを保持 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                   <div className="bg-white rounded-lg p-3 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-center">
@@ -412,14 +525,22 @@ const PolicyDiscussionPage = () => {
                   <div className="mt-4 flex flex-col sm:flex-row sm:justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                     <button
                       onClick={() => handleVoteClick("support")}
-                      className="flex items-center justify-center bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-green-200"
+                      className="flex items-center justify-center text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-green-200"
+                      style={{
+                        background:
+                          "linear-gradient(to right, #10B981, #059669)",
+                      }}
                     >
                       <ThumbsUp size={16} className="mr-2" />
                       支持する
                     </button>
                     <button
                       onClick={() => handleVoteClick("oppose")}
-                      className="flex items-center justify-center bg-gradient-to-r from-red-500 to-rose-600 text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-red-200"
+                      className="flex items-center justify-center text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-red-200"
+                      style={{
+                        background:
+                          "linear-gradient(to right, #F43F5E, #E11D48)",
+                      }}
                     >
                       <ThumbsDown size={16} className="mr-2" />
                       支持しない
@@ -476,11 +597,13 @@ const PolicyDiscussionPage = () => {
                         <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 mt-3">
                           <button
                             type="button"
-                            className={`py-2.5 rounded-lg text-white font-medium transition transform hover:scale-105 flex items-center justify-center ${
-                              voteType === "support"
-                                ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-md"
-                                : "bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-md"
-                            }`}
+                            className="py-2.5 rounded-lg text-white font-medium transition transform hover:scale-105 flex items-center justify-center"
+                            style={{
+                              background:
+                                voteType === "support"
+                                  ? "linear-gradient(to right, #10B981, #059669)"
+                                  : "linear-gradient(to right, #F43F5E, #E11D48)",
+                            }}
                           >
                             評価を送信
                           </button>
@@ -499,19 +622,29 @@ const PolicyDiscussionPage = () => {
               </div>
             </div>
 
-            {/* Comments section */}
+            {/* Comments section - これは指示により変更しない */}
             <div
               className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn"
               style={{ animationDelay: "0.2s" }}
             >
               <div className="p-5">
                 <h3 className="font-bold text-lg mb-4 flex items-center">
-                  <MessageSquare size={18} className="mr-2 text-teal-600" />
+                  <MessageSquare
+                    size={18}
+                    className="mr-2"
+                    style={{ color: colorStyles.mainColor }}
+                  />
                   議論フォーラム
                 </h3>
 
                 {/* Comment form */}
-                <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 my-6 p-4 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-lg border border-teal-100 shadow-inner">
+                <div
+                  className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 my-6 p-4 rounded-lg border shadow-inner"
+                  style={{
+                    background: colorStyles.lightBg,
+                    borderColor: colorStyles.borderColor,
+                  }}
+                >
                   <span className="text-sm text-gray-700">
                     <MessageSquare size={16} className="inline mr-1" />
                     あなたもこの政策について議論に参加できます
@@ -519,14 +652,22 @@ const PolicyDiscussionPage = () => {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleVoteClick("support")}
-                      className="px-4 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-md text-white text-sm rounded-full flex items-center transition transform hover:scale-105"
+                      className="px-4 py-1.5 hover:shadow-md text-white text-sm rounded-full flex items-center transition transform hover:scale-105"
+                      style={{
+                        background:
+                          "linear-gradient(to right, #10B981, #059669)",
+                      }}
                     >
                       <ThumbsUp size={14} className="mr-1" />
                       支持する
                     </button>
                     <button
                       onClick={() => handleVoteClick("oppose")}
-                      className="px-4 py-1.5 bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-md text-white text-sm rounded-full flex items-center transition transform hover:scale-105"
+                      className="px-4 py-1.5 hover:shadow-md text-white text-sm rounded-full flex items-center transition transform hover:scale-105"
+                      style={{
+                        background:
+                          "linear-gradient(to right, #F43F5E, #E11D48)",
+                      }}
                     >
                       <ThumbsDown size={14} className="mr-1" />
                       支持しない
@@ -557,12 +698,18 @@ const PolicyDiscussionPage = () => {
                         </div>
 
                         <div className="flex items-center space-x-3">
-                          <button className="flex items-center text-xs bg-white text-gray-600 hover:bg-teal-50 hover:text-teal-700 px-2 py-1 rounded-full shadow-sm transition">
+                          <button className="flex items-center text-xs bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-700 px-2 py-1 rounded-full shadow-sm transition">
                             <ThumbsUp size={12} className="mr-1" />
                             <span>{comment.likes}</span>
                           </button>
 
-                          <button className="text-xs text-teal-600 hover:text-teal-800 transition">
+                          <button
+                            className="text-xs transition"
+                            style={{
+                              color: colorStyles.mainColor,
+                              hoverColor: colorStyles.textColor,
+                            }}
+                          >
                             返信
                           </button>
                         </div>
@@ -582,7 +729,12 @@ const PolicyDiscussionPage = () => {
 
                   {/* View more button */}
                   <div className="text-center mt-6">
-                    <button className="bg-gradient-to-r from-teal-500 to-emerald-600 hover:shadow-lg text-white font-medium py-2 px-8 rounded-full text-sm transition-all duration-300 transform hover:-translate-y-1 shadow-md">
+                    <button
+                      className="text-white font-medium py-2 px-8 rounded-full text-sm transition-all duration-300 transform hover:-translate-y-1 shadow-md hover:shadow-lg"
+                      style={{
+                        background: `linear-gradient(to right, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`,
+                      }}
+                    >
                       さらに表示する
                     </button>
                   </div>

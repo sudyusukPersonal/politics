@@ -26,9 +26,9 @@ export const getPartyColor = (affiliation: string): string => {
     case "公明党":
       return "#7209B7"; // 紫
     case "日本維新の会":
-      return "#FF9E00"; // オレンジ
+      return "#228B22"; // オレンジ
     case "国民民主党":
-      return "#4CC9F0"; // 水色
+      return "#000080"; // 水色
     case "日本共産党":
       return "#E63946"; // 赤
     case "れいわ新選組":
