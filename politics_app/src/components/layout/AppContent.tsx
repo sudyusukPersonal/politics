@@ -31,8 +31,8 @@ const AppContent: React.FC = () => {
               element={<HomeScreen initialTab="parties" />}
             />
             <Route path="/parties/:id" element={<PartyDetail />} />
-            <Route path="/policys" element={<PolicyListingPage />} />
-            <Route path="/policy" element={<PolicyDiscussionPage />} />
+            <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
+            <Route path="/policy" element={<PolicyListingPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

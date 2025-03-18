@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+// src/components/policies/PolicyListingPage.tsx
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -14,175 +16,194 @@ import {
   Users,
   MessageSquare,
 } from "lucide-react";
+import {
+  fetchAllPolicies,
+  fetchPoliciesByCategory,
+  searchPolicies,
+  sortPolicies,
+  fetchAllCategories,
+  Policy,
+} from "../../services/policyService";
+import LoadingAnimation from "../common/LoadingAnimation";
 
-const PolicyListingPage = () => {
+const PolicyListingPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  // 状態管理
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
-
-  // Sample policy data
-  const policies = [
+  const [sortMethod, setSortMethod] = useState("supportDesc"); // デフォルトのソート方法
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [filteredPolicies, setFilteredPolicies] = useState<Policy[]>([]);
+  const [categories, setCategories] = useState<
     {
-      id: "p1",
-      title: "所得税の「103万円の壁」撤廃",
-      description:
-        "国民民主党は所得税がかかり始める「年収103万円の壁」を178万円まで引き上げることを提案している。",
-      category: "経済",
-      status: "審議中",
-      proposedDate: "2023年10月15日",
-      supportRate: 64,
-      opposeRate: 36,
-      totalVotes: 12583,
-      trending: "up",
-      commentsCount: 152,
-      proposingParty: {
-        name: "国民民主党",
-        color: "#10B981",
-      },
-    },
-    {
-      id: "p2",
-      title: "再生可能エネルギー普及促進法案",
-      description:
-        "2030年までに国内の電力供給における再生可能エネルギーの割合を60%に引き上げることを目標とする法案。",
-      category: "環境",
-      status: "委員会審議",
-      proposedDate: "2023年9月28日",
-      supportRate: 72,
-      opposeRate: 28,
-      totalVotes: 18392,
-      trending: "up",
-      commentsCount: 237,
-      proposingParty: {
-        name: "立憲民主党",
-        color: "#3B82F6",
-      },
-    },
-    {
-      id: "p3",
-      title: "高等教育無償化拡大法案",
-      description:
-        "世帯年収590万円未満の学生に対する大学等の高等教育の無償化対象を拡大する法案。",
-      category: "教育",
-      status: "可決",
-      proposedDate: "2023年8月5日",
-      supportRate: 81,
-      opposeRate: 19,
-      totalVotes: 22145,
-      trending: "up",
-      commentsCount: 319,
-      proposingParty: {
-        name: "自由民主党",
-        color: "#EF4444",
-      },
-    },
-    {
-      id: "p4",
-      title: "少子化対策総合支援法案",
-      description:
-        "出産・育児に関する経済的支援を拡充し、保育施設の整備を促進する包括的な少子化対策法案。",
-      category: "社会保障",
-      status: "審議中",
-      proposedDate: "2023年10月2日",
-      supportRate: 77,
-      opposeRate: 23,
-      totalVotes: 15729,
-      trending: "up",
-      commentsCount: 187,
-      proposingParty: {
-        name: "公明党",
-        color: "#F59E0B",
-      },
-    },
-    {
-      id: "p5",
-      title: "デジタル人材育成推進法案",
-      description:
-        "ITスキル向上のための教育プログラムを全国の学校に導入し、デジタル人材の育成を促進する法案。",
-      category: "教育",
-      status: "審議中",
-      proposedDate: "2023年9月10日",
-      supportRate: 68,
-      opposeRate: 32,
-      totalVotes: 9876,
-      trending: "none",
-      commentsCount: 91,
-      proposingParty: {
-        name: "自由民主党",
-        color: "#EF4444",
-      },
-    },
-    {
-      id: "p6",
-      title: "防衛力強化推進法案",
-      description:
-        "防衛予算のGDP比2%への増額と装備品の国内調達促進を柱とする防衛力強化法案。",
-      category: "安全保障",
-      status: "委員会審議",
-      proposedDate: "2023年10月5日",
-      supportRate: 53,
-      opposeRate: 47,
-      totalVotes: 19254,
-      trending: "down",
-      commentsCount: 348,
-      proposingParty: {
-        name: "自由民主党",
-        color: "#EF4444",
-      },
-    },
-  ];
-
-  const categories = [
+      id: string;
+      name: string;
+      color: string;
+      icon: JSX.Element;
+    }[]
+  >([
     {
       id: "all",
       name: "すべて",
       color: "#6366F1",
       icon: <Activity size={14} />,
     },
-    {
-      id: "経済",
-      name: "経済",
-      color: "#06B6D4",
-      icon: <TrendingUp size={14} />,
-    },
-    {
-      id: "環境",
-      name: "環境",
-      color: "#10B981",
-      icon: <AlertCircle size={14} />,
-    },
-    { id: "教育", name: "教育", color: "#F59E0B", icon: <Users size={14} /> },
-    {
-      id: "社会保障",
-      name: "社会保障",
-      color: "#8B5CF6",
-      icon: <Users size={14} />,
-    },
-    {
-      id: "安全保障",
-      name: "安全保障",
-      color: "#EF4444",
-      icon: <AlertCircle size={14} />,
-    },
-    { id: "外交", name: "外交", color: "#3B82F6", icon: <Users size={14} /> },
-  ];
+  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [loadMoreVisible, setLoadMoreVisible] = useState(true);
+  const [visiblePoliciesCount, setVisiblePoliciesCount] = useState(6); // 最初に表示する政策の数
 
-  // Filter policies based on search and active category
-  const filteredPolicies = policies.filter((policy) => {
-    const matchesCategory =
-      activeCategory === "all" || policy.category === activeCategory;
-    const matchesSearch =
-      policy.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      policy.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // ページロード時にデータを取得
+  useEffect(() => {
+    const loadPoliciesAndCategories = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-  const handlePolicyClick = (policyId) => {
-    // In a real app, this would navigate to the policy detail page
-    console.log(`Navigate to policy ${policyId}`);
+        // 全ての政策を取得
+        const allPolicies = await fetchAllPolicies();
+        setPolicies(allPolicies);
+
+        // 利用可能なカテゴリを取得
+        const allCategories = await fetchAllCategories();
+
+        // カテゴリデータを整形
+        const categoryIcons: Record<string, JSX.Element> = {
+          経済: <TrendingUp size={14} />,
+          環境: <AlertCircle size={14} />,
+          教育: <Users size={14} />,
+          社会保障: <Users size={14} />,
+          安全保障: <AlertCircle size={14} />,
+          外交: <Users size={14} />,
+          労働: <Activity size={14} />,
+          健康: <Users size={14} />,
+        };
+
+        const categoryColors: Record<string, string> = {
+          経済: "#06B6D4",
+          環境: "#10B981",
+          教育: "#F59E0B",
+          社会保障: "#8B5CF6",
+          安全保障: "#EF4444",
+          外交: "#3B82F6",
+          労働: "#EC4899",
+          健康: "#14B8A6",
+        };
+
+        const formattedCategories = [
+          {
+            id: "all",
+            name: "すべて",
+            color: "#6366F1",
+            icon: <Activity size={14} />,
+          },
+          ...allCategories.map((category) => ({
+            id: category,
+            name: category,
+            color: categoryColors[category] || "#6B7280", // デフォルトの色
+            icon: categoryIcons[category] || <Activity size={14} />, // デフォルトのアイコン
+          })),
+        ];
+
+        setCategories(formattedCategories);
+      } catch (error) {
+        console.error("データ取得エラー:", error);
+        setError("政策データの取得中にエラーが発生しました。");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPoliciesAndCategories();
+  }, []);
+
+  // カテゴリが変更されたときにデータをフィルタリング
+  useEffect(() => {
+    const filterPolicies = async () => {
+      try {
+        setIsLoading(true);
+
+        let filtered: Policy[];
+
+        if (activeCategory === "all") {
+          // すべてのカテゴリの場合は全政策を対象に検索
+          if (searchQuery.trim()) {
+            filtered = await searchPolicies(searchQuery);
+          } else {
+            filtered = policies;
+          }
+        } else {
+          // 特定のカテゴリの場合
+          if (searchQuery.trim()) {
+            // 検索クエリがある場合、全政策から検索してからカテゴリでフィルタリング
+            const searchResults = await searchPolicies(searchQuery);
+            filtered = searchResults.filter((policy) =>
+              policy.affectedFields.includes(activeCategory)
+            );
+          } else {
+            // 検索クエリがない場合、カテゴリでフィルタリングした政策を取得
+            filtered = policies.filter((policy) =>
+              policy.affectedFields.includes(activeCategory)
+            );
+          }
+        }
+
+        // 選択されたソート方法で並べ替え
+        const sorted = sortPolicies(filtered, sortMethod);
+        setFilteredPolicies(sorted);
+
+        // 表示数をリセット
+        setVisiblePoliciesCount(6);
+        // 表示するアイテムが6以下ならもっと表示ボタンを非表示
+        setLoadMoreVisible(sorted.length > 6);
+      } catch (error) {
+        console.error("政策フィルタリングエラー:", error);
+        setError("政策のフィルタリング中にエラーが発生しました。");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (policies.length > 0) {
+      filterPolicies();
+    }
+  }, [activeCategory, policies, searchQuery, sortMethod]);
+
+  // 検索クエリが変更されたときの処理
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
 
-  const getTrendingIcon = (trend) => {
+  // 検索送信時の処理
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // 検索クエリの変更は useEffect でフィルタリングをトリガーする
+  };
+
+  // ソート方法変更時の処理
+  const handleSortChange = (method: string) => {
+    setSortMethod(method);
+    setShowFilterMenu(false);
+  };
+
+  // もっと表示ボタンの処理
+  const handleLoadMore = () => {
+    setVisiblePoliciesCount((prev) => prev + 6);
+    if (visiblePoliciesCount + 6 >= filteredPolicies.length) {
+      setLoadMoreVisible(false);
+    }
+  };
+
+  // 政策カードクリック時の処理
+  const handlePolicyClick = (policyId: string) => {
+    navigate(`/policy/${policyId}`);
+  };
+
+  // トレンドアイコンの取得
+  const getTrendingIcon = (trend: string) => {
     if (trend === "up") {
       return <TrendingUp size={16} className="text-green-500" />;
     } else if (trend === "down") {
@@ -193,7 +214,8 @@ const PolicyListingPage = () => {
     return null;
   };
 
-  const getStatusColor = (status) => {
+  // ステータス表示用のカラー設定
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "可決":
         return "bg-green-100 text-green-800 border-green-200";
@@ -208,11 +230,12 @@ const PolicyListingPage = () => {
     }
   };
 
-  const getCategoryById = (id) => {
+  // カテゴリーIDからカテゴリ情報を取得
+  const getCategoryById = (id: string) => {
     return categories.find((cat) => cat.id === id) || categories[0];
   };
 
-  // Get current active category
+  // 現在のアクティブカテゴリ
   const activeTab = getCategoryById(activeCategory);
 
   return (
@@ -237,7 +260,10 @@ const PolicyListingPage = () => {
             </p>
           </div>
 
-          <div className="relative w-full md:w-auto md:max-w-md">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative w-full md:w-auto md:max-w-md"
+          >
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search size={18} className="text-white opacity-70" />
             </div>
@@ -246,9 +272,9 @@ const PolicyListingPage = () => {
               placeholder="政策を検索..."
               className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white placeholder-white placeholder-opacity-70 backdrop-blur-sm"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
             />
-          </div>
+          </form>
         </div>
       </div>
 
@@ -326,15 +352,24 @@ const PolicyListingPage = () => {
               {showFilterMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10 border border-indigo-100">
                   <div className="py-1">
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center">
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
+                      onClick={() => handleSortChange("supportDesc")}
+                    >
                       <ArrowUp size={16} className="mr-2 text-indigo-600" />
                       <span>支持率（高い順）</span>
                     </button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center">
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
+                      onClick={() => handleSortChange("supportAsc")}
+                    >
                       <ArrowDown size={16} className="mr-2 text-indigo-600" />
                       <span>支持率（低い順）</span>
                     </button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center">
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
+                      onClick={() => handleSortChange("newest")}
+                    >
                       <Clock size={16} className="mr-2 text-indigo-600" />
                       <span>新しい順</span>
                     </button>
@@ -345,16 +380,54 @@ const PolicyListingPage = () => {
           </div>
         </div>
 
+        {/* ローディング表示 */}
+        {isLoading && policies.length === 0 && (
+          <div className="flex justify-center items-center py-12">
+            <LoadingAnimation type="dots" message="政策データを読み込み中..." />
+          </div>
+        )}
+
+        {/* エラー表示 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle size={20} className="text-red-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* データが見つからない場合 */}
+        {!isLoading && filteredPolicies.length === 0 && !error && (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <AlertCircle size={40} className="mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              政策が見つかりません
+            </h3>
+            <p className="text-gray-500">
+              検索条件に一致する政策データが見つかりませんでした。
+              <br />
+              検索キーワードを変更するか、別のカテゴリを選択してください。
+            </p>
+          </div>
+        )}
+
         {/* Policy Cards - Changed to display one per row in a vertical list */}
         <div className="space-y-4">
-          {filteredPolicies.map((policy) => {
+          {filteredPolicies.slice(0, visiblePoliciesCount).map((policy) => {
             const category = getCategoryById(policy.category);
 
             return (
               <div
                 key={policy.id}
                 className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                style={{ border: `2px solid ${policy.proposingParty.color}` }}
+                style={{
+                  borderLeft: `4px solid ${policy.proposingParty.color}`,
+                }}
                 onClick={() => handlePolicyClick(policy.id)}
               >
                 <div className="p-4">
@@ -380,14 +453,20 @@ const PolicyListingPage = () => {
                   </p>
 
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <span
-                      className="text-xs px-2.5 py-1 rounded-full text-white"
-                      style={{
-                        backgroundColor: category.color,
-                      }}
-                    >
-                      {policy.category}
-                    </span>
+                    {policy.affectedFields.map((field, index) => {
+                      const fieldCategory = getCategoryById(field);
+                      return (
+                        <span
+                          key={index}
+                          className="text-xs px-2.5 py-1 rounded-full text-white"
+                          style={{
+                            backgroundColor: fieldCategory.color,
+                          }}
+                        >
+                          {field}
+                        </span>
+                      );
+                    })}
                     <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 flex items-center">
                       <MessageSquare size={12} className="mr-1 flex-shrink-0" />
                       {policy.commentsCount}件のコメント
@@ -437,28 +516,45 @@ const PolicyListingPage = () => {
               </div>
             );
           })}
-        </div>
 
-        {/* Load more button - simplified */}
-        <div className="mt-8 text-center">
-          <button className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 transition-colors">
-            <span className="flex items-center">
-              さらに表示する
-              <ChevronRight size={16} className="ml-1" />
-            </span>
-          </button>
+          {/* ローディング表示 - 既存データの追加読み込み中 */}
+          {isLoading && policies.length > 0 && (
+            <div className="flex justify-center py-6">
+              <LoadingAnimation type="dots" message="政策を読み込み中..." />
+            </div>
+          )}
+
+          {/* もっと表示ボタン */}
+          {loadMoreVisible &&
+            filteredPolicies.length > visiblePoliciesCount && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={handleLoadMore}
+                  className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 transition-colors"
+                >
+                  <span className="flex items-center">
+                    さらに表示する
+                    <ChevronRight size={16} className="ml-1" />
+                  </span>
+                </button>
+              </div>
+            )}
         </div>
       </div>
 
       {/* Floating action button */}
       <div className="fixed bottom-6 right-6">
-        <button className="w-12 h-12 bg-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-indigo-700 transition-colors">
+        <button
+          className="w-12 h-12 bg-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-indigo-700 transition-colors"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="ページトップへ戻る"
+        >
           <TrendingUp size={20} />
         </button>
       </div>
 
       {/* Add animation styles */}
-      <style jsx>{`
+      <style>{`
         @keyframes bounce-slow {
           0%,
           100% {

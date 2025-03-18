@@ -17,7 +17,7 @@ import { db } from "../config/firebaseConfig";
 import { Politician, Party } from "../types";
 
 // Get the party color based on the party name
-const getPartyColor = (affiliation: string): string => {
+export const getPartyColor = (affiliation: string): string => {
   switch (affiliation) {
     case "自由民主党":
       return "#555555"; // 青
