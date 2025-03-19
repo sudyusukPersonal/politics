@@ -23,6 +23,15 @@ interface CachedPoliticiansData {
   currentPage: number;
 }
 
+// キャッシュされた政党ごとの政治家リストのインターフェース
+interface CachedPartyPoliticiansData {
+  partyId: string; // どの政党のデータか識別するためのID
+  politicians: Politician[];
+  lastDocumentId?: string;
+  hasMore: boolean;
+  currentPage: number;
+}
+
 // Context type definition
 interface DataContextType {
   // State
@@ -51,6 +60,8 @@ interface DataContextType {
   currentPage: number; // New state for current page number
   // 新しく追加：キャッシュされた政治家データ
   cachedPoliticians: CachedPoliticiansData | null;
+  // 新しく追加：キャッシュされた政党ごとの政治家リスト
+  cachedPartyPoliticians: Record<string, CachedPartyPoliticiansData> | null;
 
   // State setters
   setPoliticians: React.Dispatch<React.SetStateAction<Politician[]>>;
@@ -74,6 +85,10 @@ interface DataContextType {
   // 新しく追加：キャッシュされた政治家データのセッター
   setCachedPoliticians: React.Dispatch<
     React.SetStateAction<CachedPoliticiansData | null>
+  >;
+  // 新しく追加：キャッシュされた政党ごとの政治家リストのセッター
+  setCachedPartyPoliticians: React.Dispatch<
+    React.SetStateAction<Record<string, CachedPartyPoliticiansData> | null>
   >;
 
   // Helper functions
@@ -107,6 +122,7 @@ interface DataContextType {
   refreshSelectedPolitician: (id: string) => Promise<void>;
   // 新しく追加：キャッシュクリア関数
   clearPoliticiansCache: () => void;
+  clearPartyPoliticiansCache: (partyId?: string) => void;
 }
 
 // Context creation
@@ -136,6 +152,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   // 新しく追加：キャッシュされた政治家データ
   const [cachedPoliticians, setCachedPoliticians] =
     useState<CachedPoliticiansData | null>(null);
+  // 新しく追加：キャッシュされた政党ごとの政治家リスト
+  const [cachedPartyPoliticians, setCachedPartyPoliticians] = useState<Record<
+    string,
+    CachedPartyPoliticiansData
+  > | null>(null);
 
   // Initialize global data on first load
   useEffect(() => {
@@ -194,6 +215,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   // キャッシュクリア関数
   const clearPoliticiansCache = useCallback(() => {
     setCachedPoliticians(null);
+  }, []);
+
+  // 政党別の政治家キャッシュをクリアする関数
+  const clearPartyPoliticiansCache = useCallback((partyId?: string) => {
+    if (partyId) {
+      // 特定の政党のキャッシュのみをクリア
+      setCachedPartyPoliticians((prev) => {
+        if (!prev) return null;
+        const updated = { ...prev };
+        delete updated[partyId];
+        return Object.keys(updated).length > 0 ? updated : null;
+      });
+    } else {
+      // すべての政党の政治家キャッシュをクリア
+      setCachedPartyPoliticians(null);
+    }
   }, []);
 
   // Update local state from global data once it's initialized
@@ -540,6 +577,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         isLoadingPolitician,
         currentPage,
         cachedPoliticians, // 新しく追加
+        cachedPartyPoliticians, // 新しく追加
 
         // State setters
         setPoliticians,
@@ -558,6 +596,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setShowReasonForm,
         setCurrentPage,
         setCachedPoliticians, // 新しく追加
+        setCachedPartyPoliticians, // 新しく追加
 
         // Helper functions
         resetVoteData,
@@ -580,6 +619,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         getSortLabel,
         searchPoliticians,
         clearPoliticiansCache, // 新しく追加
+        clearPartyPoliticiansCache, // 新しく追加
 
         // Firebase-specific functions
         fetchPoliticianFromFirebase,

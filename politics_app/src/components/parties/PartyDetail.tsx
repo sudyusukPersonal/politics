@@ -1,5 +1,5 @@
 // src/components/parties/PartyDetail.tsx
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
@@ -15,6 +15,15 @@ import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { fetchPoliticiansByPartyWithPagination } from "../../services/politicianService";
 import { Party, Politician } from "../../types";
+
+// キャッシュデータの型定義
+interface CachedPartyPoliticiansData {
+  partyId: string;
+  politicians: Politician[];
+  lastDocumentId?: string;
+  hasMore: boolean;
+  currentPage: number;
+}
 
 const PartyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,12 +49,72 @@ const PartyDetail: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // キャッシュ関連の状態
+  const [cachedPartyPoliticians, setCachedPartyPoliticians] =
+    useState<CachedPartyPoliticiansData | null>(null);
+
   // URLからページ番号を取得する関数
   const getPageFromUrl = () => {
     const searchParams = new URLSearchParams(location.search);
     const page = searchParams.get("page");
     return page ? parseInt(page, 10) : 1;
   };
+
+  // キャッシュのローカルストレージキー
+  const getCacheKey = useCallback((partyId: string) => {
+    return `party_politicians_${partyId}`;
+  }, []);
+
+  // キャッシュの保存
+  const saveToCache = useCallback(
+    (partyId: string, data: CachedPartyPoliticiansData) => {
+      if (!partyId) return;
+
+      try {
+        // メモリキャッシュを更新
+        setCachedPartyPoliticians(data);
+
+        // ローカルストレージにも保存
+        localStorage.setItem(getCacheKey(partyId), JSON.stringify(data));
+      } catch (error) {
+        console.error("キャッシュの保存に失敗しました:", error);
+      }
+    },
+    [getCacheKey]
+  );
+
+  // キャッシュの読み込み
+  const loadFromCache = useCallback(
+    (partyId: string): CachedPartyPoliticiansData | null => {
+      if (!partyId) return null;
+
+      // まずメモリキャッシュをチェック
+      if (
+        cachedPartyPoliticians &&
+        cachedPartyPoliticians.partyId === partyId
+      ) {
+        return cachedPartyPoliticians;
+      }
+
+      // 次にローカルストレージをチェック
+      try {
+        const cachedData = localStorage.getItem(getCacheKey(partyId));
+        if (cachedData) {
+          const parsedData = JSON.parse(
+            cachedData
+          ) as CachedPartyPoliticiansData;
+          // メモリキャッシュも更新
+          setCachedPartyPoliticians(parsedData);
+          return parsedData;
+        }
+      } catch (error) {
+        console.error("キャッシュの読み込みに失敗しました:", error);
+      }
+
+      return null;
+    },
+    [getCacheKey, cachedPartyPoliticians]
+  );
 
   // グローバルデータから政党データを取得（メモ化）
   const selectedParty = useMemo(() => {
@@ -105,8 +174,21 @@ const PartyDetail: React.FC = () => {
           setHasMore(false);
         }
 
-        setPartyMembers((prev) => [...prev, ...result.politicians]);
+        // 新しい議員リストを作成
+        const updatedPoliticians = [...partyMembers, ...result.politicians];
+        setPartyMembers(updatedPoliticians);
         setLastDocumentId(result.lastDocumentId);
+
+        // キャッシュに保存
+        if (id) {
+          saveToCache(id, {
+            partyId: id,
+            politicians: updatedPoliticians,
+            lastDocumentId: result.lastDocumentId,
+            hasMore: result.hasMore,
+            currentPage: nextPage,
+          });
+        }
 
         // URLを更新（ページをリロードせずに）
         navigate(`/parties/${id}?page=${nextPage}`, { replace: true });
@@ -128,53 +210,90 @@ const PartyDetail: React.FC = () => {
     }
   }, [dataInitialized, selectedParty]);
 
-  // 初回読み込み時の処理
+  // 初回読み込み時の処理（キャッシュチェック追加）
   useEffect(() => {
-    if (party) {
-      // すでにURLにページ情報がある場合は、そのページまでデータを読み込む
+    if (!id || !party) return;
+
+    const initialLoad = async () => {
+      // URLに指定されたページ
       const initialPage = getPageFromUrl();
 
-      const initialLoad = async () => {
-        let tempLastDocId: string | undefined = undefined;
-        let allPoliticians: Politician[] = [];
+      // キャッシュをチェック
+      const cachedData = loadFromCache(id);
 
-        // 現在のページまでのデータをすべて取得
-        for (let i = 1; i <= initialPage; i++) {
-          setIsLoading(true);
-          try {
-            const result = await fetchPoliticiansByPartyWithPagination(
-              party.name,
-              tempLastDocId
-            );
+      if (cachedData && cachedData.politicians.length > 0) {
+        console.log("キャッシュから政党の政治家データを読み込みました");
 
-            allPoliticians = [...allPoliticians, ...result.politicians];
+        // キャッシュからデータを読み込む
+        setPartyMembers(cachedData.politicians);
+        setLastDocumentId(cachedData.lastDocumentId);
+        setHasMore(cachedData.hasMore);
 
-            // 最後のページの情報を設定
-            if (i === initialPage) {
-              setPartyMembers(allPoliticians);
-              setLastDocumentId(result.lastDocumentId);
-              setHasMore(result.hasMore);
-            }
-
-            tempLastDocId = result.lastDocumentId;
-
-            // 全てのデータを取得した場合
-            if (result.politicians.length < 15 || !result.hasMore) {
-              setHasMore(false);
-              break;
-            }
-          } catch (error) {
-            console.error("初期データ読み込みに失敗しました:", error);
-            break;
-          } finally {
-            setIsLoading(false);
-          }
+        // URLが変わっていた場合は現在のページを更新
+        if (initialPage !== cachedData.currentPage) {
+          navigate(`/parties/${id}?page=${cachedData.currentPage}`, {
+            replace: true,
+          });
+          setCurrentPage(cachedData.currentPage);
+        } else {
+          setCurrentPage(initialPage);
         }
-      };
 
-      initialLoad();
-    }
-  }, [party]);
+        setIsLoading(false);
+        return;
+      }
+
+      // キャッシュがない場合は通常の読み込み処理
+      let tempLastDocId: string | undefined = undefined;
+      let allPoliticians: Politician[] = [];
+
+      // 現在のページまでのデータをすべて取得
+      for (let i = 1; i <= initialPage; i++) {
+        setIsLoading(true);
+        try {
+          const result = await fetchPoliticiansByPartyWithPagination(
+            party.name,
+            tempLastDocId
+          );
+
+          allPoliticians = [...allPoliticians, ...result.politicians];
+
+          // 最後のページの情報を設定
+          if (i === initialPage) {
+            setPartyMembers(allPoliticians);
+            setLastDocumentId(result.lastDocumentId);
+            setHasMore(result.hasMore);
+
+            // キャッシュに保存
+            if (id) {
+              saveToCache(id, {
+                partyId: id,
+                politicians: allPoliticians,
+                lastDocumentId: result.lastDocumentId,
+                hasMore: result.hasMore,
+                currentPage: initialPage,
+              });
+            }
+          }
+
+          tempLastDocId = result.lastDocumentId;
+
+          // 全てのデータを取得した場合
+          if (result.politicians.length < 15 || !result.hasMore) {
+            setHasMore(false);
+            break;
+          }
+        } catch (error) {
+          console.error("初期データ読み込みに失敗しました:", error);
+          break;
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initialLoad();
+  }, [party, id, navigate, loadFromCache, saveToCache]);
 
   // 選択された政党をコンテキストに設定
   useEffect(() => {
@@ -474,15 +593,6 @@ const PartyDetail: React.FC = () => {
                   表示中: {sortedPartyPoliticians.length}名 / ページ
                   {currentPage}
                 </div>
-                {hasMore && (
-                  <button
-                    onClick={loadMorePoliticians}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50"
-                  >
-                    {isLoading ? "読み込み中..." : "もっと見る"}
-                  </button>
-                )}
               </div>
 
               {/* ローディング中インジケーター */}
