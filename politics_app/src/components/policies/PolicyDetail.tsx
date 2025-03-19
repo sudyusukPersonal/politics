@@ -76,8 +76,9 @@ const PolicyDiscussionPage = () => {
     setShowReasonForm(true);
   };
 
-  // 投票フォームのリセット
-  const resetVoteData = () => {
+  // PolicyVoteFormから呼び出されるコールバック関数
+  const handleVoteComplete = () => {
+    // 投票フォームをリセット
     setVoteType(null);
     setShowReasonForm(false);
   };
@@ -301,7 +302,6 @@ const PolicyDiscussionPage = () => {
                           className="font-bold text-xl ml-4 text-gray-800 group-hover:transition-colors duration-300"
                           style={{
                             color: "inherit",
-                            groupHover: { color: colorStyles.mainColor },
                           }}
                         >
                           経済的影響
@@ -341,7 +341,6 @@ const PolicyDiscussionPage = () => {
                           className="font-bold text-xl ml-4 text-gray-800 group-hover:transition-colors duration-300"
                           style={{
                             color: "inherit",
-                            groupHover: { color: colorStyles.mainColor },
                           }}
                         >
                           生活への影響
@@ -439,126 +438,132 @@ const PolicyDiscussionPage = () => {
                 </div>
               </div>
 
-              {/* Approval ratings section */}
-              <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl mx-4 my-4 shadow-inner">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-                  <h3 className="font-bold text-gray-700 mb-1 sm:mb-0">
-                    市民評価
-                  </h3>
-                  <span className="text-sm text-gray-500">
-                    総投票数: {policy.totalVotes.toLocaleString()}
-                  </span>
-                </div>
+              {/* ReplyDataProviderをこのレベルに配置する */}
+              <ReplyDataProvider>
+                {/* Approval ratings section */}
+                <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl mx-4 my-4 shadow-inner">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                    <h3 className="font-bold text-gray-700 mb-1 sm:mb-0">
+                      市民評価
+                    </h3>
+                    <span className="text-sm text-gray-500">
+                      総投票数: {policy.totalVotes.toLocaleString()}
+                    </span>
+                  </div>
 
-                {/* Support/Oppose stats - これらは一貫性のためオリジナルカラーを保持 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-                  <div className="bg-white rounded-lg p-3 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <ThumbsUp size={16} className="text-green-500 mr-2" />
-                        <span className="text-sm font-medium">支持</span>
+                  {/* Support/Oppose stats - これらは一貫性のためオリジナルカラーを保持 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                    <div className="bg-white rounded-lg p-3 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <ThumbsUp size={16} className="text-green-500 mr-2" />
+                          <span className="text-sm font-medium">支持</span>
+                        </div>
+                        <span className="text-xl font-bold text-green-600">
+                          {policy.supportRate}%
+                        </span>
                       </div>
-                      <span className="text-xl font-bold text-green-600">
-                        {policy.supportRate}%
-                      </span>
+                      <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-500 animate-expand"
+                          style={{ width: `${policy.supportRate}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-green-500"
-                        style={{ width: `${policy.supportRate}%` }}
-                      ></div>
+
+                    <div className="bg-white rounded-lg p-3 shadow-sm border border-red-100 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <ThumbsDown size={16} className="text-red-500 mr-2" />
+                          <span className="text-sm font-medium">不支持</span>
+                        </div>
+                        <span className="text-xl font-bold text-red-600">
+                          {policy.opposeRate}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-red-400 to-rose-500 animate-expand"
+                          style={{ width: `${policy.opposeRate}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg p-3 shadow-sm border border-red-100 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <ThumbsDown size={16} className="text-red-500 mr-2" />
-                        <span className="text-sm font-medium">不支持</span>
-                      </div>
-                      <span className="text-xl font-bold text-red-600">
-                        {policy.opposeRate}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-red-500"
-                        style={{ width: `${policy.opposeRate}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Combined progress bar */}
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex my-3">
-                  <div
-                    className="h-full rounded-l-full transition-all duration-700 ease-in-out"
-                    style={{
-                      width: `${policy.supportRate}%`,
-                      background: "linear-gradient(to right, #10B981, #059669)",
-                    }}
-                  ></div>
-                  <div
-                    className="h-full rounded-r-full transition-all duration-700 ease-in-out"
-                    style={{
-                      width: `${policy.opposeRate}%`,
-                      background: "linear-gradient(to right, #F43F5E, #E11D48)",
-                    }}
-                  ></div>
-                </div>
-
-                {/* 投票フォームを条件付きレンダリング */}
-                {!showReasonForm ? (
-                  <div className="mt-4 flex flex-col sm:flex-row sm:justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                    <button
-                      onClick={() => handleVoteClick("support")}
-                      className="flex items-center justify-center text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-green-200"
+                  {/* Combined progress bar */}
+                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex my-3">
+                    <div
+                      className="h-full rounded-l-full transition-all duration-700 ease-in-out"
                       style={{
+                        width: `${policy.supportRate}%`,
                         background:
                           "linear-gradient(to right, #10B981, #059669)",
                       }}
-                    >
-                      <ThumbsUp size={16} className="mr-2" />
-                      支持する
-                    </button>
-                    <button
-                      onClick={() => handleVoteClick("oppose")}
-                      className="flex items-center justify-center text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-red-200"
+                    ></div>
+                    <div
+                      className="h-full rounded-r-full transition-all duration-700 ease-in-out"
                       style={{
+                        width: `${policy.opposeRate}%`,
                         background:
                           "linear-gradient(to right, #F43F5E, #E11D48)",
                       }}
-                    >
-                      <ThumbsDown size={16} className="mr-2" />
-                      支持しない
-                    </button>
+                    ></div>
                   </div>
-                ) : (
-                  <PolicyVoteForm voteType={voteType} />
-                )}
-              </div>
-            </div>
 
-            {/* コメントセクション - 新しい実装 */}
-            <div
-              className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn"
-              style={{ animationDelay: "0.2s" }}
-            >
-              <div className="p-5">
-                <h3 className="font-bold text-lg mb-4 flex items-center">
-                  <MessageSquare
-                    size={18}
-                    className="mr-2"
-                    style={{ color: colorStyles.mainColor }}
-                  />
-                  議論フォーラム
-                </h3>
+                  {/* 投票フォームを条件付きレンダリング */}
+                  {!showReasonForm ? (
+                    <div className="mt-4 flex flex-col sm:flex-row sm:justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                      <button
+                        onClick={() => handleVoteClick("support")}
+                        className="flex items-center justify-center text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-green-200"
+                        style={{
+                          background:
+                            "linear-gradient(to right, #10B981, #059669)",
+                        }}
+                      >
+                        <ThumbsUp size={16} className="mr-2" />
+                        支持する
+                      </button>
+                      <button
+                        onClick={() => handleVoteClick("oppose")}
+                        className="flex items-center justify-center text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-red-200"
+                        style={{
+                          background:
+                            "linear-gradient(to right, #F43F5E, #E11D48)",
+                        }}
+                      >
+                        <ThumbsDown size={16} className="mr-2" />
+                        支持しない
+                      </button>
+                    </div>
+                  ) : (
+                    <PolicyVoteForm
+                      voteType={voteType}
+                      onVoteComplete={handleVoteComplete}
+                    />
+                  )}
+                </div>
 
-                {/* ReplyDataProviderでラップしたCommentSectionを使用 */}
-                <ReplyDataProvider>
-                  <CommentSection />
-                </ReplyDataProvider>
-              </div>
+                {/* コメントセクション - ReplyDataProviderの中に移動 */}
+                <div
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn"
+                  style={{ animationDelay: "0.2s" }}
+                >
+                  <div className="p-5">
+                    <h3 className="font-bold text-lg mb-4 flex items-center">
+                      <MessageSquare
+                        size={18}
+                        className="mr-2"
+                        style={{ color: colorStyles.mainColor }}
+                      />
+                      議論フォーラム
+                    </h3>
+
+                    {/* CommentSectionコンポーネントにはReplyDataProviderが不要に */}
+                    <CommentSection />
+                  </div>
+                </div>
+              </ReplyDataProvider>
             </div>
           </section>
         </div>

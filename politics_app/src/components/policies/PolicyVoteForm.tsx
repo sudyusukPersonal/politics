@@ -8,32 +8,31 @@ import { addVoteToPolicy } from "../../services/policyService";
 
 interface PolicyVoteFormProps {
   voteType: "support" | "oppose" | null;
+  onVoteComplete?: () => void;
 }
 
-// 匿名ユーザー情報（実際のアプリでは認証システムと連携）
+// 匿名ユーザー情報
 const MOCK_CURRENT_USER = {
   uid: "user_anonymous",
   displayName: "匿名ユーザー",
 };
 
-const PolicyVoteForm: React.FC<PolicyVoteFormProps> = ({ voteType }) => {
+const PolicyVoteForm: React.FC<PolicyVoteFormProps> = ({
+  voteType,
+  onVoteComplete,
+}) => {
   const { id: policyId } = useParams<{ id: string }>();
   const [reason, setReason] = useState("");
-  const [showReasonForm, setShowReasonForm] = useState(true);
-  const { updateLocalComments } = useReplyData();
+
+  // ReplyDataContextから必要な関数を取得
+  const {
+    updateLocalComments,
+    fetchCommentsByPolitician, // 既存の関数名だが、政策IDも処理できる
+  } = useReplyData();
 
   // 送信状態管理
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  // リセット関数
-  const resetVoteData = () => {
-    setReason("");
-    setShowReasonForm(false);
-    // 親コンポーネントの状態もリセットするために、遷移後に親コンポーネントでリロードするか
-    // コールバック関数を追加する必要があるかもしれません
-    window.location.reload(); // 簡易的な方法としてページをリロード
-  };
 
   // コメント送信処理
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -59,30 +58,29 @@ const PolicyVoteForm: React.FC<PolicyVoteFormProps> = ({ voteType }) => {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      // 1. 政策のvoteカウントを更新（Firebaseに反映）
-      // 政策専用の投票関数を使用
+      // 1. 政策のvoteカウントを更新
       await addVoteToPolicy(policyId, voteType);
 
       // 2. コメントを追加
       const { addNewComment } = await import("../../services/commentService");
 
-      // 新しいコメントを作成して保存（politicianIDに政策IDを渡す）
+      // 新しいコメントを作成して保存（政策IDを使用）
       const newCommentId = await addNewComment({
         text: reason,
         userID: MOCK_CURRENT_USER.uid,
         userName: MOCK_CURRENT_USER.displayName,
-        politicianID: policyId, // ここは政策IDを使用
+        politicianID: policyId, // firebaseのフィールド名に合わせて同じフィールドを使用
         type: voteType,
         likes: 0,
       });
 
-      // UIを即時更新するための新しいコメントオブジェクトを作成
+      // 3. UIを即時更新するための新しいコメントオブジェクトを作成
       const newComment: Comment = {
         id: newCommentId,
         text: reason,
         userID: MOCK_CURRENT_USER.uid,
         userName: MOCK_CURRENT_USER.displayName,
-        politicianID: policyId, // ここは政策IDを使用
+        politicianID: policyId,
         createdAt: new Date(),
         likes: 0,
         replies: [],
@@ -90,11 +88,17 @@ const PolicyVoteForm: React.FC<PolicyVoteFormProps> = ({ voteType }) => {
         type: voteType,
       };
 
-      // ローカルUIのコメント一覧に新しいコメントを追加
+      // 4. ローカルUIのコメント一覧に新しいコメントを追加（isNew=trueで自動スクロール）
       updateLocalComments(newComment, true);
 
-      // フォームをリセット
-      resetVoteData();
+      // 5. オプション: コメントを再取得してUIを確実に更新（既に上で対応しているが念のため）
+      // await fetchCommentsByPolitician(policyId);
+
+      // フォームをリセットして親コンポーネントに通知
+      setReason("");
+      if (onVoteComplete) {
+        onVoteComplete();
+      }
     } catch (error) {
       console.error("評価の送信中にエラーが発生しました:", error);
       setSubmitError("評価の送信に失敗しました。もう一度お試しください。");
@@ -203,7 +207,10 @@ const PolicyVoteForm: React.FC<PolicyVoteFormProps> = ({ voteType }) => {
             </button>
             <button
               type="button"
-              onClick={resetVoteData}
+              onClick={() => {
+                setReason("");
+                if (onVoteComplete) onVoteComplete();
+              }}
               className="py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition"
               disabled={isSubmitting}
             >
