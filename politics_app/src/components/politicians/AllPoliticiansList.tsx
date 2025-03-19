@@ -12,8 +12,14 @@ import LoadingAnimation from "../common/LoadingAnimation";
 import { fetchPoliticiansWithPagination } from "../../services/politicianService";
 
 const AllPoliticiansList: React.FC = () => {
-  const { handleBackToPoliticians, sortMethod, getSortedPoliticians } =
-    useData();
+  const {
+    handleBackToPoliticians,
+    sortMethod,
+    getSortedPoliticians,
+    // 追加: データコンテキストからキャッシュされたデータにアクセス
+    cachedPoliticians,
+    setCachedPoliticians,
+  } = useData();
 
   // ルーターのフック
   const navigate = useNavigate();
@@ -63,7 +69,17 @@ const AllPoliticiansList: React.FC = () => {
           const uniqueNewPoliticians = result.politicians.filter(
             (p) => !existingIds.has(p.id)
           );
-          return [...prev, ...uniqueNewPoliticians];
+          const updatedPoliticians = [...prev, ...uniqueNewPoliticians];
+
+          // グローバルキャッシュに保存
+          setCachedPoliticians({
+            politicians: updatedPoliticians,
+            lastDocumentId: result.lastDocumentId,
+            hasMore: result.hasMore,
+            currentPage: nextPage,
+          });
+
+          return updatedPoliticians;
         });
 
         setLastDocumentId(result.lastDocumentId);
@@ -88,14 +104,32 @@ const AllPoliticiansList: React.FC = () => {
     }
   }, [location.search]);
 
-  // 初回読み込み
+  // 初回読み込み - キャッシュ対応
   useEffect(() => {
     const initialLoad = async () => {
       const urlPage = getPageFromUrl();
       const hasPageParam = location.search.includes("page=");
 
-      // 初回読み込み時はURL操作をしない
-      // パラメータが既にある場合のみそのページを読み込む
+      // キャッシュデータをチェック
+      if (cachedPoliticians && cachedPoliticians.politicians.length > 0) {
+        console.log("キャッシュから政治家データを読み込みました");
+
+        // キャッシュからデータを読み込む
+        setPoliticians(cachedPoliticians.politicians);
+        setLastDocumentId(cachedPoliticians.lastDocumentId);
+        setHasMore(cachedPoliticians.hasMore);
+
+        // URLが変わっていた場合は現在のページを更新
+        if (urlPage !== cachedPoliticians.currentPage) {
+          navigate(`/politicians?page=${cachedPoliticians.currentPage}`, {
+            replace: true,
+          });
+        }
+
+        return;
+      }
+
+      // キャッシュがない場合は通常の読み込み処理
       setIsLoading(true);
 
       try {
@@ -121,6 +155,14 @@ const AllPoliticiansList: React.FC = () => {
               setLastDocumentId(result.lastDocumentId);
               setHasMore(result.hasMore);
               setCurrentPage(i);
+
+              // グローバルキャッシュに保存
+              setCachedPoliticians({
+                politicians: allPoliticians,
+                lastDocumentId: result.lastDocumentId,
+                hasMore: result.hasMore,
+                currentPage: i,
+              });
             }
 
             // データがない場合は中断
@@ -136,6 +178,14 @@ const AllPoliticiansList: React.FC = () => {
           setLastDocumentId(result.lastDocumentId);
           setHasMore(result.hasMore);
           setCurrentPage(1);
+
+          // グローバルキャッシュに保存
+          setCachedPoliticians({
+            politicians: result.politicians,
+            lastDocumentId: result.lastDocumentId,
+            hasMore: result.hasMore,
+            currentPage: 1,
+          });
 
           // もしURLにパラメータがある場合でpage=1なら、それをクリア
           if (hasPageParam && urlPage === 1) {

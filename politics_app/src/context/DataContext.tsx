@@ -15,6 +15,14 @@ import { TrendingUp, Activity } from "lucide-react";
 import { processPoliticiansData, processPartiesData } from "../utils/dataUtils";
 import { fetchPoliticianById } from "../services/politicianService";
 
+// キャッシュされた政治家リストのインターフェース
+interface CachedPoliticiansData {
+  politicians: Politician[];
+  lastDocumentId?: string;
+  hasMore: boolean;
+  currentPage: number;
+}
+
 // Context type definition
 interface DataContextType {
   // State
@@ -41,6 +49,8 @@ interface DataContextType {
   dataInitialized: boolean; // Flag to track if data is initialized
   isLoadingPolitician: boolean; // New flag for politician loading state
   currentPage: number; // New state for current page number
+  // 新しく追加：キャッシュされた政治家データ
+  cachedPoliticians: CachedPoliticiansData | null;
 
   // State setters
   setPoliticians: React.Dispatch<React.SetStateAction<Politician[]>>;
@@ -61,6 +71,10 @@ interface DataContextType {
   setShowPremiumBanner: React.Dispatch<React.SetStateAction<boolean>>;
   setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>; // New setter for current page
+  // 新しく追加：キャッシュされた政治家データのセッター
+  setCachedPoliticians: React.Dispatch<
+    React.SetStateAction<CachedPoliticiansData | null>
+  >;
 
   // Helper functions
   getPoliticianById: (id: string) => Politician | undefined;
@@ -91,6 +105,8 @@ interface DataContextType {
   // New Firebase-specific functions
   fetchPoliticianFromFirebase: (id: string) => Promise<Politician | null>;
   refreshSelectedPolitician: (id: string) => Promise<void>;
+  // 新しく追加：キャッシュクリア関数
+  clearPoliticiansCache: () => void;
 }
 
 // Context creation
@@ -117,6 +133,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [dataInitialized, setDataInitialized] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [isLoadingPolitician, setIsLoadingPolitician] = useState(false);
+  // 新しく追加：キャッシュされた政治家データ
+  const [cachedPoliticians, setCachedPoliticians] =
+    useState<CachedPoliticiansData | null>(null);
 
   // Initialize global data on first load
   useEffect(() => {
@@ -171,6 +190,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAllPoliticians, setShowAllPoliticians] = useState(false);
   const [currentPage, setCurrentPage] = useState(1); // New state for current page
+
+  // キャッシュクリア関数
+  const clearPoliticiansCache = useCallback(() => {
+    setCachedPoliticians(null);
+  }, []);
 
   // Update local state from global data once it's initialized
   useEffect(() => {
@@ -515,6 +539,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         dataInitialized,
         isLoadingPolitician,
         currentPage,
+        cachedPoliticians, // 新しく追加
 
         // State setters
         setPoliticians,
@@ -532,6 +557,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setReason,
         setShowReasonForm,
         setCurrentPage,
+        setCachedPoliticians, // 新しく追加
 
         // Helper functions
         resetVoteData,
@@ -553,6 +579,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         getTrendIcon,
         getSortLabel,
         searchPoliticians,
+        clearPoliticiansCache, // 新しく追加
 
         // Firebase-specific functions
         fetchPoliticianFromFirebase,
