@@ -239,7 +239,7 @@ const PolicyListingPage: React.FC = () => {
   const activeTab = getCategoryById(activeCategory);
 
   return (
-    <div className="min-h-screen bg-gradient-to-bl from-gray-50 via-amber-50 to-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Compact header with modern design */}
       <div className="relative bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white overflow-hidden">
         <div className="absolute inset-0">

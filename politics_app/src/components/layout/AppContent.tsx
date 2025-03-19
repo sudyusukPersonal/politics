@@ -12,7 +12,7 @@ import PolicyListingPage from "../policies/PolicyListingPage";
 
 const AppContent: React.FC = () => {
   return (
-    <div className="flex flex-col w-full min-h-screen font-sans bg-amber-50">
+    <div className="flex flex-col w-full min-h-screen font-sans bg-slate-50">
       {/* Mobile menu overlay */}
       <MobileMenu />
 
