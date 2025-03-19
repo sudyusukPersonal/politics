@@ -1,7 +1,7 @@
 // politics_app/src/components/layout/Header.tsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, ArrowLeft, Search, X } from "lucide-react";
+import { ArrowLeft, Search, X, Menu as MenuIcon } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import LoginButton from "../auth/LoginButtons";
 
@@ -158,18 +158,17 @@ const Header: React.FC = () => {
     >
       <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
         <div className="flex items-center">
-          {/* Mobile menu button - 常に表示 */}
+          {/* Mobile menu button - 元の実装を維持 */}
           <button
-            className="lg:hidden flex items-center justify-center w-8 h-8 mr-3"
+            className="flex items-center justify-center w-8 h-8 mr-3"
             onClick={() => setMobileMenuOpen(true)}
           >
-            <Menu
+            <MenuIcon
               size={20}
               className={isScrolled ? "text-slate-700" : "text-white"}
             />
           </button>
-
-          {/* App title - hideTitleCompletelyに基づいて完全に表示/非表示 */}
+          {/* App title - hideTitleCompletelyに基づいて完全に表示/非表示（元の動作を維持） */}
           {!hideTitleCompletely && (
             <Link
               to="/"
@@ -187,89 +186,10 @@ const Header: React.FC = () => {
             </Link>
           )}
         </div>
-
-        <div className="ml-3">
-          <LoginButton />
-        </div>
-
-        <div className="flex items-center">
-          {/* Tabs for navigation - デスクトップのみ表示 */}
-          {(location.pathname === "/" ||
-            location.pathname === "/politicians" ||
-            location.pathname === "/parties") && (
-            <div
-              className={`hidden md:flex space-x-1 rounded-full mr-4 ${
-                isScrolled ? "bg-slate-100" : "bg-slate-700"
-              } p-1`}
-            >
-              <button
-                onClick={() => {
-                  setActiveTab("politicians");
-                  navigate("/");
-                }}
-                className={`px-4 py-1.5 text-xs font-medium rounded-full transition ${
-                  activeTab === "politicians"
-                    ? isScrolled
-                      ? "bg-white text-slate-700 shadow-sm"
-                      : "bg-slate-900 text-white"
-                    : isScrolled
-                    ? "text-slate-600 hover:bg-slate-200"
-                    : "text-slate-300 hover:bg-slate-600"
-                }`}
-              >
-                政治家
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab("parties");
-                  navigate("/parties");
-                }}
-                className={`px-4 py-1.5 text-xs font-medium rounded-full transition ${
-                  activeTab === "parties"
-                    ? isScrolled
-                      ? "bg-white text-slate-700 shadow-sm"
-                      : "bg-slate-900 text-white"
-                    : isScrolled
-                    ? "text-slate-600 hover:bg-slate-200"
-                    : "text-slate-300 hover:bg-slate-600"
-                }`}
-              >
-                政党
-              </button>
-            </div>
-          )}
-
-          {/* Back button - hideBackButtonに基づいて表示/非表示 */}
-          {!hideBackButton && isPoliticianDetail && (
-            <button
-              onClick={() => navigate(-1)}
-              className={`mr-4 flex items-center rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                isScrolled
-                  ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  : "bg-slate-700 text-white hover:bg-slate-600"
-              }`}
-            >
-              <ArrowLeft size={14} className="mr-1" />
-              <span>一覧に戻る</span>
-            </button>
-          )}
-
-          {/* Back button for party detail - hideBackButtonに基づいて表示/非表示 */}
-          {!hideBackButton && isPartyDetail && (
-            <button
-              onClick={() => navigate("/parties")}
-              className={`mr-4 flex items-center rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                isScrolled
-                  ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  : "bg-slate-700 text-white hover:bg-slate-600"
-              }`}
-            >
-              <ArrowLeft size={14} className="mr-1" />
-              <span>政党一覧に戻る</span>
-            </button>
-          )}
-
-          {/* Search component - どのページでも表示 */}
+        {/* 右側コンテンツ - 検索と LoginButton */}
+        <div className="flex items-center space-x-4">
+          {/* "一覧に戻る"ボタンは削除 - UIが崩れる原因 */}
+          {/* Search component - 検索機能を修正 */}
           <div ref={searchContainerRef} className="relative">
             <div
               className={`flex items-center overflow-hidden transition-all duration-300 ${
@@ -280,8 +200,10 @@ const Header: React.FC = () => {
               }}
             >
               <div
-                className={`flex items-center justify-center h-9 ${
-                  isSearchExpanded ? "pl-3 w-auto" : "w-full cursor-pointer"
+                className={`flex items-center h-9 ${
+                  isSearchExpanded
+                    ? "justify-start pl-3"
+                    : "justify-center w-full cursor-pointer"
                 }`}
                 onClick={toggleSearch}
               >
@@ -294,18 +216,17 @@ const Header: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="政治家を検索..."
+                placeholder="政治家を検索"
                 value={searchTerm}
                 onChange={handleSearch}
                 className={`${
                   isScrolled
-                    ? "text-slate-900"
+                    ? "text-slate-900 placeholder-slate-500"
                     : "text-white placeholder-slate-300"
-                } bg-transparent border-none outline-none text-sm flex-grow py-2 transition-opacity duration-300 ${
+                } bg-transparent border-none outline-none text-sm flex-grow py-2 px-2 transition-opacity duration-300 ${
                   isSearchExpanded ? "opacity-100 w-full" : "opacity-0 w-0 p-0"
                 }`}
               />
-
               {isSearchExpanded && searchTerm && (
                 <button
                   onClick={clearSearch}
@@ -319,49 +240,10 @@ const Header: React.FC = () => {
                 </button>
               )}
             </div>
-
-            {/* 検索結果ドロップダウン */}
-            {showResults && (
-              <div className="absolute top-full right-0 mt-2 w-64 sm:w-72 bg-white rounded-lg shadow-lg overflow-hidden z-50 max-h-96 overflow-y-auto animate-fadeIn">
-                {searchResults.length > 0 ? (
-                  <div className="divide-y divide-slate-100">
-                    {searchResults.map((politician) => (
-                      <div
-                        key={politician.id}
-                        className="p-3 hover:bg-slate-50 cursor-pointer flex items-center"
-                        onClick={() => handleSelectPolitician(politician)}
-                      >
-                        <div className="relative flex-shrink-0">
-                          <img
-                            src={politician.image}
-                            alt={politician.name}
-                            className="w-10 h-10 rounded-full object-cover border-2"
-                            style={{ borderColor: politician.party.color }}
-                          />
-                        </div>
-                        <div className="ml-3">
-                          <div className="font-medium text-slate-800">
-                            {politician.name}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {politician.party.name}
-                            {politician.furigana && (
-                              <span className="ml-2 text-slate-400">
-                                {politician.furigana}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-slate-500">
-                    該当する政治家が見つかりません
-                  </div>
-                )}
-              </div>
-            )}
+          </div>
+          {/* User login button */}
+          <div>
+            <LoginButton />
           </div>
         </div>
       </div>

@@ -85,6 +85,28 @@ const AppContent: React.FC = () => {
         .animate-slideUp {
           animation: slideUp 0.3s ease-out forwards;
         }
+
+        @keyframes slide-in-left {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0.5;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slide-out-left {
+    0% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+  }
       `}</style>
     </div>
   );
