@@ -200,10 +200,8 @@ const Header: React.FC = () => {
               }}
             >
               <div
-                className={`flex items-center h-9 ${
-                  isSearchExpanded
-                    ? "justify-start pl-3"
-                    : "justify-center w-full cursor-pointer"
+                className={`flex items-center justify-center h-9 ${
+                  isSearchExpanded ? "pl-3 w-auto" : "w-full cursor-pointer"
                 }`}
                 onClick={toggleSearch}
               >
@@ -216,17 +214,18 @@ const Header: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="政治家を検索"
+                placeholder="政治家を検索..."
                 value={searchTerm}
                 onChange={handleSearch}
                 className={`${
                   isScrolled
-                    ? "text-slate-900 placeholder-slate-500"
+                    ? "text-slate-900"
                     : "text-white placeholder-slate-300"
-                } bg-transparent border-none outline-none text-sm flex-grow py-2 px-2 transition-opacity duration-300 ${
+                } bg-transparent border-none outline-none text-sm flex-grow py-2 transition-opacity duration-300 ${
                   isSearchExpanded ? "opacity-100 w-full" : "opacity-0 w-0 p-0"
                 }`}
               />
+
               {isSearchExpanded && searchTerm && (
                 <button
                   onClick={clearSearch}
@@ -240,6 +239,49 @@ const Header: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {/* 検索結果ドロップダウン */}
+            {showResults && (
+              <div className="absolute top-full right-0 mt-2 w-64 sm:w-72 bg-white rounded-lg shadow-lg overflow-hidden z-50 max-h-96 overflow-y-auto animate-fadeIn">
+                {searchResults.length > 0 ? (
+                  <div className="divide-y divide-slate-100">
+                    {searchResults.map((politician) => (
+                      <div
+                        key={politician.id}
+                        className="p-3 hover:bg-slate-50 cursor-pointer flex items-center"
+                        onClick={() => handleSelectPolitician(politician)}
+                      >
+                        <div className="relative flex-shrink-0">
+                          <img
+                            src={politician.image}
+                            alt={politician.name}
+                            className="w-10 h-10 rounded-full object-cover border-2"
+                            style={{ borderColor: politician.party.color }}
+                          />
+                        </div>
+                        <div className="ml-3">
+                          <div className="font-medium text-slate-800">
+                            {politician.name}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {politician.party.name}
+                            {politician.furigana && (
+                              <span className="ml-2 text-slate-400">
+                                {politician.furigana}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-slate-500">
+                    該当する政治家が見つかりません
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {/* User login button */}
           <div>
