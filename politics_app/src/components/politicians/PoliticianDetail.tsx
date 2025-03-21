@@ -14,7 +14,7 @@ import { useData } from "../../context/DataContext";
 import TrendIcon from "../common/TrendIcon";
 import VoteButtons from "../common/VoteButtons";
 import VoteForm from "./VoteForm";
-import CommentSection from "../comments/CommentSection";
+import { CommentSection } from "../comments/OptimizedCommentSystem";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { Politician } from "../../types";
 import { fetchPoliticianById } from "../../services/politicianService";

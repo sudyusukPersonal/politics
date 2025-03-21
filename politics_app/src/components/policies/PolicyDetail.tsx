@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { fetchPolicyById } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
-import CommentSection from "../comments/CommentSection";
+import { CommentSection } from "../comments/OptimizedCommentSystem";
 import { ReplyDataProvider } from "../../context/ReplyDataContext";
 import PolicyVoteForm from "./PolicyVoteForm"; // 修正したポリシー投票フォーム
 
@@ -560,7 +560,7 @@ const PolicyDiscussionPage = () => {
                     </h3>
 
                     {/* CommentSectionコンポーネントにはReplyDataProviderが不要に */}
-                    <CommentSection />
+                    <CommentSection entityType="policy" />
                   </div>
                 </div>
               </ReplyDataProvider>
