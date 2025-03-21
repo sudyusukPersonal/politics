@@ -20,7 +20,8 @@ import { fetchPolicyById } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { CommentSection } from "../comments/OptimizedCommentSystem";
 import { ReplyDataProvider } from "../../context/ReplyDataContext";
-import PolicyVoteForm from "./PolicyVoteForm"; // 修正したポリシー投票フォーム
+// import PolicyVoteForm from "./PolicyVoteForm";
+import UnifiedVoteComponent from "../common/UnifiedVoteComponent";
 
 const PolicyDiscussionPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -511,7 +512,7 @@ const PolicyDiscussionPage = () => {
                   </div>
 
                   {/* 投票フォームを条件付きレンダリング */}
-                  {!showReasonForm ? (
+                  {/* {!showReasonForm ? (
                     <div className="mt-4 flex flex-col sm:flex-row sm:justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                       <button
                         onClick={() => handleVoteClick("support")}
@@ -541,7 +542,11 @@ const PolicyDiscussionPage = () => {
                       voteType={voteType}
                       onVoteComplete={handleVoteComplete}
                     />
-                  )}
+                  )} */}
+                  <UnifiedVoteComponent
+                    entityType="policy"
+                    entityId={policy.id}
+                  />
                 </div>
 
                 {/* コメントセクション - ReplyDataProviderの中に移動 */}

@@ -1,31 +1,48 @@
-// src/components/politicians/VoteForm.tsx
+// src/components/common/UnifiedVoteComponent.tsx
 import React, { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
-import { useData } from "../../context/DataContext";
 import { useReplyData } from "../../context/ReplyDataContext";
-import { useParams } from "react-router-dom";
-import { Comment } from "../../types";
-import { addVoteToPolitician } from "../../services/politicianService"; // Add this import
+import { addEntityVote, createUIComment } from "../../services/voteService";
 
-interface VoteFormProps {
-  voteType: "support" | "oppose" | null;
+interface UnifiedVoteComponentProps {
+  entityId: string;
+  entityType: "politician" | "policy";
+  onVoteComplete?: () => void;
 }
 
-// 匿名ユーザー情報（実際のアプリでは認証システムと連携）
-const MOCK_CURRENT_USER = {
-  uid: "user_anonymous",
-  displayName: "匿名ユーザー",
-};
-
-const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
-  const { id: politicianId } = useParams<{ id: string }>();
-  const { reason, setReason, setShowReasonForm, setVoteType, resetVoteData } =
-    useData();
-  const { updateLocalComments } = useReplyData();
-
-  // 送信状態管理
+const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
+  entityId,
+  entityType,
+  onVoteComplete,
+}) => {
+  // 状態管理
+  const [voteType, setVoteType] = useState<"support" | "oppose" | null>(null);
+  const [showReasonForm, setShowReasonForm] = useState(false);
+  const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // ReplyDataContextから必要な関数を取得
+  const { updateLocalComments } = useReplyData();
+
+  // 投票ボタンのハンドラ
+  const handleVoteClick = (type: "support" | "oppose") => {
+    setVoteType(type);
+    setShowReasonForm(true);
+  };
+
+  // フォームリセット処理
+  const resetForm = () => {
+    setReason("");
+    setVoteType(null);
+    setShowReasonForm(false);
+    setSubmitError(null);
+
+    // 親コンポーネントのコールバックを呼び出す
+    if (onVoteComplete) {
+      onVoteComplete();
+    }
+  };
 
   // コメント送信処理
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,8 +54,12 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
       return;
     }
 
-    if (!politicianId) {
-      setSubmitError("政治家IDが取得できませんでした");
+    if (!entityId) {
+      setSubmitError(
+        `${
+          entityType === "politician" ? "政治家" : "政策"
+        }IDが取得できませんでした`
+      );
       return;
     }
 
@@ -51,41 +72,29 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      // 1. 政治家のvoteカウントを更新（Firebaseに反映）
-      await addVoteToPolitician(politicianId, voteType);
+      // 統合サービス関数を使用して投票を処理
+      const result = await addEntityVote(
+        entityId,
+        entityType,
+        voteType,
+        reason
+      );
 
-      // 2. コメントを追加
-      const { addNewComment } = await import("../../services/commentService");
+      // 成功したら新しいコメントをUIに追加（即時反映）
+      if (result.success) {
+        const newComment = createUIComment(
+          result.commentId,
+          entityId,
+          reason,
+          voteType
+        );
 
-      // 新しいコメントを作成して保存
-      const newCommentId = await addNewComment({
-        text: reason,
-        userID: MOCK_CURRENT_USER.uid,
-        userName: MOCK_CURRENT_USER.displayName,
-        politicianID: politicianId,
-        type: voteType,
-        likes: 0,
-      });
-
-      // UIを即時更新するための新しいコメントオブジェクトを作成
-      const newComment: Comment = {
-        id: newCommentId,
-        text: reason,
-        userID: MOCK_CURRENT_USER.uid,
-        userName: MOCK_CURRENT_USER.displayName,
-        politicianID: politicianId,
-        createdAt: new Date(),
-        likes: 0,
-        replies: [],
-        repliesCount: 0,
-        type: voteType,
-      };
-
-      // ローカルUIのコメント一覧に新しいコメントを追加
-      updateLocalComments(newComment, true);
+        // ローカルUIのコメント一覧に新しいコメントを追加
+        updateLocalComments(newComment, true);
+      }
 
       // フォームをリセット
-      resetVoteData();
+      resetForm();
     } catch (error) {
       console.error("評価の送信中にエラーが発生しました:", error);
       setSubmitError("評価の送信に失敗しました。もう一度お試しください。");
@@ -94,6 +103,39 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
     }
   };
 
+  // 投票ボタン表示（showReasonFormがfalseの場合）
+  if (!showReasonForm) {
+    return (
+      <div className="mt-6">
+        <h3 className="text-center text-sm font-medium text-gray-500 mb-3">
+          この{entityType === "politician" ? "政治家" : "政策"}を評価する
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button
+            onClick={() => handleVoteClick("support")}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl flex items-center justify-center font-medium transition transform hover:translate-y-0.5 active:scale-95 shadow-md"
+            disabled={!entityId}
+          >
+            <ThumbsUp size={18} className="mr-2" />
+            支持する
+          </button>
+          <button
+            onClick={() => handleVoteClick("oppose")}
+            className="bg-gradient-to-r from-red-500 to-rose-600 text-white py-3 rounded-xl flex items-center justify-center font-medium transition transform hover:translate-y-0.5 active:scale-95 shadow-md"
+            disabled={!entityId}
+          >
+            <ThumbsDown size={18} className="mr-2" />
+            支持しない
+          </button>
+        </div>
+        <p className="text-center text-xs text-gray-500 mt-2">
+          ※評価には理由の入力が必要です
+        </p>
+      </div>
+    );
+  }
+
+  // 理由入力フォーム表示（showReasonFormがtrueの場合）
   return (
     <div className="mt-6 animate-fadeIn">
       <div
@@ -194,7 +236,7 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
             </button>
             <button
               type="button"
-              onClick={resetVoteData}
+              onClick={resetForm}
               className="py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition"
               disabled={isSubmitting}
             >
@@ -207,4 +249,4 @@ const VoteForm: React.FC<VoteFormProps> = ({ voteType }) => {
   );
 };
 
-export default VoteForm;
+export default UnifiedVoteComponent;

@@ -12,8 +12,10 @@ import {
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import TrendIcon from "../common/TrendIcon";
-import VoteButtons from "../common/VoteButtons";
-import VoteForm from "./VoteForm";
+// import VoteButtons from "../common/VoteButtons";
+// import VoteForm from "./VoteForm";
+import UnifiedVoteComponent from "../common/UnifiedVoteComponent";
+
 import { CommentSection } from "../comments/OptimizedCommentSystem";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { Politician } from "../../types";
@@ -253,7 +255,11 @@ const PoliticianDetail: React.FC = () => {
           </div>
 
           {/* Vote buttons or vote form */}
-          {!showReasonForm ? <VoteButtons /> : <VoteForm voteType={voteType} />}
+          {/* {!showReasonForm ? <VoteButtons /> : <VoteForm voteType={voteType} />} */}
+          <UnifiedVoteComponent
+            entityType="politician"
+            entityId={politician.id}
+          />
         </div>
       </div>
 
