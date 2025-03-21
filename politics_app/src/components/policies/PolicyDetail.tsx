@@ -20,8 +20,13 @@ import { fetchPolicyById } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { CommentSection } from "../comments/OptimizedCommentSystem";
 import { ReplyDataProvider } from "../../context/ReplyDataContext";
-// import PolicyVoteForm from "./PolicyVoteForm";
 import UnifiedVoteComponent from "../common/UnifiedVoteComponent";
+import EntityRatingsSection from "../common/EntityRatingsSectio";
+import {
+  getPartyColorStyles,
+  commonAnimations,
+  styles,
+} from "../../utils/styleUtils";
 
 const PolicyDiscussionPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -102,37 +107,6 @@ const PolicyDiscussionPage = () => {
     }
   };
 
-  // 政党カラーからグラデーションを生成するヘルパー関数
-  const getGradientFromPartyColor = (color: string) => {
-    // カラーに透明度を付けたり、微妙に異なる色合いを作成
-    const lighterColor = color.replace(/^#/, "");
-    const r = parseInt(lighterColor.substr(0, 2), 16);
-    const g = parseInt(lighterColor.substr(2, 2), 16);
-    const b = parseInt(lighterColor.substr(4, 2), 16);
-
-    // 明るい色の輝度を抑え、暗めの色を生成する（テキストが見やすくなるよう）
-    const lighter = `rgba(${Math.min(r + 20, 255)}, ${Math.min(
-      g + 20,
-      255
-    )}, ${Math.min(b + 20, 255)}, 1)`;
-    const darker = `rgba(${Math.max(r - 50, 0)}, ${Math.max(
-      g - 50,
-      0
-    )}, ${Math.max(b - 50, 0)}, 1)`;
-
-    return {
-      mainColor: color,
-      gradient: `from-[${color}] via-[${lighter}] to-[${darker}]`,
-      // より暗めのグラデーションで背景を設定
-      heroBg: `linear-gradient(to bottom right, ${darker}, ${color}, ${darker})`,
-      lightBg: `${color}10`,
-      mediumBg: `${color}20`,
-      borderColor: `${color}30`,
-      textColor: `${color}`,
-      lightGradient: `linear-gradient(to right, ${color}10, ${lighter}10)`,
-    };
-  };
-
   // ローディング表示
   if (isLoading) {
     return (
@@ -167,7 +141,7 @@ const PolicyDiscussionPage = () => {
 
   // 政党カラーに基づくスタイル設定を取得
   const partyColor = policy.proposingParty.color;
-  const colorStyles = getGradientFromPartyColor(partyColor);
+  const colorStyles = getPartyColorStyles(partyColor);
 
   return (
     <div className="flex flex-col w-full min-h-screen font-sans bg-slate-50">
@@ -373,7 +347,7 @@ const PolicyDiscussionPage = () => {
                     const opposingColor =
                       index === 0
                         ? colorStyles
-                        : getGradientFromPartyColor("#EF4444"); // 反対派は赤系統で固定
+                        : getPartyColorStyles("#EF4444"); // 反対派は赤系統で固定
 
                     return (
                       <div
@@ -441,115 +415,22 @@ const PolicyDiscussionPage = () => {
 
               {/* ReplyDataProviderをこのレベルに配置する */}
               <ReplyDataProvider>
-                {/* Approval ratings section */}
-                <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl mx-4 my-4 shadow-inner">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-                    <h3 className="font-bold text-gray-700 mb-1 sm:mb-0">
-                      市民評価
-                    </h3>
-                    <span className="text-sm text-gray-500">
-                      総投票数: {policy.totalVotes.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {/* Support/Oppose stats - これらは一貫性のためオリジナルカラーを保持 */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-                    <div className="bg-white rounded-lg p-3 shadow-sm border border-green-100 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <ThumbsUp size={16} className="text-green-500 mr-2" />
-                          <span className="text-sm font-medium">支持</span>
-                        </div>
-                        <span className="text-xl font-bold text-green-600">
-                          {policy.supportRate}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-500 animate-expand"
-                          style={{ width: `${policy.supportRate}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-lg p-3 shadow-sm border border-red-100 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <ThumbsDown size={16} className="text-red-500 mr-2" />
-                          <span className="text-sm font-medium">不支持</span>
-                        </div>
-                        <span className="text-xl font-bold text-red-600">
-                          {policy.opposeRate}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-red-400 to-rose-500 animate-expand"
-                          style={{ width: `${policy.opposeRate}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Combined progress bar */}
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex my-3">
-                    <div
-                      className="h-full rounded-l-full transition-all duration-700 ease-in-out"
-                      style={{
-                        width: `${policy.supportRate}%`,
-                        background:
-                          "linear-gradient(to right, #10B981, #059669)",
-                      }}
-                    ></div>
-                    <div
-                      className="h-full rounded-r-full transition-all duration-700 ease-in-out"
-                      style={{
-                        width: `${policy.opposeRate}%`,
-                        background:
-                          "linear-gradient(to right, #F43F5E, #E11D48)",
-                      }}
-                    ></div>
-                  </div>
-
-                  {/* 投票フォームを条件付きレンダリング */}
-                  {/* {!showReasonForm ? (
-                    <div className="mt-4 flex flex-col sm:flex-row sm:justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                      <button
-                        onClick={() => handleVoteClick("support")}
-                        className="flex items-center justify-center text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-green-200"
-                        style={{
-                          background:
-                            "linear-gradient(to right, #10B981, #059669)",
-                        }}
-                      >
-                        <ThumbsUp size={16} className="mr-2" />
-                        支持する
-                      </button>
-                      <button
-                        onClick={() => handleVoteClick("oppose")}
-                        className="flex items-center justify-center text-white py-2.5 px-6 rounded-full font-medium shadow-sm hover:shadow-lg transition transform hover:-translate-y-0.5 hover:shadow-red-200"
-                        style={{
-                          background:
-                            "linear-gradient(to right, #F43F5E, #E11D48)",
-                        }}
-                      >
-                        <ThumbsDown size={16} className="mr-2" />
-                        支持しない
-                      </button>
-                    </div>
-                  ) : (
-                    <PolicyVoteForm
-                      voteType={voteType}
-                      onVoteComplete={handleVoteComplete}
+                {/* 評価セクション (共通コンポーネントに置き換え) */}
+                <div className="p-5">
+                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl shadow-inner">
+                    <EntityRatingsSection
+                      supportRate={policy.supportRate}
+                      opposeRate={policy.opposeRate}
+                      totalVotes={policy.totalVotes}
                     />
-                  )} */}
+                  </div>
                   <UnifiedVoteComponent
                     entityType="policy"
                     entityId={policy.id}
                   />
                 </div>
 
-                {/* コメントセクション - ReplyDataProviderの中に移動 */}
+                {/* コメントセクション - ReplyDataProviderの中に配置 */}
                 <div
                   className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn"
                   style={{ animationDelay: "0.2s" }}
@@ -586,92 +467,7 @@ const PolicyDiscussionPage = () => {
       </div>
 
       {/* CSS animations */}
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes slideUp {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        
-        @keyframes pulse-subtle {
-          0% { opacity: 0.7; }
-          50% { opacity: 1; }
-          100% { opacity: 0.7; }
-        }
-        
-        @keyframes expand {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-        
-        .animate-expand {
-          animation: expand 1s ease-out forwards;
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
-        
-        .animate-slideUp {
-          animation: slideUp 0.5s ease-out forwards;
-        }
-        
-        .animate-pulse-subtle {
-          animation: pulse-subtle 2s infinite;
-        }
-        
-        .hover\\:scale-102:hover {
-          transform: scale(1.02);
-        }
-        
-        .text-shadow-sm {
-          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
-        
-        .gradient-border {
-          background: linear-gradient(90deg, #10B981, #06B6D4, #3B82F6, #10B981);
-          background-size: 300% 100%;
-          animation: gradient-slide 4s linear infinite;
-        }
-        
-        @keyframes gradient-slide {
-          0% { background-position: 0% 50%; }
-          100% { background-position: 100% 50%; }
-        }
-        
-        .sparkles {
-          background-image: 
-            radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 2%),
-            radial-gradient(circle at 75% 44%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 2%),
-            radial-gradient(circle at 46% 52%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 1.5%),
-            radial-gradient(circle at 33% 76%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 2%),
-            radial-gradient(circle at 80% 18%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 2.5%);
-          background-repeat: no-repeat;
-          animation: sparkle 6s linear infinite;
-        }
-        
-        @keyframes sparkle {
-          0% { opacity: 0.3; }
-          50% { opacity: 1; }
-          100% { opacity: 0.3; }
-        }
-      `}</style>
+      <style>{commonAnimations}</style>
     </div>
   );
 };
