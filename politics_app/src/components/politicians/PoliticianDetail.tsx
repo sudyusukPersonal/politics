@@ -126,7 +126,7 @@ const PoliticianDetail: React.FC = () => {
   return (
     <section className="space-y-4">
       <div className={styles.cards.base + " animate-fadeIn"}>
-        <div className="p-5">
+        <div className="p-3">
           {/* Politician header with image and basic info */}
           <div className="flex flex-col sm:flex-row sm:items-start">
             <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
@@ -197,7 +197,7 @@ const PoliticianDetail: React.FC = () => {
         className={styles.cards.base + " animate-fadeIn"}
         style={{ animationDelay: "0.2s" }}
       >
-        <div className="p-4">
+        <div className="p-3">
           <h3 className="font-bold text-lg mb-4 flex items-center">
             <MessageSquare size={18} className="mr-2 text-indigo-600" />
             評価理由

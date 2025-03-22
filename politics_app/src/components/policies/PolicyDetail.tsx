@@ -146,7 +146,7 @@ const PolicyDiscussionPage = () => {
   return (
     <div className="flex flex-col w-full min-h-screen font-sans bg-slate-50">
       {/* Main content */}
-      <main className="flex-1 p-4 pb-16 container mx-auto max-w-7xl">
+      <main className="flex-1 pb-16 sm:p-4 p-0 container mx-auto max-w-7xl">
         <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
           <section className="space-y-4">
             <div className="flex items-center justify-between mb-2">
@@ -170,7 +170,7 @@ const PolicyDiscussionPage = () => {
             </div>
 
             {/* Policy Card - Main Visual Focus */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn">
+            <div className="bg-white shadow-lg overflow-hidden animate-fadeIn lg:rounded-2xl">
               {/* Hero section with gradient based on party color */}
               <div
                 className="relative p-6 text-white"
@@ -243,7 +243,7 @@ const PolicyDiscussionPage = () => {
               </div>
 
               {/* Impact on citizens section with party colors */}
-              <div className="px-5 py-8 border-b border-gray-100">
+              <div className="px-3 py-8 border-b border-gray-100">
                 <h3 className="font-bold text-gray-800 mb-6 flex items-center">
                   <span className="mr-2 text-xl">👥</span>
                   国民への影響
@@ -331,7 +331,7 @@ const PolicyDiscussionPage = () => {
               </div>
 
               {/* Party positions - with dynamic party colors */}
-              <div className="px-5 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+              <div className="px-3 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
                   <Building
                     size={18}
@@ -416,7 +416,7 @@ const PolicyDiscussionPage = () => {
               {/* ReplyDataProviderをこのレベルに配置する */}
               <ReplyDataProvider>
                 {/* 評価セクション (共通コンポーネントに置き換え) */}
-                <div className="p-5">
+                <div className="p-3">
                   <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl shadow-inner">
                     <EntityRatingsSection
                       supportRate={policy.supportRate}
@@ -435,7 +435,7 @@ const PolicyDiscussionPage = () => {
                   className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 animate-fadeIn"
                   style={{ animationDelay: "0.2s" }}
                 >
-                  <div className="p-5">
+                  <div className="p-3">
                     <h3 className="font-bold text-lg mb-4 flex items-center">
                       <MessageSquare
                         size={18}

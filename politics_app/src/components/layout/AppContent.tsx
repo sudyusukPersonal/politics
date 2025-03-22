@@ -20,8 +20,8 @@ const AppContent: React.FC = () => {
       <Header />
 
       {/* Main content */}
-      <main className="flex-1 p-4 pb-16 container mx-auto max-w-7xl">
-        <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
+      <main className="flex-1 pb-16 sm:p-4 px-0 container mx-auto max-w-7xl">
+        <div className="mx-auto sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full">
           <Routes>
             <Route path="/" element={<HomeScreen />} />
             <Route path="/politicians" element={<AllPoliticiansList />} />
