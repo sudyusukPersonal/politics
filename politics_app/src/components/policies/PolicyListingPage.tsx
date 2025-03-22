@@ -1,6 +1,6 @@
 // src/components/policies/PolicyListingPage.tsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -26,9 +26,11 @@ import {
   Policy,
 } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
+import { navigateToPolicy } from "../../utils/navigationUtils";
 
 const PolicyListingPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // 状態管理
   const [activeCategory, setActiveCategory] = useState("all");
@@ -71,6 +73,30 @@ const PolicyListingPage: React.FC = () => {
   const [loadMoreVisible, setLoadMoreVisible] = useState(true);
   const [visiblePoliciesCount, setVisiblePoliciesCount] = useState(6); // 最初に表示する政策の数
   const [showPartyFilter, setShowPartyFilter] = useState(false); // 追加: 政党フィルター表示状態
+  const [tempSearchQuery, setTempSearchQuery] = useState(""); // 検索フィールドの一時的な値
+  const [searchFired, setSearchFired] = useState(false); // 検索実行時のフィードバック用
+
+  // URLパラメータからフィルタ値を取得する処理
+  useEffect(() => {
+    // URLパラメータから値を取得
+    const params = new URLSearchParams(location.search);
+    const partyParam = params.get("party");
+    const categoryParam = params.get("category");
+    const sortParam = params.get("sort");
+
+    // パラメータが存在する場合は対応するステートを更新
+    if (partyParam) {
+      setActiveParty(partyParam);
+    }
+
+    if (categoryParam) {
+      setActiveCategory(categoryParam);
+    }
+
+    if (sortParam) {
+      setSortMethod(sortParam);
+    }
+  }, [location]);
 
   // ページロード時にデータを取得
   useEffect(() => {
@@ -168,6 +194,11 @@ const PolicyListingPage: React.FC = () => {
     loadPoliciesAndCategories();
   }, []);
 
+  // コンポーネントのマウント時に一時検索クエリを初期化
+  useEffect(() => {
+    setTempSearchQuery(searchQuery);
+  }, []);
+
   // カテゴリまたは政党が変更されたときにデータをフィルタリング
   useEffect(() => {
     const filterPolicies = async () => {
@@ -225,21 +256,38 @@ const PolicyListingPage: React.FC = () => {
     }
   }, [activeCategory, activeParty, policies, sortMethod, searchQuery]); // searchQueryをここに残す
 
-  // 検索フィールドの一時的な値を保持するための状態
-  const [tempSearchQuery, setTempSearchQuery] = useState("");
+  // URL更新用のヘルパー関数
+  const updateUrlParams = (updates: { [key: string]: string }) => {
+    // 現在のURLパラメータを取得
+    const params = new URLSearchParams(location.search);
 
-  // コンポーネントのマウント時に一時検索クエリを初期化
-  useEffect(() => {
-    setTempSearchQuery(searchQuery);
-  }, []);
+    // 更新する値をセット
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === "all" && key !== "sort") {
+        // "all"の場合はパラメータを削除（シンプルなURLを維持）
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+
+    // 整形されたURLパラメータ文字列を生成
+    const queryString = params.toString();
+
+    // 新しいURLへ遷移（履歴を置き換え）
+    navigate(
+      {
+        pathname: location.pathname,
+        search: queryString ? `?${queryString}` : "",
+      },
+      { replace: true }
+    );
+  };
 
   // 検索入力フィールドの変更時の処理（一時変数のみ更新）
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTempSearchQuery(e.target.value);
   };
-
-  // 検索実行時のフィードバック用の状態
-  const [searchFired, setSearchFired] = useState(false);
 
   // 検索送信時の処理
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -258,13 +306,19 @@ const PolicyListingPage: React.FC = () => {
   const handleSortChange = (method: string) => {
     setSortMethod(method);
     setShowFilterMenu(false);
+
+    // URLを更新
+    updateUrlParams({ sort: method });
   };
 
-  // カテゴリ選択時、政党選択時には検索条件をリセット
+  // カテゴリ選択時の処理
   const handleCategorySelect = (categoryId: string) => {
     setActiveCategory(categoryId);
     setSearchQuery(""); // 検索条件をリセット
     setTempSearchQuery(""); // 検索入力欄もクリア
+
+    // URLを更新
+    updateUrlParams({ category: categoryId });
   };
 
   // 政党選択時の処理
@@ -273,6 +327,9 @@ const PolicyListingPage: React.FC = () => {
     setSearchQuery(""); // 検索条件をリセット
     setTempSearchQuery(""); // 検索入力欄もクリア
     setShowFilterMenu(false); // 選択後にドロップダウンを閉じる
+
+    // URLを更新
+    updateUrlParams({ party: partyId });
   };
 
   // メニュー外クリック時にドロップダウンを閉じる
@@ -303,7 +360,7 @@ const PolicyListingPage: React.FC = () => {
 
   // 政策カードクリック時の処理
   const handlePolicyClick = (policyId: string) => {
-    navigate(`/policy/${policyId}`);
+    navigateToPolicy(navigate, policyId);
   };
 
   // トレンドアイコンの取得
@@ -388,7 +445,7 @@ const PolicyListingPage: React.FC = () => {
               type="text"
               placeholder={
                 activeParty === "all"
-                  ? "政策を検索..."
+                  ? "全ての政策を検索..."
                   : `${selectedParty.name}の政策を検索...`
               }
               className={`w-full pl-10 pr-10 py-2 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20 

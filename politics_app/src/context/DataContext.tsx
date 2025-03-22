@@ -14,6 +14,13 @@ import { Politician, Party } from "../types";
 import { TrendingUp, Activity } from "lucide-react";
 import { processPoliticiansData, processPartiesData } from "../utils/dataUtils";
 import { fetchPoliticianById } from "../services/politicianService";
+import {
+  navigateToPolitician,
+  navigateToParty,
+  navigateToParties,
+  navigateToPoliticians,
+  navigateToPolicyList,
+} from "../utils/navigationUtils";
 
 // キャッシュされた政治家リストのインターフェース
 interface CachedPoliticiansData {
@@ -123,6 +130,12 @@ interface DataContextType {
   // 新しく追加：キャッシュクリア関数
   clearPoliticiansCache: () => void;
   clearPartyPoliticiansCache: (partyId?: string) => void;
+  // 新しく追加：政策リストページに移動する関数
+  navigateToPolicyList: (params?: {
+    party?: string;
+    category?: string;
+    sort?: string;
+  }) => void;
 }
 
 // Context creation
@@ -302,7 +315,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     };
   }, [globalParties]);
 
-  // Modified to support Firebase integration
+  // Modified to support Firebase integration and navigation utility
   const handlePoliticianSelect = useCallback(
     (politician: Politician) => {
       // Reset UI states
@@ -315,8 +328,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
       // Set the selected politician directly (the detail page will fetch fresh data)
       setSelectedPolitician(politician);
 
-      // Navigate to politician detail page
-      navigate(`/politicians/${politician.id}`);
+      // Navigate to politician detail page using utility function
+      navigateToPolitician(navigate, politician.id);
 
       // Scroll to top
       window.scrollTo(0, 0);
@@ -336,8 +349,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
       setMobileMenuOpen(false);
       setSelectedParty(party);
 
-      // Navigate to party detail page
-      navigate(`/parties/${party.id}`);
+      // Navigate to party detail page using utility function
+      navigateToParty(navigate, party.id);
 
       // Scroll to top
       window.scrollTo(0, 0);
@@ -346,11 +359,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   );
 
   const handleBackToParties = useCallback(() => {
-    navigate("/parties");
+    navigateToParties(navigate);
   }, [navigate]);
 
   const handleBackToPoliticians = useCallback(() => {
-    navigate("/politicians");
+    navigateToPoliticians(navigate);
   }, [navigate]);
 
   const handleVoteClick = useCallback((type: "support" | "oppose") => {
@@ -362,12 +375,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setSortMethod(method);
   }, []);
 
-  // Modified to accept a page parameter and include it in the URL
+  // Modified to use navigation utility function
   const showAllPoliticiansList = useCallback(
     (page: number = 1) => {
       setShowAllPoliticians(true);
       setCurrentPage(page);
-      navigate(`/politicians?page=${page}`);
+      navigateToPoliticians(navigate, page);
+    },
+    [navigate]
+  );
+
+  // New function for policy list navigation
+  const handleNavigateToPolicyList = useCallback(
+    (params?: { party?: string; category?: string; sort?: string }) => {
+      navigateToPolicyList(navigate, params);
     },
     [navigate]
   );
@@ -576,8 +597,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         dataInitialized,
         isLoadingPolitician,
         currentPage,
-        cachedPoliticians, // 新しく追加
-        cachedPartyPoliticians, // 新しく追加
+        cachedPoliticians,
+        cachedPartyPoliticians,
 
         // State setters
         setPoliticians,
@@ -595,8 +616,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setReason,
         setShowReasonForm,
         setCurrentPage,
-        setCachedPoliticians, // 新しく追加
-        setCachedPartyPoliticians, // 新しく追加
+        setCachedPoliticians,
+        setCachedPartyPoliticians,
 
         // Helper functions
         resetVoteData,
@@ -618,12 +639,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         getTrendIcon,
         getSortLabel,
         searchPoliticians,
-        clearPoliticiansCache, // 新しく追加
-        clearPartyPoliticiansCache, // 新しく追加
+        clearPoliticiansCache,
+        clearPartyPoliticiansCache,
 
         // Firebase-specific functions
         fetchPoliticianFromFirebase,
         refreshSelectedPolitician,
+
+        // New navigation function
+        navigateToPolicyList: handleNavigateToPolicyList,
       }}
     >
       {children}
