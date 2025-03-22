@@ -5,6 +5,7 @@ import { DataProvider } from "./context/DataContext";
 import { ReplyDataProvider } from "./context/ReplyDataContext";
 import { AuthProvider } from "./context/AuthContext";
 import AppContent from "./components/layout/AppContent";
+import "./styles/smallMobileOptimization.css";
 
 const App: React.FC = () => {
   return (
