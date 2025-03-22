@@ -15,6 +15,7 @@ import {
   Activity,
   Users,
   MessageSquare,
+  Building,
 } from "lucide-react";
 import {
   fetchAllPolicies,
@@ -31,6 +32,7 @@ const PolicyListingPage: React.FC = () => {
 
   // 状態管理
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activeParty, setActiveParty] = useState("all"); // 追加: 選択中の政党
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [sortMethod, setSortMethod] = useState("supportDesc"); // デフォルトのソート方法
@@ -51,10 +53,24 @@ const PolicyListingPage: React.FC = () => {
       icon: <Activity size={14} />,
     },
   ]);
+  const [parties, setParties] = useState<
+    {
+      id: string;
+      name: string;
+      color: string;
+    }[]
+  >([
+    {
+      id: "all",
+      name: "すべての政党",
+      color: "#6366F1",
+    },
+  ]); // 追加: 政党リスト
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadMoreVisible, setLoadMoreVisible] = useState(true);
   const [visiblePoliciesCount, setVisiblePoliciesCount] = useState(6); // 最初に表示する政策の数
+  const [showPartyFilter, setShowPartyFilter] = useState(false); // 追加: 政党フィルター表示状態
 
   // ページロード時にデータを取得
   useEffect(() => {
@@ -109,6 +125,38 @@ const PolicyListingPage: React.FC = () => {
         ];
 
         setCategories(formattedCategories);
+
+        // 政党データを抽出・整形
+        const uniqueParties = new Map<
+          string,
+          { name: string; color: string }
+        >();
+
+        // すべての政策から一意な政党情報を抽出
+        allPolicies.forEach((policy) => {
+          if (policy.proposingParty && policy.proposingParty.name) {
+            uniqueParties.set(policy.proposingParty.name, {
+              name: policy.proposingParty.name,
+              color: policy.proposingParty.color || "#6B7280",
+            });
+          }
+        });
+
+        // フォーマットされた政党リストを作成
+        const formattedParties = [
+          {
+            id: "all",
+            name: "すべての政党",
+            color: "#6366F1",
+          },
+          ...[...uniqueParties.entries()].map(([name, data]) => ({
+            id: name,
+            name: name,
+            color: data.color,
+          })),
+        ];
+
+        setParties(formattedParties);
       } catch (error) {
         console.error("データ取得エラー:", error);
         setError("政策データの取得中にエラーが発生しました。");
@@ -120,7 +168,7 @@ const PolicyListingPage: React.FC = () => {
     loadPoliciesAndCategories();
   }, []);
 
-  // カテゴリが変更されたときにデータをフィルタリング
+  // カテゴリまたは政党が変更されたときにデータをフィルタリング
   useEffect(() => {
     const filterPolicies = async () => {
       try {
@@ -128,27 +176,32 @@ const PolicyListingPage: React.FC = () => {
 
         let filtered: Policy[];
 
+        // カテゴリでの初期フィルタリング
         if (activeCategory === "all") {
-          // すべてのカテゴリの場合は全政策を対象に検索
-          if (searchQuery.trim()) {
-            filtered = await searchPolicies(searchQuery);
-          } else {
-            filtered = policies;
-          }
+          // すべてのカテゴリの場合は全政策を対象に
+          filtered = policies;
         } else {
           // 特定のカテゴリの場合
-          if (searchQuery.trim()) {
-            // 検索クエリがある場合、全政策から検索してからカテゴリでフィルタリング
-            const searchResults = await searchPolicies(searchQuery);
-            filtered = searchResults.filter((policy) =>
-              policy.affectedFields.includes(activeCategory)
-            );
-          } else {
-            // 検索クエリがない場合、カテゴリでフィルタリングした政策を取得
-            filtered = policies.filter((policy) =>
-              policy.affectedFields.includes(activeCategory)
-            );
-          }
+          filtered = policies.filter((policy) =>
+            policy.affectedFields.includes(activeCategory)
+          );
+        }
+
+        // 政党によるフィルタリング
+        if (activeParty !== "all") {
+          filtered = filtered.filter(
+            (policy) => policy.proposingParty.name === activeParty
+          );
+        }
+
+        // 検索クエリによるフィルタリング
+        if (searchQuery.trim()) {
+          const lowerSearchTerm = searchQuery.toLowerCase();
+          filtered = filtered.filter(
+            (policy) =>
+              policy.title.toLowerCase().includes(lowerSearchTerm) ||
+              policy.description.toLowerCase().includes(lowerSearchTerm)
+          );
         }
 
         // 選択されたソート方法で並べ替え
@@ -170,17 +223,35 @@ const PolicyListingPage: React.FC = () => {
     if (policies.length > 0) {
       filterPolicies();
     }
-  }, [activeCategory, policies, searchQuery, sortMethod]);
+  }, [activeCategory, activeParty, policies, sortMethod, searchQuery]); // searchQueryをここに残す
 
-  // 検索クエリが変更されたときの処理
+  // 検索フィールドの一時的な値を保持するための状態
+  const [tempSearchQuery, setTempSearchQuery] = useState("");
+
+  // コンポーネントのマウント時に一時検索クエリを初期化
+  useEffect(() => {
+    setTempSearchQuery(searchQuery);
+  }, []);
+
+  // 検索入力フィールドの変更時の処理（一時変数のみ更新）
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+    setTempSearchQuery(e.target.value);
   };
+
+  // 検索実行時のフィードバック用の状態
+  const [searchFired, setSearchFired] = useState(false);
 
   // 検索送信時の処理
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // 検索クエリの変更は useEffect でフィルタリングをトリガーする
+    // フォーム送信時に検索クエリを更新し、フィルタリングをトリガー
+    setSearchQuery(tempSearchQuery);
+
+    // 検索エフェクトをトリガー
+    setSearchFired(true);
+    setTimeout(() => {
+      setSearchFired(false);
+    }, 600); // 0.6秒後に非表示
   };
 
   // ソート方法変更時の処理
@@ -188,6 +259,39 @@ const PolicyListingPage: React.FC = () => {
     setSortMethod(method);
     setShowFilterMenu(false);
   };
+
+  // カテゴリ選択時、政党選択時には検索条件をリセット
+  const handleCategorySelect = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    setSearchQuery(""); // 検索条件をリセット
+    setTempSearchQuery(""); // 検索入力欄もクリア
+  };
+
+  // 政党選択時の処理
+  const handlePartySelect = (partyId: string) => {
+    setActiveParty(partyId);
+    setSearchQuery(""); // 検索条件をリセット
+    setTempSearchQuery(""); // 検索入力欄もクリア
+    setShowFilterMenu(false); // 選択後にドロップダウンを閉じる
+  };
+
+  // メニュー外クリック時にドロップダウンを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showFilterMenu) {
+        const target = event.target as Node;
+        const filterMenu = document.getElementById("filter-menu-container");
+        if (filterMenu && !filterMenu.contains(target)) {
+          setShowFilterMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showFilterMenu]);
 
   // もっと表示ボタンの処理
   const handleLoadMore = () => {
@@ -235,8 +339,16 @@ const PolicyListingPage: React.FC = () => {
     return categories.find((cat) => cat.id === id) || categories[0];
   };
 
+  // 政党IDから政党情報を取得
+  const getPartyById = (id: string) => {
+    return parties.find((party) => party.id === id) || parties[0];
+  };
+
   // 現在のアクティブカテゴリ
   const activeTab = getCategoryById(activeCategory);
+
+  // 現在選択中の政党
+  const selectedParty = getPartyById(activeParty);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -265,15 +377,34 @@ const PolicyListingPage: React.FC = () => {
             className="relative w-full md:w-auto md:max-w-md"
           >
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-white opacity-70" />
+              <Search
+                size={18}
+                className={`text-white ${
+                  searchFired ? "search-icon-effect" : "opacity-70"
+                }`}
+              />
             </div>
             <input
               type="text"
               placeholder="政策を検索..."
-              className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white placeholder-white placeholder-opacity-70 backdrop-blur-sm"
-              value={searchQuery}
+              className={`w-full pl-10 pr-10 py-2 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20 
+              focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white 
+              placeholder-white placeholder-opacity-70 backdrop-blur-sm ${
+                searchFired ? "search-input-flash" : ""
+              }`}
+              value={tempSearchQuery}
               onChange={handleSearchChange}
             />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white opacity-70 hover:opacity-100 transition-opacity"
+              aria-label="検索"
+            >
+              <ChevronRight
+                size={18}
+                className={searchFired ? "search-button-effect" : ""}
+              />
+            </button>
           </form>
         </div>
       </div>
@@ -296,7 +427,7 @@ const PolicyListingPage: React.FC = () => {
                   style={{
                     backgroundColor: isActive ? category.color : "",
                   }}
-                  onClick={() => setActiveCategory(category.id)}
+                  onClick={() => handleCategorySelect(category.id)}
                 >
                   <div className="flex items-center">
                     <span className="mr-2">{category.icon}</span>
@@ -331,7 +462,7 @@ const PolicyListingPage: React.FC = () => {
                     backgroundImage: `linear-gradient(to right, ${activeTab.color}, ${activeTab.color}99)`,
                   }}
                 >
-                  {activeTab.name}
+                  {activeParty === "all" ? activeTab.name : selectedParty.name}
                 </span>
                 <span>政策一覧</span>
               </h2>
@@ -340,7 +471,7 @@ const PolicyListingPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="relative">
+            <div className="relative" id="filter-menu-container">
               <button
                 className="flex items-center bg-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all border border-gray-200"
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
@@ -350,8 +481,11 @@ const PolicyListingPage: React.FC = () => {
               </button>
 
               {showFilterMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10 border border-indigo-100">
-                  <div className="py-1">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg z-10 border border-indigo-100">
+                  <div className="py-1 border-b border-gray-100">
+                    <div className="px-4 py-1.5 text-xs font-semibold text-gray-500">
+                      並び替え
+                    </div>
                     <button
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
                       onClick={() => handleSortChange("supportDesc")}
@@ -373,6 +507,34 @@ const PolicyListingPage: React.FC = () => {
                       <Clock size={16} className="mr-2 text-indigo-600" />
                       <span>新しい順</span>
                     </button>
+                  </div>
+
+                  <div className="py-1">
+                    <div className="px-4 py-1.5 text-xs font-semibold text-gray-500">
+                      政党で絞り込み
+                    </div>
+                    {parties.map((party) => (
+                      <button
+                        key={party.id}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
+                        onClick={() => handlePartySelect(party.id)}
+                      >
+                        <div
+                          className="w-3 h-3 rounded-full mr-3"
+                          style={{ backgroundColor: party.color }}
+                        ></div>
+                        <span
+                          className={
+                            activeParty === party.id ? "font-medium" : ""
+                          }
+                        >
+                          {party.name}
+                        </span>
+                        {activeParty === party.id && (
+                          <span className="ml-auto text-indigo-600">✓</span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
@@ -411,7 +573,7 @@ const PolicyListingPage: React.FC = () => {
             <p className="text-gray-500">
               検索条件に一致する政策データが見つかりませんでした。
               <br />
-              検索キーワードを変更するか、別のカテゴリを選択してください。
+              検索キーワードを変更するか、別のカテゴリや政党を選択してください。
             </p>
           </div>
         )}
@@ -567,6 +729,61 @@ const PolicyListingPage: React.FC = () => {
 
         .animate-bounce-slow {
           animation: bounce-slow 2s ease-in-out infinite;
+        }
+        
+        /* 検索アイコンのエフェクト - 明るく光る */
+        .search-icon-effect {
+          animation: searchIconGlow 0.6s ease-out;
+        }
+        
+        @keyframes searchIconGlow {
+          0% { 
+            opacity: 0.7;
+            transform: scale(1);
+          }
+          30% { 
+            opacity: 1;
+            transform: scale(1.3);
+            filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
+          }
+          100% { 
+            opacity: 0.7;
+            transform: scale(1);
+          }
+        }
+        
+        /* 検索入力フィールドの背景フラッシュ効果 */
+        .search-input-flash {
+          animation: inputFlash 0.6s ease-out;
+        }
+        
+        @keyframes inputFlash {
+          0% { 
+            background-color: rgba(255, 255, 255, 0.1);
+          }
+          30% { 
+            background-color: rgba(255, 255, 255, 0.25);
+          }
+          100% { 
+            background-color: rgba(255, 255, 255, 0.1);
+          }
+        }
+        
+        /* 検索ボタンの効果 - 一瞬で右に移動して戻る */
+        .search-button-effect {
+          animation: buttonAction 0.6s ease-out;
+        }
+        
+        @keyframes buttonAction {
+          0% { 
+            transform: translateX(0);
+          }
+          30% { 
+            transform: translateX(3px);
+          }
+          60% { 
+            transform: translateX(0);
+          }
         }
       `}</style>
     </div>
