@@ -1,5 +1,11 @@
 // src/components/comments/OptimizedCommentSystem.tsx
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -8,6 +14,7 @@ import {
   Send,
   ChevronUp,
   ChevronDown,
+  Filter,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Comment, Reply } from "../../types";
@@ -59,6 +66,9 @@ const STYLES = {
     }`,
 };
 
+// ソートの種類を定義
+type SortType = "latest" | "replies" | "support" | "oppose";
+
 // ===== メインのコメントセクションコンポーネント =====
 export const CommentSection: React.FC<{
   entityId?: string;
@@ -75,128 +85,196 @@ export const CommentSection: React.FC<{
   } = useReplyData();
   const { handleVoteClick } = useData();
 
-  // コメントタイプによる分類（最適化: useMemoで一度だけ計算）
-  const { supportComments, opposeComments } = React.useMemo(
-    () => ({
-      supportComments: comments.filter((c) => c.type === "support"),
-      opposeComments: comments.filter((c) => c.type === "oppose"),
-    }),
-    [comments]
-  );
+  // ソート方法の状態
+  const [sortType, setSortType] = useState<SortType>("latest");
+  // ドロップダウンの表示状態
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  // ドロップダウン参照（外側クリック検出用）
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // データ読み込み（最適化: useEffectの依存配列を最小限に）
+  // データ読み込み
   useEffect(() => {
     targetId && fetchCommentsByPolitician(targetId);
   }, [targetId, fetchCommentsByPolitician]);
 
-  // レンダリング関数の最適化（共通化）
-  const renderCommentsList = useCallback(
-    (comments: Comment[], type: "support" | "oppose") => {
-      const isSupport = type === "support";
-      return (
-        <div className={!isSupport ? "" : "mb-6"}>
-          <div className="flex items-center justify-between mb-3">
-            <h4
-              className={`font-medium ${
-                isSupport ? "text-green-600" : "text-red-600"
-              } flex items-center`}
-            >
-              {isSupport ? (
-                <ThumbsUp size={16} className="mr-1" />
-              ) : (
-                <ThumbsDown size={16} className="mr-1" />
-              )}
-              {isSupport ? "支持の理由" : "不支持の理由"}
-            </h4>
-            <span
-              className={`text-xs py-1 px-2 ${
-                isSupport
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              } rounded-full`}
-            >
-              {comments.length} コメント
-            </span>
-          </div>
+  // ドロップダウン外のクリックを検出して閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowSortDropdown(false);
+      }
+    };
 
-          <div className="space-y-3">
-            {comments.map((comment, index) => (
-              <React.Fragment key={comment.id}>
-                <CommentItem
-                  comment={comment}
-                  type={type}
-                  isNew={newCommentId === comment.id}
-                />
-                {/* 3番目のコメントの後に広告を表示（条件付きレンダリングの最適化） */}
-                {index === 2 && comments.length > 3 && (
-                  <div className="my-4 flex justify-center">
-                    <InlineAdBanner format="rectangle" showCloseButton={true} />
-                  </div>
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // ソートタイプに応じたラベルを取得
+  const getSortLabel = (type: SortType): string => {
+    switch (type) {
+      case "latest":
+        return "新着順";
+      case "replies":
+        return "返信の多い順";
+      case "support":
+        return "支持コメント";
+      case "oppose":
+        return "不支持コメント";
+      default:
+        return "並び順";
+    }
+  };
+
+  // ソートされたコメントリストを計算
+  const sortedComments = useMemo(() => {
+    if (!comments.length) return [];
+
+    switch (sortType) {
+      case "latest":
+        // 日付の新しい順（降順）に並べる
+        return [...comments].sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      case "replies":
+        // 返信数の多い順に並べる
+        return [...comments].sort((a, b) => b.repliesCount - a.repliesCount);
+      case "support":
+        // 支持コメントを先に表示
+        return [...comments].sort((a, b) => {
+          if (a.type === "support" && b.type !== "support") return -1;
+          if (a.type !== "support" && b.type === "support") return 1;
+          // 同じタイプの場合は日付順
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+      case "oppose":
+        // 不支持コメントを先に表示
+        return [...comments].sort((a, b) => {
+          if (a.type === "oppose" && b.type !== "oppose") return -1;
+          if (a.type !== "oppose" && b.type === "oppose") return 1;
+          // 同じタイプの場合は日付順
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+      default:
+        return [...comments];
+    }
+  }, [comments, sortType]);
+
+  // コメント数と種類のサマリーを表示 - 位置の修正のみ
+  const renderCommentSummary = () => {
+    const supportCount = comments.filter((c) => c.type === "support").length;
+    const opposeCount = comments.filter((c) => c.type === "oppose").length;
+    return (
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold flex items-center text-lg">
+            <MessageSquare size={16} className="mr-2 text-indigo-600" />
+            {comments.length}件のコメント
+          </h3>
+
+          {/* ソートボタン - 位置を同じ高さに、色だけ変更 */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              className="flex items-center px-3 mt-4 py-1.5 text-sm rounded-full shadow-sm 
+              bg-white border border-gray-200 text-gray-700 hover:bg-gray-50
+              transition-all duration-300 ease-in-out"
+            >
+              <Filter size={14} className="mr-2 text-gray-500" />
+              <span>{getSortLabel(sortType)}</span>
+              <div className="ml-2 w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                <ChevronDown size={12} className="text-gray-600" />
+              </div>
+            </button>
+
+            {showSortDropdown && (
+              <div
+                className="absolute top-full right-0 mt-1 w-44 bg-white rounded-md shadow-lg z-20 py-1 border border-gray-200
+              overflow-hidden"
+              >
+                {(["latest", "replies", "support", "oppose"] as SortType[]).map(
+                  (type) => (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        setSortType(type);
+                        setShowSortDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm flex items-center transition-colors
+                      ${
+                        sortType === type
+                          ? "bg-indigo-50 text-indigo-600 font-medium"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full mr-2 ${
+                          sortType === type ? "bg-indigo-500" : "bg-gray-300"
+                        }`}
+                      ></span>
+                      {getSortLabel(type)}
+                    </button>
+                  )
                 )}
-              </React.Fragment>
-            ))}
-
-            {/* コメントがない場合の最適化された表示 */}
-            {comments.length === 0 && (
-              <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
-                まだ{isSupport ? "支持する" : "不支持の"}コメントはありません。
-                <button
-                  onClick={() => handleVoteClick(type)}
-                  className={`mt-2 ml-2 px-3 py-1 ${
-                    isSupport
-                      ? "bg-green-100 hover:bg-green-200 text-green-700"
-                      : "bg-red-100 hover:bg-red-200 text-red-700"
-                  } text-sm rounded-full transition`}
-                >
-                  {isSupport ? (
-                    <ThumbsUp size={14} className="inline mr-1" />
-                  ) : (
-                    <ThumbsDown size={14} className="inline mr-1" />
-                  )}
-                  {isSupport ? "支持する理由" : "不支持の理由"}を投稿
-                </button>
               </div>
             )}
           </div>
         </div>
-      );
-    },
-    [newCommentId, handleVoteClick]
-  );
 
-  // 共通の追加コメントボタン
-  const renderAddCommentButton = useCallback(
-    () => (
-      <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 my-6 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
-        <span className="text-sm text-gray-700">
-          <MessageSquare size={16} className="inline mr-1" />
-          あなたも{entityType === "politician" ? "この政治家" : "この政策"}
-          に対する評価を投稿できます
-        </span>
-        <div className="flex space-x-2">
-          {["support", "oppose"].map((type) => (
-            <button
-              key={type}
-              onClick={() => handleVoteClick(type as "support" | "oppose")}
-              className={`px-4 py-1.5 ${
-                type === "support"
-                  ? "bg-green-500 hover:bg-green-600"
-                  : "bg-red-500 hover:bg-red-600"
-              } text-white text-sm rounded-full flex items-center transition`}
-            >
-              {type === "support" ? (
-                <ThumbsUp size={14} className="mr-1" />
-              ) : (
-                <ThumbsDown size={14} className="mr-1" />
-              )}
-              支持{type === "oppose" ? "しない" : "する"}
-            </button>
-          ))}
+        {/* コメント件数表示を下に移動 */}
+        <div className="flex space-x-2 text-xs">
+          <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center">
+            <ThumbsUp size={12} className="mr-1" />
+            {supportCount}
+          </span>
+          <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full flex items-center">
+            <ThumbsDown size={12} className="mr-1" />
+            {opposeCount}
+          </span>
         </div>
       </div>
-    ),
-    [entityType, handleVoteClick]
-  );
+    );
+  };
+
+  // 共通の追加コメントボタン
+  // const renderAddCommentButton = () => (
+  //   <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 my-6 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+  //     <span className="text-sm text-gray-700">
+  //       <MessageSquare size={16} className="inline mr-1" />
+  //       あなたも{entityType === "politician" ? "この政治家" : "この政策"}
+  //       に対する評価を投稿できます
+  //     </span>
+  //     <div className="flex space-x-2">
+  //       {["support", "oppose"].map((type) => (
+  //         <button
+  //           key={type}
+  //           onClick={() => handleVoteClick(type as "support" | "oppose")}
+  //           className={`px-4 py-1.5 ${
+  //             type === "support"
+  //               ? "bg-green-500 hover:bg-green-600"
+  //               : "bg-red-500 hover:bg-red-600"
+  //           } text-white text-sm rounded-full flex items-center transition`}
+  //         >
+  //           {type === "support" ? (
+  //             <ThumbsUp size={14} className="mr-1" />
+  //           ) : (
+  //             <ThumbsDown size={14} className="mr-1" />
+  //           )}
+  //           支持{type === "oppose" ? "しない" : "する"}
+  //         </button>
+  //       ))}
+  //     </div>
+  //   </div>
+  // );
 
   // ローディング状態
   if (isLoadingComments) {
@@ -232,9 +310,33 @@ export const CommentSection: React.FC<{
     <>
       <style>{STYLES.highlight}</style>
       <InlineAdBanner format="rectangle" showCloseButton={true} />
-      {renderAddCommentButton()}
-      {renderCommentsList(supportComments, "support")}
-      {renderCommentsList(opposeComments, "oppose")}
+      {/* {renderAddCommentButton()} */}
+      {renderCommentSummary()}{" "}
+      {/* この中にソートボタンも含まれるようになりました */}
+      <div className="space-y-2">
+        {sortedComments.map((comment, index) => (
+          <React.Fragment key={comment.id}>
+            <CommentItem
+              comment={comment}
+              type={comment.type}
+              isNew={newCommentId === comment.id}
+            />
+            {/* 3番目のコメントの後に広告を表示 */}
+            {/* {index === 2 && sortedComments.length > 3 && (
+              <div className="my-4 flex justify-center">
+                <InlineAdBanner format="rectangle" showCloseButton={true} />
+              </div>
+            )} */}
+          </React.Fragment>
+        ))}
+
+        {/* コメントがない場合の表示 */}
+        {comments.length === 0 && (
+          <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
+            まだコメントはありません。最初のコメントを投稿してみましょう。
+          </div>
+        )}
+      </div>
     </>
   );
 };
@@ -249,7 +351,7 @@ interface CommentItemProps {
 }
 
 // 統合されたコメントアイテムコンポーネント - コメントとリプライの両方を処理
-const CommentItem: React.FC<CommentItemProps> = ({
+export const CommentItem: React.FC<CommentItemProps> = ({
   comment,
   type,
   isNew = false,
@@ -335,7 +437,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
 
   return (
     <div
-      className={isReply ? "mt-2 animate-fadeIn" : "mb-3"}
+      className={isReply ? "mt-2 animate-fadeIn" : ""}
       id={`comment-${comment.id}`}
       ref={commentRef}
     >
