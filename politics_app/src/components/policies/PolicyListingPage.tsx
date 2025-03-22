@@ -386,12 +386,15 @@ const PolicyListingPage: React.FC = () => {
             </div>
             <input
               type="text"
-              placeholder="政策を検索..."
+              placeholder={
+                activeParty === "all"
+                  ? "政策を検索..."
+                  : `${selectedParty.name}の政策を検索...`
+              }
               className={`w-full pl-10 pr-10 py-2 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20 
-              focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white 
-              placeholder-white placeholder-opacity-70 backdrop-blur-sm ${
-                searchFired ? "search-input-flash" : ""
-              }`}
+  focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white 
+  placeholder-white placeholder-opacity-70 backdrop-blur-sm md:w-[300px] lg:w-[350px] xl:w-[400px]
+  ${searchFired ? "search-input-flash" : ""}`}
               value={tempSearchQuery}
               onChange={handleSearchChange}
             />
