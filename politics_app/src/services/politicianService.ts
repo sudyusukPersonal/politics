@@ -12,6 +12,7 @@ import {
   Firestore,
   orderBy,
   startAfter,
+  OrderByDirection,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { Politician, Party } from "../types";
@@ -87,31 +88,32 @@ const getPartyID = (affiliation: string): string => {
 const convertToPolitician = (id: string, data: any): Politician => {
   // Create a party object from the affiliation
   const party = {
-    id: getPartyID(data.affiliation),
-    name: data.affiliation,
-    color: getPartyColor(data.affiliation),
+    id: getPartyID(data.affiliation || ""),
+    name: data.affiliation || "",
+    color: getPartyColor(data.affiliation || ""),
   };
 
   // Calculate support/oppose rates
   const totalVotes = (data.supportCount || 0) + (data.opposeCount || 0);
   const supportRate =
-    totalVotes > 0
+    data.supportRate ||
+    (totalVotes > 0
       ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
-      : 50; // Default to 50% if no votes
+      : 50); // Default to 50% if no votes or supportRate field
 
   return {
     id,
-    name: data.name,
-    furigana: data.furigana,
+    name: data.name || "",
+    furigana: data.furigana || "",
     position: data.type || "議員",
     region: data.region || "",
     age: data.age || Math.floor(Math.random() * 30) + 35, // Default age if not provided
     party,
     supportRate,
     opposeRate: 100 - supportRate,
-    totalVotes: totalVotes || 0,
+    totalVotes: data.totalVotes || totalVotes || 0,
     activity: data.activity || Math.floor(Math.random() * 40) + 50, // Random activity score
-    image: getLocalImagePath(data.name), // Use local image path based on name
+    image: data.imageUrl || getLocalImagePath(data.name || ""), // Use local image path based on name
     trending: data.trending || (Math.random() > 0.5 ? "up" : "down"), // Random trend if not provided
     recentActivity: data.recentActivity || "最近の活動情報",
   };
@@ -291,6 +293,132 @@ export const fetchPoliticiansWithPagination = async (
     };
   } catch (error) {
     console.error("全政治家取得エラー:", error);
+    throw error;
+  }
+};
+
+// Function to fetch politicians with party filter and sort method
+export const fetchPoliticiansWithFilterAndSort = async (
+  partyFilter: string,
+  sortMethod: string,
+  lastDocumentId?: string,
+  limitCount: number = 15
+): Promise<{
+  politicians: Politician[];
+  lastDocumentId?: string;
+  hasMore: boolean;
+}> => {
+  try {
+    console.log(
+      `Fetching politicians: party=${partyFilter}, sort=${sortMethod}, lastDocId=${
+        lastDocumentId || "none"
+      }`
+    );
+
+    const politiciansRef = collection(db, "politicians");
+    let q;
+
+    // Define sort field and direction
+    let orderByField = "supportRate";
+    let orderDirection: OrderByDirection = "desc";
+
+    switch (sortMethod) {
+      case "supportDesc":
+        orderByField = "supportRate";
+        orderDirection = "desc";
+        break;
+      case "supportAsc":
+        orderByField = "supportRate";
+        orderDirection = "asc";
+        break;
+      case "totalVotesDesc":
+        orderByField = "totalVotes";
+        orderDirection = "desc";
+        break;
+      default:
+        orderByField = "supportRate";
+        orderDirection = "desc";
+    }
+
+    // Apply party filter if not "all"
+    if (partyFilter !== "all") {
+      console.log(
+        `Filtering by party: "${partyFilter}" and sorting by ${orderByField} ${orderDirection}`
+      );
+
+      if (!lastDocumentId) {
+        // First page with party filter
+        q = query(
+          politiciansRef,
+          where("affiliation", "==", partyFilter),
+          orderBy(orderByField, orderDirection),
+          limit(limitCount)
+        );
+      } else {
+        // Subsequent pages with party filter
+        const lastDoc = await getDoc(doc(db, "politicians", lastDocumentId));
+        q = query(
+          politiciansRef,
+          where("affiliation", "==", partyFilter),
+          orderBy(orderByField, orderDirection),
+          startAfter(lastDoc),
+          limit(limitCount)
+        );
+      }
+    } else {
+      // No party filter, just sort
+      console.log(
+        `Sorting all politicians by ${orderByField} ${orderDirection}`
+      );
+
+      if (!lastDocumentId) {
+        // First page without party filter
+        q = query(
+          politiciansRef,
+          orderBy(orderByField, orderDirection),
+          limit(limitCount)
+        );
+      } else {
+        // Subsequent pages without party filter
+        const lastDoc = await getDoc(doc(db, "politicians", lastDocumentId));
+        q = query(
+          politiciansRef,
+          orderBy(orderByField, orderDirection),
+          startAfter(lastDoc),
+          limit(limitCount)
+        );
+      }
+    }
+
+    // Execute query
+    console.log("Executing Firestore query");
+    const querySnapshot = await getDocs(q);
+    console.log(`Query returned ${querySnapshot.docs.length} documents`);
+
+    // Map documents to politician objects
+    const politicians = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      console.log(
+        `Document data: ${JSON.stringify({
+          id: doc.id,
+          affiliation: data.affiliation,
+          supportRate: data.supportRate || 0,
+        })}`
+      );
+      return convertToPolitician(doc.id, data);
+    });
+
+    const hasMore = politicians.length === limitCount;
+    const lastVisibleDocument =
+      querySnapshot.docs[querySnapshot.docs.length - 1];
+
+    return {
+      politicians,
+      lastDocumentId: lastVisibleDocument ? lastVisibleDocument.id : undefined,
+      hasMore,
+    };
+  } catch (error) {
+    console.error("Error fetching politicians:", error);
     throw error;
   }
 };

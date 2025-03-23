@@ -1,134 +1,33 @@
+// src/components/common/SortDropdown.tsx
 import React from "react";
-import { ListFilter, SortDesc, SortAsc } from "lucide-react";
-import { useData } from "../../context/DataContext";
+import { ChevronDown, BarChart2 } from "lucide-react";
 
 interface SortDropdownProps {
-  dropdownId: string;
+  currentSort: string;
+  onSortChange: (sort: string) => void;
 }
 
-const SortDropdown: React.FC<SortDropdownProps> = ({ dropdownId }) => {
-  const { sortMethod, handleSortChange, getSortLabel } = useData();
-
+const SortDropdown: React.FC<SortDropdownProps> = ({
+  currentSort,
+  onSortChange,
+}) => {
   return (
     <div className="relative">
-      <button
-        className="flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-xs font-medium transition"
-        onClick={() => {
-          const dropdown = document.getElementById(dropdownId);
-          if (dropdown) {
-            dropdown.classList.toggle("hidden");
-          }
-        }}
-      >
-        <ListFilter size={14} className="mr-1.5 text-indigo-600" />
-        <span>{getSortLabel(sortMethod)}</span>
-      </button>
-
-      <div
-        id={dropdownId}
-        className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-10 hidden"
-      >
-        <div className="w-48 text-sm">
-          <div className="px-2 py-1 text-xs font-medium text-gray-500 border-b border-gray-100">
-            ソート基準
-          </div>
-          <button
-            onClick={() => {
-              handleSortChange("supportDesc");
-              const dropdown = document.getElementById(dropdownId);
-              if (dropdown) {
-                dropdown.classList.add("hidden");
-              }
-            }}
-            className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-              sortMethod === "supportDesc"
-                ? "bg-indigo-50 text-indigo-700"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <SortDesc size={12} className="inline mr-1" /> 支持率（高い順）
-          </button>
-          <button
-            onClick={() => {
-              handleSortChange("supportAsc");
-              const dropdown = document.getElementById(dropdownId);
-              if (dropdown) {
-                dropdown.classList.add("hidden");
-              }
-            }}
-            className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-              sortMethod === "supportAsc"
-                ? "bg-indigo-50 text-indigo-700"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <SortAsc size={12} className="inline mr-1" /> 支持率（低い順）
-          </button>
-          <button
-            onClick={() => {
-              handleSortChange("opposeDesc");
-              const dropdown = document.getElementById(dropdownId);
-              if (dropdown) {
-                dropdown.classList.add("hidden");
-              }
-            }}
-            className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-              sortMethod === "opposeDesc"
-                ? "bg-indigo-50 text-indigo-700"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <SortDesc size={12} className="inline mr-1" /> 不支持率（高い順）
-          </button>
-          <button
-            onClick={() => {
-              handleSortChange("opposeAsc");
-              const dropdown = document.getElementById(dropdownId);
-              if (dropdown) {
-                dropdown.classList.add("hidden");
-              }
-            }}
-            className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-              sortMethod === "opposeAsc"
-                ? "bg-indigo-50 text-indigo-700"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <SortAsc size={12} className="inline mr-1" /> 不支持率（低い順）
-          </button>
-          <button
-            onClick={() => {
-              handleSortChange("activityDesc");
-              const dropdown = document.getElementById(dropdownId);
-              if (dropdown) {
-                dropdown.classList.add("hidden");
-              }
-            }}
-            className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-              sortMethod === "activityDesc"
-                ? "bg-indigo-50 text-indigo-700"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <SortDesc size={12} className="inline mr-1" /> 活動指数（高い順）
-          </button>
-          <button
-            onClick={() => {
-              handleSortChange("activityAsc");
-              const dropdown = document.getElementById(dropdownId);
-              if (dropdown) {
-                dropdown.classList.add("hidden");
-              }
-            }}
-            className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-              sortMethod === "activityAsc"
-                ? "bg-indigo-50 text-indigo-700"
-                : "hover:bg-gray-50"
-            }`}
-          >
-            <SortAsc size={12} className="inline mr-1" /> 活動指数（低い順）
-          </button>
-        </div>
+      <div className="flex items-center">
+        <BarChart2 size={14} className="text-indigo-600 mr-1" />
+        <select
+          value={currentSort}
+          onChange={(e) => onSortChange(e.target.value)}
+          className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+        >
+          <option value="supportDesc">支持率（高い順）</option>
+          <option value="supportAsc">支持率（低い順）</option>
+          <option value="totalVotesDesc">投票数（多い順）</option>
+        </select>
+        <ChevronDown
+          size={14}
+          className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
+        />
       </div>
     </div>
   );

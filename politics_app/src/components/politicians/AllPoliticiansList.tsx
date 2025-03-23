@@ -6,203 +6,210 @@ import { Politician } from "../../types";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "./PoliticianCard";
 import SortDropdown from "../common/SortDropdown";
+import PartyFilterDropdown from "../common/PartyFilterDropdown";
 import PremiumBanner from "../common/PremiumBanner";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
-import { fetchPoliticiansWithPagination } from "../../services/politicianService";
+import { fetchPoliticiansWithFilterAndSort } from "../../services/politicianService";
 
 const AllPoliticiansList: React.FC = () => {
-  const {
-    handleBackToPoliticians,
-    sortMethod,
-    getSortedPoliticians,
-    // 追加: データコンテキストからキャッシュされたデータにアクセス
-    cachedPoliticians,
-    setCachedPoliticians,
-  } = useData();
+  const { handleBackToPoliticians } = useData();
 
-  // ルーターのフック
+  // Router hooks
   const navigate = useNavigate();
   const location = useLocation();
 
-  // URLクエリパラメータからページ番号を取得
-  const getPageFromUrl = (): number => {
+  // Get URL parameters
+  const getUrlParams = () => {
     const searchParams = new URLSearchParams(location.search);
-    const pageParam = searchParams.get("page");
-
-    if (pageParam) {
-      const pageNumber = parseInt(pageParam, 10);
-      if (!isNaN(pageNumber) && pageNumber > 0) {
-        return pageNumber;
-      }
-    }
-
-    return 1;
+    return {
+      page: parseInt(searchParams.get("page") || "1", 10),
+      sort: searchParams.get("sort") || "supportDesc",
+      party: searchParams.get("party") || "all",
+    };
   };
 
+  // State
   const [politicians, setPoliticians] = useState<Politician[]>([]);
   const [lastDocumentId, setLastDocumentId] = useState<string | undefined>(
     undefined
   );
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(getPageFromUrl());
+  const [error, setError] = useState<string | null>(null);
 
-  // 政治家読み込み関数
-  const loadMorePoliticians = async () => {
-    if (!isLoading && hasMore) {
-      try {
-        setIsLoading(true);
+  // Current filter/sort state
+  const [currentPage, setCurrentPage] = useState(getUrlParams().page);
+  const [currentSort, setCurrentSort] = useState(getUrlParams().sort);
+  const [currentParty, setCurrentParty] = useState(getUrlParams().party);
 
-        // 次のページ番号を計算
-        const nextPage = currentPage + 1;
-
-        const result = await fetchPoliticiansWithPagination(
-          lastDocumentId,
-          15,
-          nextPage
-        );
-
-        // 無限スクロールのため、新しい政治家を既存のリストに追加
-        setPoliticians((prev) => {
-          const existingIds = new Set(prev.map((p) => p.id));
-          const uniqueNewPoliticians = result.politicians.filter(
-            (p) => !existingIds.has(p.id)
-          );
-          const updatedPoliticians = [...prev, ...uniqueNewPoliticians];
-
-          // グローバルキャッシュに保存
-          setCachedPoliticians({
-            politicians: updatedPoliticians,
-            lastDocumentId: result.lastDocumentId,
-            hasMore: result.hasMore,
-            currentPage: nextPage,
-          });
-
-          return updatedPoliticians;
-        });
-
-        setLastDocumentId(result.lastDocumentId);
-        setHasMore(result.hasMore);
-        setCurrentPage(nextPage);
-
-        // URLを更新（現在のURLを置き換える）
-        navigate(`/politicians?page=${nextPage}`, { replace: true });
-      } catch (error) {
-        console.error("政治家の読み込みに失敗しました:", error);
-      } finally {
-        setIsLoading(false);
+  // Get display text for current filter
+  const getFilterDisplayText = (): string => {
+    if (currentParty === "all") {
+      switch (currentSort) {
+        case "supportDesc":
+          return "全議員・支持率順（高い順）";
+        case "supportAsc":
+          return "全議員・支持率順（低い順）";
+        case "totalVotesDesc":
+          return "全議員・投票数順";
+        default:
+          return "全議員一覧";
+      }
+    } else {
+      switch (currentSort) {
+        case "supportDesc":
+          return `${currentParty}・支持率順（高い順）`;
+        case "supportAsc":
+          return `${currentParty}・支持率順（低い順）`;
+        case "totalVotesDesc":
+          return `${currentParty}・投票数順`;
+        default:
+          return `${currentParty}所属議員一覧`;
       }
     }
   };
 
-  // URLのページパラメータが変わったときに再読み込み
+  // Update URL based on current filters
+  const updateUrl = (page: number, sort: string, party: string) => {
+    const url = `/politicians?page=${page}&sort=${sort}&party=${party}`;
+    navigate(url, { replace: true });
+  };
+
+  // Handle party filter change
+  const handlePartyFilterChange = (party: string) => {
+    console.log(`Party filter changed to: ${party}`);
+    setCurrentParty(party);
+    // Reset to page 1 when filter changes
+    updateUrl(1, currentSort, party);
+    // Reset data and reload
+    setPoliticians([]);
+    setLastDocumentId(undefined);
+    setHasMore(true);
+    setCurrentPage(1);
+    loadPoliticians(1, currentSort, party, true);
+  };
+
+  // Handle sort change
+  const handleSortChange = (sort: string) => {
+    console.log(`Sort method changed to: ${sort}`);
+    setCurrentSort(sort);
+    // Reset to page 1 when sort changes
+    updateUrl(1, sort, currentParty);
+    // Reset data and reload
+    setPoliticians([]);
+    setLastDocumentId(undefined);
+    setHasMore(true);
+    setCurrentPage(1);
+    loadPoliticians(1, sort, currentParty, true);
+  };
+
+  // Load politicians with current filters
+  const loadPoliticians = async (
+    page: number,
+    sort: string,
+    party: string,
+    refresh: boolean = false
+  ) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // If refresh is true, reset everything
+      const docId = refresh ? undefined : lastDocumentId;
+
+      console.log(
+        `Loading politicians. Page: ${page}, Sort: ${sort}, Party: ${party}, LastDocId: ${
+          docId || "none"
+        }`
+      );
+
+      const result = await fetchPoliticiansWithFilterAndSort(
+        party,
+        sort,
+        docId,
+        15
+      );
+
+      if (refresh) {
+        // Replace all politicians
+        setPoliticians(result.politicians);
+      } else {
+        // Add to existing politicians (for infinite scroll)
+        setPoliticians((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const newPoliticians = result.politicians.filter(
+            (p) => !existingIds.has(p.id)
+          );
+          return [...prev, ...newPoliticians];
+        });
+      }
+
+      setLastDocumentId(result.lastDocumentId);
+      setHasMore(result.hasMore);
+      setCurrentPage(page);
+
+      console.log(`Loaded ${result.politicians.length} politicians`);
+
+      if (result.politicians.length === 0 && refresh) {
+        console.log("No politicians found with current filters");
+      }
+    } catch (error) {
+      console.error("Failed to load politicians:", error);
+      setError(
+        "政治家データの読み込みに失敗しました。もう一度お試しください。"
+      );
+      if (refresh) {
+        setPoliticians([]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load more politicians for infinite scroll
+  const loadMorePoliticians = () => {
+    if (!isLoading && hasMore) {
+      const nextPage = currentPage + 1;
+      loadPoliticians(nextPage, currentSort, currentParty, false);
+      // Update URL without triggering a reload
+      updateUrl(nextPage, currentSort, currentParty);
+    }
+  };
+
+  // Watch for URL changes and reload data if needed
   useEffect(() => {
-    const urlPage = getPageFromUrl();
-    if (urlPage !== currentPage) {
-      setCurrentPage(urlPage);
+    const params = getUrlParams();
+    console.log(
+      `URL params changed: page=${params.page}, sort=${params.sort}, party=${params.party}`
+    );
+
+    if (params.sort !== currentSort || params.party !== currentParty) {
+      console.log("Filter parameters changed, reloading data");
+      setCurrentSort(params.sort);
+      setCurrentParty(params.party);
+      setPoliticians([]);
+      setLastDocumentId(undefined);
+      setHasMore(true);
+      setCurrentPage(1);
+      loadPoliticians(1, params.sort, params.party, true);
     }
   }, [location.search]);
 
-  // 初回読み込み - キャッシュ対応
+  // Initial data load
   useEffect(() => {
-    const initialLoad = async () => {
-      const urlPage = getPageFromUrl();
-      const hasPageParam = location.search.includes("page=");
+    const params = getUrlParams();
+    console.log(
+      `Initial load with: page=${params.page}, sort=${params.sort}, party=${params.party}`
+    );
 
-      // キャッシュデータをチェック
-      if (cachedPoliticians && cachedPoliticians.politicians.length > 0) {
-        console.log("キャッシュから政治家データを読み込みました");
-
-        // キャッシュからデータを読み込む
-        setPoliticians(cachedPoliticians.politicians);
-        setLastDocumentId(cachedPoliticians.lastDocumentId);
-        setHasMore(cachedPoliticians.hasMore);
-
-        // URLが変わっていた場合は現在のページを更新
-        if (urlPage !== cachedPoliticians.currentPage) {
-          navigate(`/politicians?page=${cachedPoliticians.currentPage}`, {
-            replace: true,
-          });
-        }
-
-        return;
-      }
-
-      // キャッシュがない場合は通常の読み込み処理
-      setIsLoading(true);
-
-      try {
-        if (hasPageParam && urlPage > 1) {
-          // URLに指定されたページまで、必要なデータを全て読み込む
-          let tempLastDocId: string | undefined = undefined;
-          let allPoliticians: Politician[] = [];
-
-          for (let i = 1; i <= urlPage; i++) {
-            const result = await fetchPoliticiansWithPagination(
-              tempLastDocId,
-              15,
-              i
-            );
-
-            // 全ページのデータを蓄積
-            allPoliticians = [...allPoliticians, ...result.politicians];
-            tempLastDocId = result.lastDocumentId;
-
-            // 最後のページの状態を設定
-            if (i === urlPage) {
-              setPoliticians(allPoliticians);
-              setLastDocumentId(result.lastDocumentId);
-              setHasMore(result.hasMore);
-              setCurrentPage(i);
-
-              // グローバルキャッシュに保存
-              setCachedPoliticians({
-                politicians: allPoliticians,
-                lastDocumentId: result.lastDocumentId,
-                hasMore: result.hasMore,
-                currentPage: i,
-              });
-            }
-
-            // データがない場合は中断
-            if (!result.hasMore) {
-              setHasMore(false);
-              break;
-            }
-          }
-        } else {
-          // パラメータがない場合またはpage=1の場合は最初のページだけ読み込む
-          const result = await fetchPoliticiansWithPagination(undefined, 15, 1);
-          setPoliticians(result.politicians);
-          setLastDocumentId(result.lastDocumentId);
-          setHasMore(result.hasMore);
-          setCurrentPage(1);
-
-          // グローバルキャッシュに保存
-          setCachedPoliticians({
-            politicians: result.politicians,
-            lastDocumentId: result.lastDocumentId,
-            hasMore: result.hasMore,
-            currentPage: 1,
-          });
-
-          // もしURLにパラメータがある場合でpage=1なら、それをクリア
-          if (hasPageParam && urlPage === 1) {
-            navigate("/politicians", { replace: true });
-          }
-        }
-      } catch (error) {
-        console.error("初期データの読み込みに失敗しました:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initialLoad();
+    setCurrentSort(params.sort);
+    setCurrentParty(params.party);
+    setCurrentPage(params.page);
+    loadPoliticians(params.page, params.sort, params.party, true);
   }, []);
 
-  // スクロール検出
+  // Infinite scroll detection
   useEffect(() => {
     const handleScroll = () => {
       if (
@@ -221,7 +228,7 @@ const AllPoliticiansList: React.FC = () => {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between mb-2">
+      {/* <div className="flex items-center justify-between mb-2">
         <button
           onClick={handleBackToPoliticians}
           className="flex items-center text-indigo-600 hover:text-indigo-800 transition"
@@ -229,13 +236,20 @@ const AllPoliticiansList: React.FC = () => {
           <ArrowLeft size={16} className="mr-1" />
           <span>戻る</span>
         </button>
-
-        {/* Sort dropdown */}
-        <SortDropdown dropdownId="sort-dropdown" />
+      </div> */}
+      <div className="flex justify-center space-x-2 mt-4">
+        <PartyFilterDropdown
+          currentFilter={currentParty}
+          onFilterChange={handlePartyFilterChange}
+        />
+        <SortDropdown
+          currentSort={currentSort}
+          onSortChange={handleSortChange}
+        />
       </div>
 
       {/* Premium banner */}
-      <PremiumBanner />
+      {/* <PremiumBanner /> */}
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
         <div className="p-4 border-b border-gray-100">
@@ -243,10 +257,14 @@ const AllPoliticiansList: React.FC = () => {
             <Users size={18} className="mr-2 text-indigo-600" />
             全政治家一覧
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            評価順に並べ替えてランキング表示
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{getFilterDisplayText()}</p>
         </div>
+
+        {error && (
+          <div className="p-4 bg-red-50 text-red-600 border-b border-red-100">
+            <p>{error}</p>
+          </div>
+        )}
 
         {politicians.length > 0 ? (
           <div>
@@ -270,7 +288,7 @@ const AllPoliticiansList: React.FC = () => {
               );
             })}
 
-            {/* ローディング中のインジケーター */}
+            {/* Loading indicator */}
             {isLoading && (
               <div className="flex justify-center py-4">
                 <LoadingAnimation
@@ -280,19 +298,23 @@ const AllPoliticiansList: React.FC = () => {
               </div>
             )}
 
-            {/* すべての政治家を読み込んだ場合のメッセージ */}
-            {!hasMore && (
+            {/* End of list message */}
+            {!hasMore && !isLoading && (
               <div className="text-center py-4 text-gray-500 text-sm">
                 すべての政治家を表示しました
               </div>
             )}
           </div>
+        ) : !isLoading ? (
+          <div className="p-8 text-center text-gray-500">
+            {currentParty !== "all"
+              ? `${currentParty}に所属する議員はいません`
+              : "表示できる政治家データがありません"}
+          </div>
         ) : (
-          !isLoading && (
-            <div className="p-8 text-center text-gray-500">
-              表示できる政治家データがありません
-            </div>
-          )
+          <div className="flex justify-center py-12">
+            <LoadingAnimation type="dots" message="政治家を読み込んでいます" />
+          </div>
         )}
       </div>
     </section>
