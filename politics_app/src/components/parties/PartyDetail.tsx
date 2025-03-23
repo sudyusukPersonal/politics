@@ -8,6 +8,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Activity,
+  ExternalLink,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
@@ -52,6 +53,16 @@ const PartyDetail: React.FC = () => {
   // キャッシュ関連の状態
   const [cachedPartyPoliticians, setCachedPartyPoliticians] =
     useState<CachedPartyPoliticiansData | null>(null);
+
+  // 所属議員一覧ページへ遷移する関数
+  const navigateToPartyMembers = useCallback(() => {
+    if (party) {
+      const encodedPartyName = encodeURIComponent(party.name);
+      navigate(
+        `/politicians?page=1&sort=supportDesc&party=${encodedPartyName}`
+      );
+    }
+  }, [party, navigate]);
 
   // URLからページ番号を取得する関数
   const getPageFromUrl = () => {
@@ -375,22 +386,84 @@ const PartyDetail: React.FC = () => {
           className="p-5 border-b border-gray-100"
           style={{ backgroundColor: `${party.color}10` }}
         >
-          <div className="flex flex-col sm:flex-row sm:items-center">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 sm:mb-0"
-              style={{ backgroundColor: party.color }}
-            >
-              {party.name.charAt(0)}
-            </div>
-            <div className="sm:ml-4">
-              <h2 className="text-xl font-bold" style={{ color: party.color }}>
-                {party.name}
-              </h2>
-              <div className="flex flex-wrap items-center text-sm text-gray-500 mt-1">
-                <span>所属議員: {party.members}名</span>
-                <span className="mx-2 hidden sm:inline">•</span>
-                <span>総投票数: {party.totalVotes.toLocaleString()}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+            {/* 左側: 党ロゴ、党名、メンバー数、ボタン (デスクトップ) */}
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 sm:mb-0"
+                style={{ backgroundColor: party.color }}
+              >
+                {party.name.charAt(0)}
               </div>
+              <div className="sm:ml-4">
+                <h2
+                  className="text-xl font-bold"
+                  style={{ color: party.color }}
+                >
+                  {party.name}
+                </h2>
+                <div className="flex flex-wrap items-center text-sm text-gray-500 mt-1">
+                  <span>所属議員: {party.members}名</span>
+                  <span className="mx-2 hidden sm:inline">•</span>
+                  {/* 総得票数はモバイルのみ表示 */}
+                  <span className="sm:hidden">
+                    総投票数: {party.totalVotes.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* デスクトップ: ボタンを党名の横に配置 */}
+                <div className="hidden sm:block mt-2">
+                  <button
+                    onClick={navigateToPartyMembers}
+                    className="group flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ease-in-out shadow-sm hover:shadow-md"
+                    style={{
+                      backgroundColor: `${party.color}15`,
+                      color: party.color,
+                      borderColor: `${party.color}30`,
+                      border: `1px solid ${party.color}30`,
+                    }}
+                  >
+                    <Users
+                      size={14}
+                      className="mr-1.5 opacity-70 group-hover:opacity-100"
+                    />
+                    <span>所属議員一覧へ</span>
+                    <ExternalLink
+                      size={12}
+                      className="ml-1.5 opacity-70 group-hover:opacity-100 transition-opacity"
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* モバイル表示: 所属議員一覧ページへのリンクボタン */}
+            <button
+              onClick={navigateToPartyMembers}
+              className="group sm:hidden flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ease-in-out shadow-sm hover:shadow-md mt-3 w-auto max-w-[150px]"
+              style={{
+                backgroundColor: `${party.color}15`,
+                color: party.color,
+                borderColor: `${party.color}30`,
+                border: `1px solid ${party.color}30`,
+              }}
+            >
+              <Users
+                size={14}
+                className="mr-1 opacity-70 group-hover:opacity-100"
+              />
+              <span>所属議員一覧</span>
+              <ExternalLink
+                size={12}
+                className="ml-1 opacity-70 group-hover:opacity-100 transition-opacity"
+              />
+            </button>
+
+            {/* 右側: デスクトップでの総得票数 */}
+            <div className="hidden sm:flex items-center justify-end">
+              <span className="text-sm text-gray-500">
+                総投票数: {party.totalVotes.toLocaleString()}
+              </span>
             </div>
           </div>
 
@@ -476,92 +549,96 @@ const PartyDetail: React.FC = () => {
             所属議員
           </h2>
 
-          {/* Sorting dropdown */}
-          <div className="relative">
-            <button
-              className="flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-xs font-medium transition"
-              onClick={() => {
-                const element = document.getElementById("party-sort-dropdown");
-                if (element) {
-                  element.classList.toggle("hidden");
-                }
-              }}
-            >
-              <Filter size={14} className="mr-1.5" />
-              <span>
-                {sortMethod === "supportDesc"
-                  ? "支持率（高い順）"
-                  : sortMethod === "supportAsc"
-                  ? "支持率（低い順）"
-                  : sortMethod === "activityDesc"
-                  ? "活動指数（高い順）"
-                  : "ソート基準"}
-              </span>
-            </button>
+          <div className="flex space-x-2 items-center">
+            {/* Sorting dropdown */}
+            <div className="relative">
+              <button
+                className="flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-xs font-medium transition"
+                onClick={() => {
+                  const element = document.getElementById(
+                    "party-sort-dropdown"
+                  );
+                  if (element) {
+                    element.classList.toggle("hidden");
+                  }
+                }}
+              >
+                <Filter size={14} className="mr-1.5" />
+                <span>
+                  {sortMethod === "supportDesc"
+                    ? "支持率（高い順）"
+                    : sortMethod === "supportAsc"
+                    ? "支持率（低い順）"
+                    : sortMethod === "activityDesc"
+                    ? "活動指数（高い順）"
+                    : "ソート基準"}
+                </span>
+              </button>
 
-            {/* Sort dropdown options */}
-            <div
-              id="party-sort-dropdown"
-              className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-10 hidden animate-fadeIn"
-            >
-              <div className="w-48 text-sm">
-                <div className="px-2 py-1 text-xs font-medium text-gray-500 border-b border-gray-100">
-                  ソート基準
+              {/* Sort dropdown options */}
+              <div
+                id="party-sort-dropdown"
+                className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-10 hidden animate-fadeIn"
+              >
+                <div className="w-48 text-sm">
+                  <div className="px-2 py-1 text-xs font-medium text-gray-500 border-b border-gray-100">
+                    ソート基準
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleSortChange("supportDesc");
+                      const element = document.getElementById(
+                        "party-sort-dropdown"
+                      );
+                      if (element) {
+                        element.classList.toggle("hidden");
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
+                      sortMethod === "supportDesc"
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    支持率（高い順）
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleSortChange("supportAsc");
+                      const element = document.getElementById(
+                        "party-sort-dropdown"
+                      );
+                      if (element) {
+                        element.classList.toggle("hidden");
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
+                      sortMethod === "supportAsc"
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    支持率（低い順）
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleSortChange("activityDesc");
+                      const dropdown = document.getElementById(
+                        "party-sort-dropdown"
+                      );
+                      if (dropdown) {
+                        dropdown.classList.add("hidden");
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
+                      sortMethod === "activityDesc"
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    活動指数（高い順）
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    handleSortChange("supportDesc");
-                    const element = document.getElementById(
-                      "party-sort-dropdown"
-                    );
-                    if (element) {
-                      element.classList.toggle("hidden");
-                    }
-                  }}
-                  className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-                    sortMethod === "supportDesc"
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  支持率（高い順）
-                </button>
-                <button
-                  onClick={() => {
-                    handleSortChange("supportAsc");
-                    const element = document.getElementById(
-                      "party-sort-dropdown"
-                    );
-                    if (element) {
-                      element.classList.toggle("hidden");
-                    }
-                  }}
-                  className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-                    sortMethod === "supportAsc"
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  支持率（低い順）
-                </button>
-                <button
-                  onClick={() => {
-                    handleSortChange("activityDesc");
-                    const dropdown = document.getElementById(
-                      "party-sort-dropdown"
-                    );
-                    if (dropdown) {
-                      dropdown.classList.add("hidden");
-                    }
-                  }}
-                  className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-                    sortMethod === "activityDesc"
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  活動指数（高い順）
-                </button>
               </div>
             </div>
           </div>
