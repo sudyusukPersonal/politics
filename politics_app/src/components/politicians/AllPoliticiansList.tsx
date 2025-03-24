@@ -359,6 +359,22 @@ const AllPoliticiansList: React.FC = () => {
             <LoadingAnimation type="dots" message="政治家を読み込んでいます" />
           </div>
         )}
+        <style>{`
+              @keyframes waveAnimation {
+                0% {
+                  height: 6px;
+                  transform: translateY(10px);
+                }
+                50% {
+                  height: 24px;
+                  transform: translateY(0);
+                }
+                100% {
+                  height: 6px;
+                  transform: translateY(10px);
+                }
+              }
+      `}</style>
       </div>
     </section>
   );
