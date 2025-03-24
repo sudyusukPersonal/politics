@@ -1,5 +1,5 @@
 // src/components/policies/PolicyListingPage.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search,
@@ -70,11 +70,12 @@ const PolicyListingPage: React.FC = () => {
   ]); // 追加: 政党リスト
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loadMoreVisible, setLoadMoreVisible] = useState(true);
-  const [visiblePoliciesCount, setVisiblePoliciesCount] = useState(6); // 最初に表示する政策の数
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [visiblePoliciesCount, setVisiblePoliciesCount] = useState(5); // 最初に表示する政策の数（5件に変更）
   const [showPartyFilter, setShowPartyFilter] = useState(false); // 追加: 政党フィルター表示状態
   const [tempSearchQuery, setTempSearchQuery] = useState(""); // 検索フィールドの一時的な値
   const [searchFired, setSearchFired] = useState(false); // 検索実行時のフィードバック用
+  const [animateItems, setAnimateItems] = useState(true); // アニメーション状態の追加
 
   // URLパラメータからフィルタ値を取得する処理
   useEffect(() => {
@@ -104,6 +105,7 @@ const PolicyListingPage: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
+        setAnimateItems(true); // 初回ロード時にアニメーションを有効化
 
         // 全ての政策を取得
         const allPolicies = await fetchAllPolicies();
@@ -204,6 +206,7 @@ const PolicyListingPage: React.FC = () => {
     const filterPolicies = async () => {
       try {
         setIsLoading(true);
+        setAnimateItems(true); // フィルター変更時にアニメーションを有効化
 
         let filtered: Policy[];
 
@@ -241,8 +244,12 @@ const PolicyListingPage: React.FC = () => {
 
         // 表示数をリセット
         setVisiblePoliciesCount(6);
-        // 表示するアイテムが6以下ならもっと表示ボタンを非表示
-        setLoadMoreVisible(sorted.length > 6);
+        // 現在は無限スクロールを使用するため、このステップは必要なし
+
+        // アニメーションを一定時間後に無効化（アニメーション実行後）
+        setTimeout(() => {
+          setAnimateItems(false);
+        }, 800); // アニメーションの時間より少し長めに設定
       } catch (error) {
         console.error("政策フィルタリングエラー:", error);
         setError("政策のフィルタリング中にエラーが発生しました。");
@@ -284,6 +291,9 @@ const PolicyListingPage: React.FC = () => {
     );
   };
 
+  // 検索入力用のrefを追加
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   // 検索入力フィールドの変更時の処理（一時変数のみ更新）
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTempSearchQuery(e.target.value);
@@ -294,18 +304,25 @@ const PolicyListingPage: React.FC = () => {
     e.preventDefault();
     // フォーム送信時に検索クエリを更新し、フィルタリングをトリガー
     setSearchQuery(tempSearchQuery);
+    setAnimateItems(true); // 検索時にアニメーションを有効化
 
     // 検索エフェクトをトリガー
     setSearchFired(true);
     setTimeout(() => {
       setSearchFired(false);
     }, 600); // 0.6秒後に非表示
+
+    // 検索欄からフォーカスを外す（テキストは保持）
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
   };
 
   // ソート方法変更時の処理
   const handleSortChange = (method: string) => {
     setSortMethod(method);
     setShowFilterMenu(false);
+    setAnimateItems(true); // ソート変更時にアニメーションを有効化
 
     // URLを更新
     updateUrlParams({ sort: method });
@@ -316,6 +333,7 @@ const PolicyListingPage: React.FC = () => {
     setActiveCategory(categoryId);
     setSearchQuery(""); // 検索条件をリセット
     setTempSearchQuery(""); // 検索入力欄もクリア
+    setAnimateItems(true); // カテゴリ変更時にアニメーションを有効化
 
     // URLを更新
     updateUrlParams({ category: categoryId });
@@ -327,6 +345,7 @@ const PolicyListingPage: React.FC = () => {
     setSearchQuery(""); // 検索条件をリセット
     setTempSearchQuery(""); // 検索入力欄もクリア
     setShowFilterMenu(false); // 選択後にドロップダウンを閉じる
+    setAnimateItems(true); // 政党変更時にアニメーションを有効化
 
     // URLを更新
     updateUrlParams({ party: partyId });
@@ -350,11 +369,33 @@ const PolicyListingPage: React.FC = () => {
     };
   }, [showFilterMenu]);
 
-  // もっと表示ボタンの処理
-  const handleLoadMore = () => {
-    setVisiblePoliciesCount((prev) => prev + 6);
-    if (visiblePoliciesCount + 6 >= filteredPolicies.length) {
-      setLoadMoreVisible(false);
+  // 無限スクロール検出のためのイベントリスナー
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop + 100 >=
+          document.documentElement.offsetHeight &&
+        !isLoadingMore &&
+        visiblePoliciesCount < filteredPolicies.length
+      ) {
+        loadMorePolicies();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [visiblePoliciesCount, isLoadingMore, filteredPolicies.length]);
+
+  // 無限スクロールのための追加読み込み処理
+  const loadMorePolicies = () => {
+    if (!isLoadingMore && visiblePoliciesCount < filteredPolicies.length) {
+      setIsLoadingMore(true);
+
+      // 意図的に読み込みを遅延させる（UXと過剰読み込み防止のため）
+      setTimeout(() => {
+        setVisiblePoliciesCount((prev) => prev + 5); // 5件ずつ追加
+        setIsLoadingMore(false);
+      }, 800); // 0.8秒の読み込み遅延を設定
     }
   };
 
@@ -442,6 +483,7 @@ const PolicyListingPage: React.FC = () => {
               />
             </div>
             <input
+              ref={searchInputRef}
               type="text"
               placeholder={
                 activeParty === "all"
@@ -640,125 +682,178 @@ const PolicyListingPage: React.FC = () => {
 
         {/* Policy Cards - Changed to display one per row in a vertical list */}
         <div className="space-y-4">
-          {filteredPolicies.slice(0, visiblePoliciesCount).map((policy) => {
-            const category = getCategoryById(policy.category);
+          {filteredPolicies
+            .slice(0, visiblePoliciesCount)
+            .map((policy, index) => {
+              const category = getCategoryById(policy.category);
 
-            return (
-              <div
-                key={policy.id}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                style={{
-                  borderLeft: `4px solid ${policy.proposingParty.color}`,
-                }}
-                onClick={() => handlePolicyClick(policy.id)}
-              >
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div
-                      className="text-xs font-medium px-2.5 py-1 rounded-full"
-                      style={{
-                        backgroundColor: `${policy.proposingParty.color}15`,
-                        color: policy.proposingParty.color,
-                      }}
-                    >
-                      {policy.proposingParty.name}
+              // 順番にアニメーション表示するためのスタイル
+              const animationStyle = animateItems
+                ? {
+                    animation: "fadeIn 0.3s ease-out forwards",
+                    animationDelay: `${index * 0.05}s`,
+                    opacity: 0, // 初期状態は非表示
+                  }
+                : {};
+
+              return (
+                <div
+                  key={policy.id}
+                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                  style={{
+                    borderLeft: `4px solid ${policy.proposingParty.color}`,
+                    ...animationStyle,
+                  }}
+                  onClick={() => handlePolicyClick(policy.id)}
+                >
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div
+                        className="text-xs font-medium px-2.5 py-1 rounded-full"
+                        style={{
+                          backgroundColor: `${policy.proposingParty.color}15`,
+                          color: policy.proposingParty.color,
+                        }}
+                      >
+                        {policy.proposingParty.name}
+                      </div>
+                      {getTrendingIcon(policy.trending)}
                     </div>
-                    {getTrendingIcon(policy.trending)}
-                  </div>
 
-                  <h3 className="font-bold text-lg mb-2 text-gray-800">
-                    {policy.title}
-                  </h3>
+                    <h3 className="font-bold text-lg mb-2 text-gray-800">
+                      {policy.title}
+                    </h3>
 
-                  <p className="text-gray-600 text-sm mb-4">
-                    {policy.description}
-                  </p>
+                    <p className="text-gray-600 text-sm mb-4">
+                      {policy.description}
+                    </p>
 
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {policy.affectedFields.map((field, index) => {
-                      const fieldCategory = getCategoryById(field);
-                      return (
-                        <span
-                          key={index}
-                          className="text-xs px-2.5 py-1 rounded-full text-white"
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {policy.affectedFields.map((field, index) => {
+                        const fieldCategory = getCategoryById(field);
+                        return (
+                          <span
+                            key={index}
+                            className="text-xs px-2.5 py-1 rounded-full text-white"
+                            style={{
+                              backgroundColor: fieldCategory.color,
+                            }}
+                          >
+                            {field}
+                          </span>
+                        );
+                      })}
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 flex items-center">
+                        <MessageSquare
+                          size={12}
+                          className="mr-1 flex-shrink-0"
+                        />
+                        {policy.commentsCount}件のコメント
+                      </span>
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="flex justify-between items-center text-sm mb-2">
+                        <div className="flex items-center">
+                          <ThumbsUp
+                            size={14}
+                            className="text-green-500 mr-1.5 animate-bounce-slow"
+                          />
+                          <span className="font-medium text-green-600">
+                            {policy.supportRate}%
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <ThumbsDown
+                            size={14}
+                            className="text-red-500 mr-1.5 animate-bounce-slow"
+                          />
+                          <span className="font-medium text-red-600">
+                            {policy.opposeRate}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
+                        <div
+                          className="h-full rounded-l-full"
                           style={{
-                            backgroundColor: fieldCategory.color,
+                            width: `${policy.supportRate}%`,
+                            backgroundColor: "#10B981", // Green
                           }}
-                        >
-                          {field}
-                        </span>
-                      );
-                    })}
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 flex items-center">
-                      <MessageSquare size={12} className="mr-1 flex-shrink-0" />
-                      {policy.commentsCount}件のコメント
-                    </span>
-                  </div>
-
-                  <div className="mt-4">
-                    <div className="flex justify-between items-center text-sm mb-2">
-                      <div className="flex items-center">
-                        <ThumbsUp
-                          size={14}
-                          className="text-green-500 mr-1.5 animate-bounce-slow"
-                        />
-                        <span className="font-medium text-green-600">
-                          {policy.supportRate}%
-                        </span>
+                        ></div>
+                        <div
+                          className="h-full rounded-r-full"
+                          style={{
+                            width: `${policy.opposeRate}%`,
+                            backgroundColor: "#EF4444", // Red
+                          }}
+                        ></div>
                       </div>
-                      <div className="flex items-center">
-                        <ThumbsDown
-                          size={14}
-                          className="text-red-500 mr-1.5 animate-bounce-slow"
-                        />
-                        <span className="font-medium text-red-600">
-                          {policy.opposeRate}%
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
-                      <div
-                        className="h-full rounded-l-full"
-                        style={{
-                          width: `${policy.supportRate}%`,
-                          backgroundColor: "#10B981", // Green
-                        }}
-                      ></div>
-                      <div
-                        className="h-full rounded-r-full"
-                        style={{
-                          width: `${policy.opposeRate}%`,
-                          backgroundColor: "#EF4444", // Red
-                        }}
-                      ></div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
-          {/* ローディング表示 - 既存データの追加読み込み中 */}
-          {isLoading && policies.length > 0 && (
-            <div className="flex justify-center py-6">
-              <LoadingAnimation type="dots" message="政策を読み込み中..." />
+          {/* 初期データ読み込み中のローディング表示 */}
+          {isLoading && policies.length > 0 && !isLoadingMore && (
+            <div className="flex flex-col items-center justify-center py-6 overflow-hidden">
+              <div className="relative flex">
+                {/* モダンな波形アニメーション */}
+                <div className="flex space-x-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-6 rounded-full bg-indigo-500"
+                      style={{
+                        animation: `waveAnimation 0.8s ease-in-out ${
+                          i * 0.08
+                        }s infinite alternate`,
+                        opacity: 0.7 + i * 0.05,
+                      }}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4 text-indigo-600 font-medium text-sm tracking-wider animate-pulse">
+                政策データを読み込み中...
+              </div>
             </div>
           )}
 
-          {/* もっと表示ボタン */}
-          {loadMoreVisible &&
-            filteredPolicies.length > visiblePoliciesCount && (
-              <div className="mt-8 text-center">
-                <button
-                  onClick={handleLoadMore}
-                  className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 transition-colors"
-                >
-                  <span className="flex items-center">
-                    さらに表示する
-                    <ChevronRight size={16} className="ml-1" />
-                  </span>
-                </button>
+          {/* 無限スクロール用ローディングインジケーター */}
+          {isLoadingMore && (
+            <div className="flex flex-col items-center justify-center py-6 overflow-hidden">
+              <div className="relative flex">
+                {/* モダンな波形アニメーション */}
+                <div className="flex space-x-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-6 rounded-full bg-indigo-500"
+                      style={{
+                        animation: `waveAnimation 0.8s ease-in-out ${
+                          i * 0.08
+                        }s infinite alternate`,
+                        opacity: 0.7 + i * 0.05,
+                      }}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4 text-indigo-600 font-medium text-sm tracking-wider animate-pulse">
+                次のデータを読み込み中...
+              </div>
+            </div>
+          )}
+
+          {/* 全データ表示済みメッセージ */}
+          {!isLoadingMore &&
+            visiblePoliciesCount >= filteredPolicies.length &&
+            filteredPolicies.length > 0 && (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                すべての政策を表示しました
               </div>
             )}
         </div>
@@ -777,6 +872,17 @@ const PolicyListingPage: React.FC = () => {
 
       {/* Add animation styles */}
       <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
         @keyframes bounce-slow {
           0%,
           100% {
@@ -843,6 +949,21 @@ const PolicyListingPage: React.FC = () => {
           }
           60% { 
             transform: translateX(0);
+          }
+        }
+        
+        @keyframes waveAnimation {
+          0% {
+            height: 6px;
+            transform: translateY(10px);
+          }
+          50% {
+            height: 24px;
+            transform: translateY(0);
+          }
+          100% {
+            height: 6px;
+            transform: translateY(10px);
           }
         }
       `}</style>
