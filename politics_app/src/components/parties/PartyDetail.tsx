@@ -1,7 +1,13 @@
 // src/components/parties/PartyDetail.tsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Users, ExternalLink, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft,
+  Users,
+  ExternalLink,
+  MessageSquare,
+  FileText,
+} from "lucide-react";
 import { useData } from "../../context/DataContext";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
@@ -11,6 +17,7 @@ import { CommentSection } from "../comments/OptimizedCommentSystem";
 import EntityRatingsSection from "../common/EntityRatingsSectio";
 import UnifiedVoteComponent from "../common/UnifiedVoteComponent";
 import { styles } from "../../utils/styleUtils";
+import { navigateToPolicyList } from "../../utils/navigationUtils";
 
 const PartyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +39,17 @@ const PartyDetail: React.FC = () => {
       navigate(
         `/politicians?page=1&sort=supportDesc&party=${encodedPartyName}`
       );
+    }
+  }, [party, navigate]);
+
+  // 政党の政策一覧ページへ遷移する関数を追加
+  const navigateToPartyPolicies = useCallback(() => {
+    if (party) {
+      // navigateToPolicyList関数を使用して政策一覧ページへ遷移
+      navigateToPolicyList(navigate, {
+        party: party.name,
+        sort: "supportDesc",
+      });
     }
   }, [party, navigate]);
 
@@ -133,15 +151,19 @@ const PartyDetail: React.FC = () => {
             style={{ backgroundColor: `${party.color}10` }}
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-              {/* 左側: 党ロゴ、党名、メンバー数、ボタン (デスクトップ) */}
-              <div className="flex flex-col sm:flex-row sm:items-center">
-                <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 sm:mb-0"
-                  style={{ backgroundColor: party.color }}
-                >
-                  {party.name.charAt(0)}
+              {/* 党ロゴ、党名、メンバー数、ボタン */}
+              <div className="flex flex-col sm:flex-row sm:items-center w-full">
+                {/* 党ロゴ - モバイルでセンタリング */}
+                <div className="flex justify-center sm:justify-start w-full sm:w-auto">
+                  <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 sm:mb-0"
+                    style={{ backgroundColor: party.color }}
+                  >
+                    {party.name.charAt(0)}
+                  </div>
                 </div>
-                <div className="sm:ml-6 text-center sm:text-left">
+
+                <div className="sm:ml-6 text-center sm:text-left w-full">
                   <h2
                     className="text-xl font-bold"
                     style={{ color: party.color }}
@@ -156,28 +178,53 @@ const PartyDetail: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* デスクトップ: ボタンを党名の横に配置 */}
-                  <div className="mt-2">
-                    <button
-                      onClick={navigateToPartyMembers}
-                      className="group flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ease-in-out shadow-sm hover:shadow-md"
-                      style={{
-                        backgroundColor: `${party.color}15`,
-                        color: party.color,
-                        borderColor: `${party.color}30`,
-                        border: `1px solid ${party.color}30`,
-                      }}
-                    >
-                      <Users
-                        size={14}
-                        className="mr-1.5 opacity-70 group-hover:opacity-100"
-                      />
-                      <span>所属議員一覧へ</span>
-                      <ExternalLink
-                        size={12}
-                        className="ml-1.5 opacity-70 group-hover:opacity-100 transition-opacity"
-                      />
-                    </button>
+                  {/* ボタンエリア - モバイルでの等間隔配置 */}
+                  <div className="mt-4 sm:mt-2 flex justify-center sm:justify-start w-full">
+                    <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                      {/* 所属議員一覧へのボタン */}
+                      <button
+                        onClick={navigateToPartyMembers}
+                        className="group flex items-center justify-center px-3 py-2 rounded-full text-xs font-medium transition-all duration-300 ease-in-out shadow-sm hover:shadow-md"
+                        style={{
+                          backgroundColor: `${party.color}15`,
+                          color: party.color,
+                          borderColor: `${party.color}30`,
+                          border: `1px solid ${party.color}30`,
+                        }}
+                      >
+                        <Users
+                          size={14}
+                          className="mr-1.5 opacity-70 group-hover:opacity-100"
+                        />
+                        <span>所属議員一覧</span>
+                        <ExternalLink
+                          size={12}
+                          className="ml-1.5 opacity-70 group-hover:opacity-100 transition-opacity"
+                        />
+                      </button>
+
+                      {/* 政策一覧へのボタン */}
+                      <button
+                        onClick={navigateToPartyPolicies}
+                        className="group flex items-center justify-center px-3 py-2 rounded-full text-xs font-medium transition-all duration-300 ease-in-out shadow-sm hover:shadow-md"
+                        style={{
+                          backgroundColor: `${party.color}15`,
+                          color: party.color,
+                          borderColor: `${party.color}30`,
+                          border: `1px solid ${party.color}30`,
+                        }}
+                      >
+                        <FileText
+                          size={14}
+                          className="mr-1.5 opacity-70 group-hover:opacity-100"
+                        />
+                        <span>政策一覧</span>
+                        <ExternalLink
+                          size={12}
+                          className="ml-1.5 opacity-70 group-hover:opacity-100 transition-opacity"
+                        />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
