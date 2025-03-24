@@ -164,7 +164,7 @@ const PolicyListingPage: React.FC = () => {
         sort,
         searchTerm,
         docId,
-        5 // ページあたりの表示件数
+        10 // ページあたりの表示件数
       );
 
       // データの追加または置き換え
