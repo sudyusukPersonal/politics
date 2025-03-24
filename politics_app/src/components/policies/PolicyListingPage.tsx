@@ -375,14 +375,20 @@ const PolicyListingPage: React.FC = () => {
   // ---- 無限スクロール ----
   // 無限スクロールのための追加読み込み処理
   const loadMorePolicies = () => {
-    // ロード中でなく、さらにデータがある場合のみ追加読み込み
     if (!isLoading && !isLoadingMore && hasMore && lastDocumentId) {
       setIsLoadingMore(true);
-
-      // 追加データ読み込み
-      loadPolicies(activeCategory, activeParty, sortMethod, searchQuery, false);
+      setTimeout(() => {
+        loadPolicies(
+          activeCategory,
+          activeParty,
+          sortMethod,
+          searchQuery,
+          false
+        );
+      }, 800); // 0.8秒の遅延を追加
     }
   };
+
   // ---- Effect Hooks ----
   // 初期ロード
   useEffect(() => {
