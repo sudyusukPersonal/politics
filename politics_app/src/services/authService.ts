@@ -7,6 +7,7 @@ import {
   signOut,
   onAuthStateChanged,
   User,
+  getRedirectResult,
 } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
 
@@ -18,7 +19,16 @@ const twitterProvider = new TwitterAuthProvider();
 export const signInWithGoogle = async () => {
   try {
     await signInWithRedirect(auth, googleProvider);
-    return { success: true };
+
+    // リダイレクト後にgetRedirectResultを呼び出してユーザー情報を取得
+    const result = await getRedirectResult(auth);
+    if (result) {
+      console.log("Googleサインイン成功", result.user);
+      console.log("表示名:", result.user.displayName);
+      console.log("メールアドレス:", result.user.email);
+    }
+
+    return { success: true, user: result?.user };
   } catch (error) {
     console.error("Googleログインエラー:", error);
     return { success: false, error };
@@ -29,7 +39,16 @@ export const signInWithGoogle = async () => {
 export const signInWithTwitter = async () => {
   try {
     await signInWithRedirect(auth, twitterProvider);
-    return { success: true };
+
+    // リダイレクト後にgetRedirectResultを呼び出してユーザー情報を取得
+    const result = await getRedirectResult(auth);
+    if (result) {
+      console.log("Twitterサインイン成功", result.user);
+      console.log("表示名:", result.user.displayName);
+      console.log("メールアドレス:", result.user.email);
+    }
+
+    return { success: true, user: result?.user };
   } catch (error) {
     console.error("Twitterログインエラー:", error);
     return { success: false, error };
