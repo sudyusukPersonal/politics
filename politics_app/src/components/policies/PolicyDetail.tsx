@@ -1,5 +1,5 @@
 // src/components/policies/PolicyDetail.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ThumbsUp,
@@ -28,10 +28,13 @@ import {
   styles,
 } from "../../utils/styleUtils";
 import { saveRecentlyViewedPolicy } from "../../utils/dataUtils";
+import { useData } from "../../context/DataContext";
+import { navigateToParty } from "../../utils/navigationUtils";
 
 const PolicyDiscussionPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { globalParties } = useData();
 
   // 状態管理
   const [policy, setPolicy] = useState<any>(null);
@@ -39,6 +42,22 @@ const PolicyDiscussionPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [voteType, setVoteType] = useState<"support" | "oppose" | null>(null);
   const [showReasonForm, setShowReasonForm] = useState(false);
+
+  // 政党名クリック時のハンドラー
+  const handlePartyClick = useCallback(
+    (partyName: string) => {
+      // グローバルの政党一覧から名前で政党を探す
+      const party = globalParties.find((p) => p.name === partyName);
+
+      if (party) {
+        // 見つかった場合は政党詳細ページに遷移
+        navigateToParty(navigate, party.id);
+      } else {
+        console.warn(`Party not found with name: ${partyName}`);
+      }
+    },
+    [navigate, globalParties]
+  );
 
   // 政策データの取得
   useEffect(() => {
@@ -193,7 +212,13 @@ const PolicyDiscussionPage = () => {
                 </h1>
 
                 <div className="flex flex-wrap items-center text-sm mb-4 relative z-10">
-                  <span className="bg-white bg-opacity-20 backdrop-blur-md px-2 py-1 rounded-md mr-2 mb-2">
+                  {/* タイトル下の政党名をクリック可能に変更 */}
+                  <span
+                    className="bg-white bg-opacity-20 backdrop-blur-md px-2 py-1 rounded-md mr-2 mb-2 cursor-pointer hover:bg-opacity-30 transition-all duration-200 active:transform active:scale-95"
+                    onClick={() =>
+                      handlePartyClick(policy.politicalParties[0].partyName)
+                    }
+                  >
                     {policy.politicalParties[0].partyName}
                   </span>
                 </div>
@@ -392,7 +417,15 @@ const PolicyDiscussionPage = () => {
                               }}
                             >
                               {index === 0 ? "提案政党: " : "対立政党: "}
-                              {party.partyName}
+                              {/* 政党名をクリック可能に変更 */}
+                              <span
+                                className="cursor-pointer underline decoration-dotted hover:decoration-solid transition-all"
+                                onClick={() =>
+                                  handlePartyClick(party.partyName)
+                                }
+                              >
+                                {party.partyName}
+                              </span>
                             </h4>
                             <div
                               className="h-1 w-16 rounded-full mt-1"
