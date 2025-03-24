@@ -3,6 +3,7 @@ import { addVoteToPolitician } from "./politicianService";
 import { addVoteToPolicy } from "./policyService";
 import { addNewComment } from "./commentService";
 import { Comment } from "../types";
+import { addVoteToParty } from "./partyService"; // 新しいインポート
 
 // 匿名ユーザー情報
 const MOCK_CURRENT_USER = {
@@ -10,10 +11,10 @@ const MOCK_CURRENT_USER = {
   displayName: "匿名ユーザー",
 };
 
-// 統合投票サービス関数
+// 統合投票サービス関数 - entityTypeに"party"を追加
 export const addEntityVote = async (
   entityId: string,
-  entityType: "politician" | "policy",
+  entityType: "politician" | "policy" | "party", // "party"を追加
   voteType: "support" | "oppose",
   reason: string
 ): Promise<{ success: boolean; commentId: string }> => {
@@ -22,14 +23,18 @@ export const addEntityVote = async (
       throw new Error("必要なパラメータが不足しています");
     }
 
-    // 1. エンティティのvoteカウントを更新（政治家/政策に応じて適切な関数を呼び出す）
+    // 1. エンティティのvoteカウントを更新（政治家/政策/政党に応じて適切な関数を呼び出す）
     if (entityType === "politician") {
       await addVoteToPolitician(entityId, voteType);
-    } else {
+    } else if (entityType === "policy") {
+      // 明示的な条件分岐に変更
       await addVoteToPolicy(entityId, voteType);
+    } else if (entityType === "party") {
+      // 政党の場合
+      await addVoteToParty(entityId, voteType);
     }
 
-    // 2. コメントを追加（両エンティティタイプで共通処理）
+    // 2. コメントを追加（全エンティティタイプで共通処理）
     const newCommentId = await addNewComment({
       text: reason,
       userID: MOCK_CURRENT_USER.uid,

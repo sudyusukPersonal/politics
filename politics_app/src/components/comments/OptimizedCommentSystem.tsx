@@ -72,7 +72,7 @@ type SortType = "latest" | "replies" | "support" | "oppose";
 // ===== メインのコメントセクションコンポーネント =====
 export const CommentSection: React.FC<{
   entityId?: string;
-  entityType?: "politician" | "policy";
+  entityType?: "politician" | "policy" | "party"; // "party"を追加
 }> = ({ entityId, entityType = "politician" }) => {
   const { id } = useParams<{ id: string }>();
   const targetId = entityId || id;

@@ -6,7 +6,7 @@ import { addEntityVote, createUIComment } from "../../services/voteService";
 
 interface UnifiedVoteComponentProps {
   entityId: string;
-  entityType: "politician" | "policy";
+  entityType: "politician" | "policy" | "party"; // "party"を追加
   onVoteComplete?: () => void;
 }
 
@@ -57,7 +57,11 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
     if (!entityId) {
       setSubmitError(
         `${
-          entityType === "politician" ? "政治家" : "政策"
+          entityType === "politician"
+            ? "政治家"
+            : entityType === "policy"
+            ? "政策"
+            : "政党"
         }IDが取得できませんでした`
       );
       return;
@@ -108,7 +112,13 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
     return (
       <div className="mt-6">
         <h3 className="text-center text-sm font-medium text-gray-500 mb-3">
-          この{entityType === "politician" ? "政治家" : "政策"}を評価する
+          この
+          {entityType === "politician"
+            ? "政治家"
+            : entityType === "policy"
+            ? "政策"
+            : "政党"}
+          を評価する
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button

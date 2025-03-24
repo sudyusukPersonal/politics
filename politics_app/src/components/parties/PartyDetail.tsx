@@ -1,58 +1,29 @@
 // src/components/parties/PartyDetail.tsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import {
-  ArrowLeft,
-  Users,
-  Filter,
-  ThumbsUp,
-  ThumbsDown,
-  Activity,
-  ExternalLink,
-} from "lucide-react";
+import { ArrowLeft, Users, ExternalLink, MessageSquare } from "lucide-react";
 import { useData } from "../../context/DataContext";
-import PoliticianCard from "../politicians/PoliticianCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
-import { fetchPoliticiansByPartyWithPagination } from "../../services/politicianService";
-import { Party, Politician } from "../../types";
-
-// キャッシュデータの型定義
-interface CachedPartyPoliticiansData {
-  partyId: string;
-  politicians: Politician[];
-  lastDocumentId?: string;
-  hasMore: boolean;
-  currentPage: number;
-}
+import { Party } from "../../types";
+import { ReplyDataProvider } from "../../context/ReplyDataContext";
+import { CommentSection } from "../comments/OptimizedCommentSystem";
+import EntityRatingsSection from "../common/EntityRatingsSectio";
+import UnifiedVoteComponent from "../common/UnifiedVoteComponent";
+import { styles } from "../../utils/styleUtils";
 
 const PartyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
   const {
     handleBackToParties,
-    sortMethod,
-    handleSortChange,
-    getSortedPoliticians,
     setSelectedParty,
     getPartyById,
-    getPoliticiansByParty,
     dataInitialized,
   } = useData();
 
   const [party, setParty] = useState<Party | null>(null);
-  const [partyMembers, setPartyMembers] = useState<Politician[]>([]);
-  const [lastDocumentId, setLastDocumentId] = useState<string | undefined>(
-    undefined
-  );
   const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // キャッシュ関連の状態
-  const [cachedPartyPoliticians, setCachedPartyPoliticians] =
-    useState<CachedPartyPoliticiansData | null>(null);
 
   // 所属議員一覧ページへ遷移する関数
   const navigateToPartyMembers = useCallback(() => {
@@ -64,247 +35,23 @@ const PartyDetail: React.FC = () => {
     }
   }, [party, navigate]);
 
-  // URLからページ番号を取得する関数
-  const getPageFromUrl = () => {
-    const searchParams = new URLSearchParams(location.search);
-    const page = searchParams.get("page");
-    return page ? parseInt(page, 10) : 1;
-  };
-
-  // キャッシュのローカルストレージキー
-  const getCacheKey = useCallback((partyId: string) => {
-    return `party_politicians_${partyId}`;
-  }, []);
-
-  // キャッシュの保存
-  const saveToCache = useCallback(
-    (partyId: string, data: CachedPartyPoliticiansData) => {
-      if (!partyId) return;
-
-      try {
-        // メモリキャッシュを更新
-        setCachedPartyPoliticians(data);
-
-        // ローカルストレージにも保存
-        localStorage.setItem(getCacheKey(partyId), JSON.stringify(data));
-      } catch (error) {
-        console.error("キャッシュの保存に失敗しました:", error);
-      }
-    },
-    [getCacheKey]
-  );
-
-  // キャッシュの読み込み
-  const loadFromCache = useCallback(
-    (partyId: string): CachedPartyPoliticiansData | null => {
-      if (!partyId) return null;
-
-      // まずメモリキャッシュをチェック
-      if (
-        cachedPartyPoliticians &&
-        cachedPartyPoliticians.partyId === partyId
-      ) {
-        return cachedPartyPoliticians;
-      }
-
-      // 次にローカルストレージをチェック
-      try {
-        const cachedData = localStorage.getItem(getCacheKey(partyId));
-        if (cachedData) {
-          const parsedData = JSON.parse(
-            cachedData
-          ) as CachedPartyPoliticiansData;
-          // メモリキャッシュも更新
-          setCachedPartyPoliticians(parsedData);
-          return parsedData;
-        }
-      } catch (error) {
-        console.error("キャッシュの読み込みに失敗しました:", error);
-      }
-
-      return null;
-    },
-    [getCacheKey, cachedPartyPoliticians]
-  );
-
   // グローバルデータから政党データを取得（メモ化）
   const selectedParty = useMemo(() => {
     if (!id || !dataInitialized) return null;
     return getPartyById(id);
   }, [id, dataInitialized, getPartyById]);
 
-  // 政党に所属する政治家を取得（メモ化）
-  const members = useMemo(() => {
-    if (!id || !dataInitialized) return [];
-    return getPoliticiansByParty(id);
-  }, [id, dataInitialized, getPoliticiansByParty]);
-
-  // ソート済みの党員リスト（メモ化）
-  const sortedPartyPoliticians = useMemo(() => {
-    return getSortedPoliticians(partyMembers);
-  }, [partyMembers, getSortedPoliticians, sortMethod]);
-
-  // URLからページ番号を設定
-  useEffect(() => {
-    const page = getPageFromUrl();
-    setCurrentPage(page);
-  }, [location.search]);
-
-  // スクロール検出のuseEffect
-  useEffect(() => {
-    const handleScroll = () => {
-      // スクロール位置を検出し、追加読み込みのロジックを実装
-      if (
-        window.innerHeight + document.documentElement.scrollTop + 100 >=
-          document.documentElement.offsetHeight &&
-        !isLoading &&
-        hasMore
-      ) {
-        loadMorePoliticians();
-      }
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastDocumentId, isLoading, hasMore]);
-
-  // 政治家読み込み関数
-  const loadMorePoliticians = async () => {
-    if (party && !isLoading && hasMore) {
-      try {
-        setIsLoading(true);
-
-        // 次のページ番号を計算
-        const nextPage = currentPage + 1;
-
-        const result = await fetchPoliticiansByPartyWithPagination(
-          party.name,
-          lastDocumentId
-        );
-
-        if (result.politicians.length < 15 || !result.hasMore) {
-          setHasMore(false);
-        }
-
-        // 新しい議員リストを作成
-        const updatedPoliticians = [...partyMembers, ...result.politicians];
-        setPartyMembers(updatedPoliticians);
-        setLastDocumentId(result.lastDocumentId);
-
-        // キャッシュに保存
-        if (id) {
-          saveToCache(id, {
-            partyId: id,
-            politicians: updatedPoliticians,
-            lastDocumentId: result.lastDocumentId,
-            hasMore: result.hasMore,
-            currentPage: nextPage,
-          });
-        }
-
-        // URLを更新（ページをリロードせずに）
-        navigate(`/parties/${id}?page=${nextPage}`, { replace: true });
-        setCurrentPage(nextPage);
-      } catch (error) {
-        console.error("政治家の読み込みに失敗しました:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
   // データ読み込み状態の管理
   useEffect(() => {
     if (dataInitialized) {
       if (selectedParty) {
         setParty(selectedParty);
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
       }
     }
   }, [dataInitialized, selectedParty]);
-
-  // 初回読み込み時の処理（キャッシュチェック追加）
-  useEffect(() => {
-    if (!id || !party) return;
-
-    const initialLoad = async () => {
-      // URLに指定されたページ
-      const initialPage = getPageFromUrl();
-
-      // キャッシュをチェック
-      const cachedData = loadFromCache(id);
-
-      if (cachedData && cachedData.politicians.length > 0) {
-        console.log("キャッシュから政党の政治家データを読み込みました");
-
-        // キャッシュからデータを読み込む
-        setPartyMembers(cachedData.politicians);
-        setLastDocumentId(cachedData.lastDocumentId);
-        setHasMore(cachedData.hasMore);
-
-        // URLが変わっていた場合は現在のページを更新
-        if (initialPage !== cachedData.currentPage) {
-          navigate(`/parties/${id}?page=${cachedData.currentPage}`, {
-            replace: true,
-          });
-          setCurrentPage(cachedData.currentPage);
-        } else {
-          setCurrentPage(initialPage);
-        }
-
-        setIsLoading(false);
-        return;
-      }
-
-      // キャッシュがない場合は通常の読み込み処理
-      let tempLastDocId: string | undefined = undefined;
-      let allPoliticians: Politician[] = [];
-
-      // 現在のページまでのデータをすべて取得
-      for (let i = 1; i <= initialPage; i++) {
-        setIsLoading(true);
-        try {
-          const result = await fetchPoliticiansByPartyWithPagination(
-            party.name,
-            tempLastDocId
-          );
-
-          allPoliticians = [...allPoliticians, ...result.politicians];
-
-          // 最後のページの情報を設定
-          if (i === initialPage) {
-            setPartyMembers(allPoliticians);
-            setLastDocumentId(result.lastDocumentId);
-            setHasMore(result.hasMore);
-
-            // キャッシュに保存
-            if (id) {
-              saveToCache(id, {
-                partyId: id,
-                politicians: allPoliticians,
-                lastDocumentId: result.lastDocumentId,
-                hasMore: result.hasMore,
-                currentPage: initialPage,
-              });
-            }
-          }
-
-          tempLastDocId = result.lastDocumentId;
-
-          // 全てのデータを取得した場合
-          if (result.politicians.length < 15 || !result.hasMore) {
-            setHasMore(false);
-            break;
-          }
-        } catch (error) {
-          console.error("初期データ読み込みに失敗しました:", error);
-          break;
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    initialLoad();
-  }, [party, id, navigate, loadFromCache, saveToCache]);
 
   // 選択された政党をコンテキストに設定
   useEffect(() => {
@@ -322,7 +69,7 @@ const PartyDetail: React.FC = () => {
   }, [party, isLoading, navigate, dataInitialized]);
 
   // モダンなローディング表示
-  if (isLoading && partyMembers.length === 0) {
+  if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 min-h-[400px] flex items-center justify-center">
         <LoadingAnimation type="pulse" message="政党情報を読み込んでいます" />
@@ -375,327 +122,132 @@ const PartyDetail: React.FC = () => {
           <ArrowLeft size={16} className="mr-1" />
           <span>政党一覧に戻る</span>
         </button>
-
-        {/* 現在のページ表示 */}
-        <div className="text-sm text-gray-500">ページ: {currentPage}</div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
-        {/* Party header */}
-        <div
-          className="p-5 border-b border-gray-100"
-          style={{ backgroundColor: `${party.color}10` }}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-            {/* 左側: 党ロゴ、党名、メンバー数、ボタン (デスクトップ) */}
-            <div className="flex flex-col sm:flex-row sm:items-center">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 sm:mb-0"
-                style={{ backgroundColor: party.color }}
-              >
-                {party.name.charAt(0)}
-              </div>
-              <div className="sm:ml-4">
-                <h2
-                  className="text-xl font-bold"
-                  style={{ color: party.color }}
+      {/* ルートレベルでReplyDataProviderをラップ */}
+      <ReplyDataProvider>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
+          {/* Party header */}
+          <div
+            className="p-5 border-b border-gray-100"
+            style={{ backgroundColor: `${party.color}10` }}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+              {/* 左側: 党ロゴ、党名、メンバー数、ボタン (デスクトップ) */}
+              <div className="flex flex-col sm:flex-row sm:items-center">
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 sm:mb-0"
+                  style={{ backgroundColor: party.color }}
                 >
-                  {party.name}
-                </h2>
-                <div className="flex flex-wrap items-center text-sm text-gray-500 mt-1">
-                  <span>所属議員: {party.members}名</span>
-                  <span className="mx-2 hidden sm:inline">•</span>
-                  {/* 総得票数はモバイルのみ表示 */}
-                  <span className="sm:hidden">
-                    総投票数: {party.totalVotes.toLocaleString()}
-                  </span>
+                  {party.name.charAt(0)}
                 </div>
+                <div className="sm:ml-6 text-center sm:text-left">
+                  <h2
+                    className="text-xl font-bold"
+                    style={{ color: party.color }}
+                  >
+                    {party.name}
+                  </h2>
+                  <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 mt-1">
+                    <span>所属議員: {party.members}名</span>
+                    <span className="mx-2 hidden sm:inline">•</span>
+                    <span className="sm:hidden">
+                      総投票数: {party.totalVotes.toLocaleString()}
+                    </span>
+                  </div>
 
-                {/* デスクトップ: ボタンを党名の横に配置 */}
-                <div className="hidden sm:block mt-2">
-                  <button
-                    onClick={navigateToPartyMembers}
-                    className="group flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ease-in-out shadow-sm hover:shadow-md"
+                  {/* デスクトップ: ボタンを党名の横に配置 */}
+                  <div className="mt-2">
+                    <button
+                      onClick={navigateToPartyMembers}
+                      className="group flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ease-in-out shadow-sm hover:shadow-md"
+                      style={{
+                        backgroundColor: `${party.color}15`,
+                        color: party.color,
+                        borderColor: `${party.color}30`,
+                        border: `1px solid ${party.color}30`,
+                      }}
+                    >
+                      <Users
+                        size={14}
+                        className="mr-1.5 opacity-70 group-hover:opacity-100"
+                      />
+                      <span>所属議員一覧へ</span>
+                      <ExternalLink
+                        size={12}
+                        className="ml-1.5 opacity-70 group-hover:opacity-100 transition-opacity"
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 右側: デスクトップでの総得票数 */}
+              <div className="hidden sm:flex items-center justify-end">
+                <span className="text-sm text-gray-500">
+                  総投票数: {party.totalVotes.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* EntityRatingsSection（支持率・不支持率表示） */}
+            <EntityRatingsSection
+              supportRate={party.supportRate}
+              opposeRate={party.opposeRate}
+              totalVotes={party.totalVotes}
+            />
+
+            {/* 投票コンポーネント */}
+            <UnifiedVoteComponent entityType="party" entityId={party.id} />
+
+            {/* Ad banner */}
+            <InlineAdBanner format="large-banner" showCloseButton={true} />
+
+            {/* Party description */}
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-700">政党概要</h3>
+              <p className="text-sm text-gray-600 mt-1">{party.description}</p>
+            </div>
+
+            {/* Key policies */}
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">
+                主要政策
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {party.keyPolicies.map((policy, i) => (
+                  <span
+                    key={i}
+                    className="text-xs py-1 px-3 rounded-full border"
                     style={{
                       backgroundColor: `${party.color}15`,
-                      color: party.color,
                       borderColor: `${party.color}30`,
-                      border: `1px solid ${party.color}30`,
+                      color: party.color,
                     }}
                   >
-                    <Users
-                      size={14}
-                      className="mr-1.5 opacity-70 group-hover:opacity-100"
-                    />
-                    <span>所属議員一覧へ</span>
-                    <ExternalLink
-                      size={12}
-                      className="ml-1.5 opacity-70 group-hover:opacity-100 transition-opacity"
-                    />
-                  </button>
-                </div>
+                    {policy}
+                  </span>
+                ))}
               </div>
-            </div>
-
-            {/* モバイル表示: 所属議員一覧ページへのリンクボタン */}
-            <button
-              onClick={navigateToPartyMembers}
-              className="group sm:hidden flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ease-in-out shadow-sm hover:shadow-md mt-3 w-auto max-w-[150px]"
-              style={{
-                backgroundColor: `${party.color}15`,
-                color: party.color,
-                borderColor: `${party.color}30`,
-                border: `1px solid ${party.color}30`,
-              }}
-            >
-              <Users
-                size={14}
-                className="mr-1 opacity-70 group-hover:opacity-100"
-              />
-              <span>所属議員一覧</span>
-              <ExternalLink
-                size={12}
-                className="ml-1 opacity-70 group-hover:opacity-100 transition-opacity"
-              />
-            </button>
-
-            {/* 右側: デスクトップでの総得票数 */}
-            <div className="hidden sm:flex items-center justify-end">
-              <span className="text-sm text-gray-500">
-                総投票数: {party.totalVotes.toLocaleString()}
-              </span>
             </div>
           </div>
 
-          <div className="mt-4">
-            {/* Support/oppose stats */}
-            <div className="mb-2 flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
-              <div className="flex items-center">
-                <ThumbsUp size={14} className="text-green-500 mr-1" />
-                <span className="text-sm font-medium">支持率: </span>
-                <span className="font-bold ml-1 text-green-600">
-                  {party.supportRate}%
-                </span>
-              </div>
-              <div className="flex items-center">
-                <ThumbsDown size={14} className="text-red-500 mr-1" />
-                <span className="text-sm font-medium">不支持率: </span>
-                <span className="font-bold ml-1 text-red-600">
-                  {party.opposeRate}%
-                </span>
-              </div>
-            </div>
+          {/* コメントセクション - 同じReplyDataProviderコンテキスト内 */}
+          <div
+            className={styles.cards.base + " animate-fadeIn"}
+            style={{ animationDelay: "0.2s" }}
+          >
+            <div className="p-3">
+              <h3 className="font-bold text-lg mb-4 flex items-center">
+                <MessageSquare size={18} className="mr-2 text-indigo-600" />
+                評価理由
+              </h3>
 
-            {/* Progress bar */}
-            <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex">
-              {/* 支持率と不支持率の合計を計算 */}
-              {(() => {
-                return (
-                  <>
-                    <div
-                      className="h-full rounded-l-full transition-all duration-700 ease-in-out"
-                      style={{
-                        width: `${party.supportRate}%`,
-                        backgroundColor: "#10B981",
-                      }}
-                    ></div>
-                    <div
-                      className="h-full rounded-r-full transition-all duration-700 ease-in-out"
-                      style={{
-                        width: `${party.opposeRate}%`,
-                        backgroundColor: "#EF4444",
-                      }}
-                    ></div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Ad banner */}
-          <InlineAdBanner format="large-banner" showCloseButton={true} />
-
-          {/* Party description */}
-          <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700">政党概要</h3>
-            <p className="text-sm text-gray-600 mt-1">{party.description}</p>
-          </div>
-
-          {/* Key policies */}
-          <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">主要政策</h3>
-            <div className="flex flex-wrap gap-2">
-              {party.keyPolicies.map((policy, i) => (
-                <span
-                  key={i}
-                  className="text-xs py-1 px-3 rounded-full border"
-                  style={{
-                    backgroundColor: `${party.color}15`,
-                    borderColor: `${party.color}30`,
-                    color: party.color,
-                  }}
-                >
-                  {policy}
-                </span>
-              ))}
+              <CommentSection entityType="party" entityId={party.id} />
             </div>
           </div>
         </div>
-
-        {/* Party members */}
-        <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="font-bold text-gray-800 flex items-center">
-            <Users size={18} className="mr-2 text-indigo-600" />
-            所属議員
-          </h2>
-
-          <div className="flex space-x-2 items-center">
-            {/* Sorting dropdown */}
-            <div className="relative">
-              <button
-                className="flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-xs font-medium transition"
-                onClick={() => {
-                  const element = document.getElementById(
-                    "party-sort-dropdown"
-                  );
-                  if (element) {
-                    element.classList.toggle("hidden");
-                  }
-                }}
-              >
-                <Filter size={14} className="mr-1.5" />
-                <span>
-                  {sortMethod === "supportDesc"
-                    ? "支持率（高い順）"
-                    : sortMethod === "supportAsc"
-                    ? "支持率（低い順）"
-                    : sortMethod === "activityDesc"
-                    ? "活動指数（高い順）"
-                    : "ソート基準"}
-                </span>
-              </button>
-
-              {/* Sort dropdown options */}
-              <div
-                id="party-sort-dropdown"
-                className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 z-10 hidden animate-fadeIn"
-              >
-                <div className="w-48 text-sm">
-                  <div className="px-2 py-1 text-xs font-medium text-gray-500 border-b border-gray-100">
-                    ソート基準
-                  </div>
-                  <button
-                    onClick={() => {
-                      handleSortChange("supportDesc");
-                      const element = document.getElementById(
-                        "party-sort-dropdown"
-                      );
-                      if (element) {
-                        element.classList.toggle("hidden");
-                      }
-                    }}
-                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-                      sortMethod === "supportDesc"
-                        ? "bg-indigo-50 text-indigo-700"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    支持率（高い順）
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleSortChange("supportAsc");
-                      const element = document.getElementById(
-                        "party-sort-dropdown"
-                      );
-                      if (element) {
-                        element.classList.toggle("hidden");
-                      }
-                    }}
-                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-                      sortMethod === "supportAsc"
-                        ? "bg-indigo-50 text-indigo-700"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    支持率（低い順）
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleSortChange("activityDesc");
-                      const dropdown = document.getElementById(
-                        "party-sort-dropdown"
-                      );
-                      if (dropdown) {
-                        dropdown.classList.add("hidden");
-                      }
-                    }}
-                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md ${
-                      sortMethod === "activityDesc"
-                        ? "bg-indigo-50 text-indigo-700"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    活動指数（高い順）
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Party members list */}
-        <div>
-          {sortedPartyPoliticians.length > 0 ? (
-            <>
-              {sortedPartyPoliticians.map((politician, index) => (
-                <React.Fragment key={politician.id}>
-                  <PoliticianCard politician={politician} index={index} />
-
-                  {/* Ad after 3rd politician */}
-                  {index === 2 && sortedPartyPoliticians.length > 3 && (
-                    <div className="py-3 flex justify-center border-b border-gray-100">
-                      <InlineAdBanner
-                        format="rectangle"
-                        showCloseButton={true}
-                      />
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-
-              {/* ページネーションコントロール */}
-              <div className="flex justify-between items-center p-4 border-t border-gray-100">
-                <div className="text-sm text-gray-500">
-                  表示中: {sortedPartyPoliticians.length}名 / ページ
-                  {currentPage}
-                </div>
-              </div>
-
-              {/* ローディング中インジケーター */}
-              {isLoading && (
-                <div className="text-center py-4">
-                  <LoadingAnimation
-                    type="dots"
-                    message="議員を読み込んでいます"
-                  />
-                </div>
-              )}
-
-              {/* すべての議員を読み込んだ後のメッセージ */}
-              {!hasMore && partyMembers.length > 0 && (
-                <div className="text-center py-4 text-gray-500 text-sm">
-                  すべての議員を読み込みました
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="p-4 text-center text-gray-500">
-              この政党に所属する議員は見つかりませんでした
-            </div>
-          )}
-        </div>
-      </div>
+      </ReplyDataProvider>
     </section>
   );
 };
