@@ -6,7 +6,7 @@ import { getAuth } from "firebase/auth";
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyB6XXyfJ0oY11JLBioRoO4jniGBXnxEBWU",
-  authDomain: "politics-77a64.firebaseapp.com",
+  authDomain: "politics-77a64.web.app",
   projectId: "politics-77a64",
   storageBucket: "politics-77a64.firebasestorage.app",
   messagingSenderId: "129911974973",
