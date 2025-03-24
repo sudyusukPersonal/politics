@@ -37,6 +37,7 @@ const AllPoliticiansList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [animateItems, setAnimateItems] = useState(true); // アニメーション状態の追加
 
   // Current filter/sort state
   const [currentPage, setCurrentPage] = useState(getUrlParams().page);
@@ -87,6 +88,8 @@ const AllPoliticiansList: React.FC = () => {
     setLastDocumentId(undefined);
     setHasMore(true);
     setCurrentPage(1);
+    // アニメーションを再度有効化
+    setAnimateItems(true);
     loadPoliticians(1, currentSort, party, true);
   };
 
@@ -101,6 +104,8 @@ const AllPoliticiansList: React.FC = () => {
     setLastDocumentId(undefined);
     setHasMore(true);
     setCurrentPage(1);
+    // アニメーションを再度有効化
+    setAnimateItems(true);
     loadPoliticians(1, sort, currentParty, true);
   };
 
@@ -134,6 +139,11 @@ const AllPoliticiansList: React.FC = () => {
       if (refresh) {
         // Replace all politicians
         setPoliticians(result.politicians);
+
+        // アニメーションを一定時間後に無効化（アニメーション実行後）
+        setTimeout(() => {
+          setAnimateItems(false);
+        }, 800); // アニメーションの時間より少し長めに設定
       } else {
         // Add to existing politicians (for infinite scroll)
         setPoliticians((prev) => {
@@ -203,6 +213,8 @@ const AllPoliticiansList: React.FC = () => {
       `Initial load with: page=${params.page}, sort=${params.sort}, party=${params.party}`
     );
 
+    // 初回ロード時もアニメーションを有効化
+    setAnimateItems(true);
     setCurrentSort(params.sort);
     setCurrentParty(params.party);
     setCurrentPage(params.page);
@@ -251,7 +263,7 @@ const AllPoliticiansList: React.FC = () => {
       {/* Premium banner */}
       {/* <PremiumBanner /> */}
 
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
         <div className="p-4 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-800 flex items-center">
             <Users size={18} className="mr-2 text-indigo-600" />
@@ -270,10 +282,20 @@ const AllPoliticiansList: React.FC = () => {
           <div>
             {politicians.map((politician, index) => {
               const uniqueKey = `${politician.id}-${index}`;
+              // 順番にアニメーション表示するためのスタイル
+              const animationStyle = animateItems
+                ? {
+                    animation: "fadeIn 0.3s ease-out forwards",
+                    animationDelay: `${index * 0.05}s`,
+                    opacity: 0, // 初期状態は非表示
+                  }
+                : {};
 
               return (
                 <React.Fragment key={uniqueKey}>
-                  <PoliticianCard politician={politician} index={index} />
+                  <div style={animationStyle}>
+                    <PoliticianCard politician={politician} index={index} />
+                  </div>
 
                   {/* Show ad after 3rd politician */}
                   {index === 2 && (
