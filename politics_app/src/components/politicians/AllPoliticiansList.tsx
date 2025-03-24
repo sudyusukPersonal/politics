@@ -180,10 +180,15 @@ const AllPoliticiansList: React.FC = () => {
   // Load more politicians for infinite scroll
   const loadMorePoliticians = () => {
     if (!isLoading && hasMore) {
-      const nextPage = currentPage + 1;
-      loadPoliticians(nextPage, currentSort, currentParty, false);
-      // Update URL without triggering a reload
-      updateUrl(nextPage, currentSort, currentParty);
+      setIsLoading(true); // 先にローディング状態にして、UI表示を即時反映
+
+      // 意図的に読み込みを遅延させる（UXと過剰読み込み防止のため）
+      setTimeout(() => {
+        const nextPage = currentPage + 1;
+        loadPoliticians(nextPage, currentSort, currentParty, false);
+        // Update URL without triggering a reload
+        updateUrl(nextPage, currentSort, currentParty);
+      }, 800); // 0.8秒の読み込み遅延を設定
     }
   };
 
@@ -310,13 +315,29 @@ const AllPoliticiansList: React.FC = () => {
               );
             })}
 
-            {/* Loading indicator */}
+            {/* Loading indicator - モダンなデザインに変更 */}
             {isLoading && (
-              <div className="flex justify-center py-4">
-                <LoadingAnimation
-                  type="dots"
-                  message="政治家を読み込んでいます"
-                />
+              <div className="flex flex-col items-center justify-center py-6 overflow-hidden">
+                <div className="relative flex">
+                  {/* モダンな波形アニメーション */}
+                  <div className="flex space-x-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-2 h-6 rounded-full bg-indigo-500"
+                        style={{
+                          animation: `waveAnimation 0.8s ease-in-out ${
+                            i * 0.08
+                          }s infinite alternate`,
+                          opacity: 0.7 + i * 0.05,
+                        }}
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-4 text-indigo-600 font-medium text-sm tracking-wider animate-pulse">
+                  次のデータを読み込み中...
+                </div>
               </div>
             )}
 
