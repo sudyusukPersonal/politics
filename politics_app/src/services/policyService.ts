@@ -13,6 +13,7 @@ import {
   updateDoc,
   increment,
   OrderByDirection,
+  runTransaction,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { getPartyColor } from "./politicianService";
@@ -266,10 +267,41 @@ export const addVoteToPolicy = async (
   try {
     const policyRef = doc(db, "policy", policyId);
 
-    // 投票タイプに応じたフィールドを更新
-    // policy コレクションでは SupportRate と NonSupportRate フィールドを使用
-    await updateDoc(policyRef, {
-      [voteType === "support" ? "SupportRate" : "NonSupportRate"]: increment(1),
+    // トランザクションを使用して一貫性のある更新を保証
+    await runTransaction(db, async (transaction) => {
+      const policyDoc = await transaction.get(policyRef);
+
+      if (!policyDoc.exists()) {
+        throw new Error(`政策 ${policyId} が見つかりません`);
+      }
+
+      const policyData = policyDoc.data();
+
+      // 現在の値を取得
+      const currentSupportRate = policyData.SupportRate || 0;
+      const currentNonSupportRate = policyData.NonSupportRate || 0;
+
+      // 新しい値を計算
+      const newSupportRate =
+        voteType === "support" ? currentSupportRate + 1 : currentSupportRate;
+      const newNonSupportRate =
+        voteType === "oppose"
+          ? currentNonSupportRate + 1
+          : currentNonSupportRate;
+      const newTotalCount = (policyData.totalcount || 0) + 1;
+
+      // 新しい支持率を計算 (総票数に対する支持票の割合)
+      const newSupportRating = Math.round(
+        (newSupportRate / (newSupportRate + newNonSupportRate)) * 100
+      );
+
+      // ドキュメントを更新
+      transaction.update(policyRef, {
+        SupportRate: newSupportRate,
+        NonSupportRate: newNonSupportRate,
+        totalcount: newTotalCount,
+        supportRating: newSupportRating,
+      });
     });
 
     console.log(`政策 ${policyId} に ${voteType} 票を追加しました`);
