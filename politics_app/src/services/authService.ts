@@ -1,77 +1,57 @@
-// src/services/authService.ts
 import {
   getAuth,
-  signInWithRedirect,
+  signInWithPopup,
   GoogleAuthProvider,
   TwitterAuthProvider,
   signOut,
   onAuthStateChanged,
   User,
-  getRedirectResult,
 } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
 
-// プロバイダーを作成
+// Create providers
 const googleProvider = new GoogleAuthProvider();
 const twitterProvider = new TwitterAuthProvider();
 
-// Googleでサインインする関数
+// Simple function to handle Google sign-in
 export const signInWithGoogle = async () => {
   try {
-    await signInWithRedirect(auth, googleProvider);
-
-    // リダイレクト後にgetRedirectResultを呼び出してユーザー情報を取得
-    const result = await getRedirectResult(auth);
-    if (result) {
-      console.log("Googleサインイン成功", result.user);
-      console.log("表示名:", result.user.displayName);
-      console.log("メールアドレス:", result.user.email);
-    }
-
-    return { success: true, user: result?.user };
+    const result = await signInWithPopup(auth, googleProvider);
+    return { success: true, user: result.user };
   } catch (error) {
-    console.error("Googleログインエラー:", error);
+    console.error("Google login error:", error);
     return { success: false, error };
   }
 };
 
-// Twitterでサインインする関数
+// Simple function to handle Twitter sign-in
 export const signInWithTwitter = async () => {
   try {
-    await signInWithRedirect(auth, twitterProvider);
-
-    // リダイレクト後にgetRedirectResultを呼び出してユーザー情報を取得
-    const result = await getRedirectResult(auth);
-    if (result) {
-      console.log("Twitterサインイン成功", result.user);
-      console.log("表示名:", result.user.displayName);
-      console.log("メールアドレス:", result.user.email);
-    }
-
-    return { success: true, user: result?.user };
+    const result = await signInWithPopup(auth, twitterProvider);
+    return { success: true, user: result.user };
   } catch (error) {
-    console.error("Twitterログインエラー:", error);
+    console.error("Twitter login error:", error);
     return { success: false, error };
   }
 };
 
-// サインアウトする関数
+// Simple function to handle sign-out
 export const logOut = async () => {
   try {
     await signOut(auth);
     return { success: true };
   } catch (error) {
-    console.error("ログアウトエラー:", error);
+    console.error("Logout error:", error);
     return { success: false, error };
   }
 };
 
-// 現在のユーザーを取得する関数
+// Function to get the current user
 export const getCurrentUser = () => {
   return auth.currentUser;
 };
 
-// 認証状態の変更を監視する関数
+// Setup auth state listener
 export const subscribeToAuthChanges = (
   callback: (user: User | null) => void
 ) => {
