@@ -17,14 +17,8 @@ import {
   MessageSquare,
   Building,
 } from "lucide-react";
-import {
-  fetchAllPolicies,
-  fetchPoliciesByCategory,
-  searchPolicies,
-  sortPolicies,
-  fetchAllCategories,
-  Policy,
-} from "../../services/policyService";
+import { fetchAllCategories, Policy } from "../../services/policyService";
+import { fetchPoliciesWithFilterAndSort } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { navigateToPolicy } from "../../utils/navigationUtils";
 
@@ -32,238 +26,18 @@ const PolicyListingPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 状態管理
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [activeParty, setActiveParty] = useState("all"); // 追加: 選択中の政党
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
-  const [sortMethod, setSortMethod] = useState("supportDesc"); // デフォルトのソート方法
-  const [policies, setPolicies] = useState<Policy[]>([]);
-  const [filteredPolicies, setFilteredPolicies] = useState<Policy[]>([]);
-  const [categories, setCategories] = useState<
-    {
-      id: string;
-      name: string;
-      color: string;
-      icon: JSX.Element;
-    }[]
-  >([
-    {
-      id: "all",
-      name: "すべて",
-      color: "#6366F1",
-      icon: <Activity size={14} />,
-    },
-  ]);
-  const [parties, setParties] = useState<
-    {
-      id: string;
-      name: string;
-      color: string;
-    }[]
-  >([
-    {
-      id: "all",
-      name: "すべての政党",
-      color: "#6366F1",
-    },
-  ]); // 追加: 政党リスト
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [visiblePoliciesCount, setVisiblePoliciesCount] = useState(5); // 最初に表示する政策の数（5件に変更）
-  const [showPartyFilter, setShowPartyFilter] = useState(false); // 追加: 政党フィルター表示状態
-  const [tempSearchQuery, setTempSearchQuery] = useState(""); // 検索フィールドの一時的な値
-  const [searchFired, setSearchFired] = useState(false); // 検索実行時のフィードバック用
-  const [animateItems, setAnimateItems] = useState(true); // アニメーション状態の追加
-
-  // URLパラメータからフィルタ値を取得する処理
-  useEffect(() => {
-    // URLパラメータから値を取得
-    const params = new URLSearchParams(location.search);
-    const partyParam = params.get("party");
-    const categoryParam = params.get("category");
-    const sortParam = params.get("sort");
-
-    // パラメータが存在する場合は対応するステートを更新
-    if (partyParam) {
-      setActiveParty(partyParam);
-    }
-
-    if (categoryParam) {
-      setActiveCategory(categoryParam);
-    }
-
-    if (sortParam) {
-      setSortMethod(sortParam);
-    }
-  }, [location]);
-
-  // ページロード時にデータを取得
-  useEffect(() => {
-    const loadPoliciesAndCategories = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        setAnimateItems(true); // 初回ロード時にアニメーションを有効化
-
-        // 全ての政策を取得
-        const allPolicies = await fetchAllPolicies();
-        setPolicies(allPolicies);
-
-        // 利用可能なカテゴリを取得
-        const allCategories = await fetchAllCategories();
-
-        // カテゴリデータを整形
-        const categoryIcons: Record<string, JSX.Element> = {
-          経済: <TrendingUp size={14} />,
-          環境: <AlertCircle size={14} />,
-          教育: <Users size={14} />,
-          社会保障: <Users size={14} />,
-          安全保障: <AlertCircle size={14} />,
-          外交: <Users size={14} />,
-          労働: <Activity size={14} />,
-          健康: <Users size={14} />,
-        };
-
-        const categoryColors: Record<string, string> = {
-          経済: "#06B6D4",
-          環境: "#10B981",
-          教育: "#F59E0B",
-          社会保障: "#8B5CF6",
-          安全保障: "#EF4444",
-          外交: "#3B82F6",
-          労働: "#EC4899",
-          健康: "#14B8A6",
-        };
-
-        const formattedCategories = [
-          {
-            id: "all",
-            name: "すべて",
-            color: "#6366F1",
-            icon: <Activity size={14} />,
-          },
-          ...allCategories.map((category) => ({
-            id: category,
-            name: category,
-            color: categoryColors[category] || "#6B7280", // デフォルトの色
-            icon: categoryIcons[category] || <Activity size={14} />, // デフォルトのアイコン
-          })),
-        ];
-
-        setCategories(formattedCategories);
-
-        // 政党データを抽出・整形
-        const uniqueParties = new Map<
-          string,
-          { name: string; color: string }
-        >();
-
-        // すべての政策から一意な政党情報を抽出
-        allPolicies.forEach((policy) => {
-          if (policy.proposingParty && policy.proposingParty.name) {
-            uniqueParties.set(policy.proposingParty.name, {
-              name: policy.proposingParty.name,
-              color: policy.proposingParty.color || "#6B7280",
-            });
-          }
-        });
-
-        // フォーマットされた政党リストを作成
-        const formattedParties = [
-          {
-            id: "all",
-            name: "すべての政党",
-            color: "#6366F1",
-          },
-          ...[...uniqueParties.entries()].map(([name, data]) => ({
-            id: name,
-            name: name,
-            color: data.color,
-          })),
-        ];
-
-        setParties(formattedParties);
-      } catch (error) {
-        console.error("データ取得エラー:", error);
-        setError("政策データの取得中にエラーが発生しました。");
-      } finally {
-        setIsLoading(false);
-      }
+  // ---- URL パラメータ管理 ----
+  // URLからパラメータを取得する関数
+  const getUrlParams = () => {
+    const searchParams = new URLSearchParams(location.search);
+    return {
+      category: searchParams.get("category") || "all",
+      party: searchParams.get("party") || "all",
+      sort: searchParams.get("sort") || "supportDesc",
     };
+  };
 
-    loadPoliciesAndCategories();
-  }, []);
-
-  // コンポーネントのマウント時に一時検索クエリを初期化
-  useEffect(() => {
-    setTempSearchQuery(searchQuery);
-  }, []);
-
-  // カテゴリまたは政党が変更されたときにデータをフィルタリング
-  useEffect(() => {
-    const filterPolicies = async () => {
-      try {
-        setIsLoading(true);
-        setAnimateItems(true); // フィルター変更時にアニメーションを有効化
-
-        let filtered: Policy[];
-
-        // カテゴリでの初期フィルタリング
-        if (activeCategory === "all") {
-          // すべてのカテゴリの場合は全政策を対象に
-          filtered = policies;
-        } else {
-          // 特定のカテゴリの場合
-          filtered = policies.filter((policy) =>
-            policy.affectedFields.includes(activeCategory)
-          );
-        }
-
-        // 政党によるフィルタリング
-        if (activeParty !== "all") {
-          filtered = filtered.filter(
-            (policy) => policy.proposingParty.name === activeParty
-          );
-        }
-
-        // 検索クエリによるフィルタリング
-        if (searchQuery.trim()) {
-          const lowerSearchTerm = searchQuery.toLowerCase();
-          filtered = filtered.filter(
-            (policy) =>
-              policy.title.toLowerCase().includes(lowerSearchTerm) ||
-              policy.description.toLowerCase().includes(lowerSearchTerm)
-          );
-        }
-
-        // 選択されたソート方法で並べ替え
-        const sorted = sortPolicies(filtered, sortMethod);
-        setFilteredPolicies(sorted);
-
-        // 表示数をリセット
-        setVisiblePoliciesCount(6);
-        // 現在は無限スクロールを使用するため、このステップは必要なし
-
-        // アニメーションを一定時間後に無効化（アニメーション実行後）
-        setTimeout(() => {
-          setAnimateItems(false);
-        }, 800); // アニメーションの時間より少し長めに設定
-      } catch (error) {
-        console.error("政策フィルタリングエラー:", error);
-        setError("政策のフィルタリング中にエラーが発生しました。");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (policies.length > 0) {
-      filterPolicies();
-    }
-  }, [activeCategory, activeParty, policies, sortMethod, searchQuery]); // searchQueryをここに残す
-
-  // URL更新用のヘルパー関数
+  // URL更新関数
   const updateUrlParams = (updates: { [key: string]: string }) => {
     // 現在のURLパラメータを取得
     const params = new URLSearchParams(location.search);
@@ -291,9 +65,231 @@ const PolicyListingPage: React.FC = () => {
     );
   };
 
+  // ---- 状態管理 ----
+  // フィルタリング状態
+  const [activeCategory, setActiveCategory] = useState(getUrlParams().category);
+  const [activeParty, setActiveParty] = useState(getUrlParams().party);
+  const [sortMethod, setSortMethod] = useState(getUrlParams().sort);
+
+  // 検索関連
+  const [tempSearchQuery, setTempSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFired, setSearchFired] = useState(false);
+
+  // UI状態
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showPartyFilter, setShowPartyFilter] = useState(false);
+  const [animateItems, setAnimateItems] = useState(true);
+
+  // データ状態
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [lastDocumentId, setLastDocumentId] = useState<string | undefined>(
+    undefined
+  );
+  const [hasMore, setHasMore] = useState(true);
+  const [visiblePoliciesCount, setVisiblePoliciesCount] = useState(6);
+
+  // ローディング状態
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // マスターデータ
+  const [categories, setCategories] = useState<
+    {
+      id: string;
+      name: string;
+      color: string;
+      icon: JSX.Element;
+    }[]
+  >([
+    {
+      id: "all",
+      name: "すべて",
+      color: "#6366F1",
+      icon: <Activity size={14} />,
+    },
+  ]);
+
+  const [parties, setParties] = useState<
+    {
+      id: string;
+      name: string;
+      color: string;
+    }[]
+  >([
+    {
+      id: "all",
+      name: "すべての政党",
+      color: "#6366F1",
+    },
+  ]);
+
   // 検索入力用のrefを追加
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // ---- データ読み込み関数 ----
+  // 政策データ読み込み関数
+  const loadPolicies = async (
+    category: string,
+    party: string,
+    sort: string,
+    searchTerm: string = "",
+    refresh: boolean = false
+  ) => {
+    try {
+      if (refresh) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      setError(null);
+      setAnimateItems(refresh); // フィルター変更時のみアニメーション有効化
+
+      // refreshがtrueの場合は初期状態にリセット
+      const docId = refresh ? undefined : lastDocumentId;
+
+      console.log(
+        `政策データ読み込み - カテゴリ: ${category}, 政党: ${party}, ソート: ${sort}, 検索語: ${searchTerm}, 最終ID: ${
+          docId || "なし"
+        }`
+      );
+
+      // サーバーサイドでフィルターとソートを適用して取得
+      const result = await fetchPoliciesWithFilterAndSort(
+        category,
+        party,
+        sort,
+        searchTerm,
+        docId,
+        5
+      );
+
+      if (refresh) {
+        // 全データ置き換え
+        setPolicies(result.policies);
+
+        // 表示数をリセット
+        setVisiblePoliciesCount(6);
+
+        // アニメーション終了後に状態をリセット（アニメーション実行後）
+        setTimeout(() => {
+          setAnimateItems(false);
+        }, 800);
+      } else {
+        // 既存データに追加（無限スクロール用）
+        setPolicies((prev) => {
+          // 重複を除去（念のため）
+          const existingIds = new Set(prev.map((p) => p.id));
+          const newPolicies = result.policies.filter(
+            (p) => !existingIds.has(p.id)
+          );
+          return [...prev, ...newPolicies];
+        });
+      }
+
+      setLastDocumentId(result.lastDocumentId);
+      setHasMore(result.hasMore);
+
+      console.log(
+        `${result.policies.length}件の政策を読み込みました。次のページ: ${
+          result.hasMore ? "あり" : "なし"
+        }`
+      );
+
+      if (result.policies.length === 0 && refresh) {
+        console.log("現在のフィルタ条件に一致する政策はありません");
+      }
+    } catch (error) {
+      console.error("政策データ読み込みエラー:", error);
+      setError("政策データの読み込みに失敗しました。もう一度お試しください。");
+      if (refresh) {
+        setPolicies([]); // エラー時はデータをクリア
+      }
+    } finally {
+      if (refresh) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
+    }
+  };
+
+  // カテゴリとパーティのマスターデータを読み込む
+  const loadCategoriesAndParties = async () => {
+    try {
+      setIsLoading(true);
+
+      // カテゴリデータを取得
+      const allCategories = await fetchAllCategories();
+
+      // カテゴリデータを整形
+      const categoryIcons: Record<string, JSX.Element> = {
+        経済: <TrendingUp size={14} />,
+        環境: <AlertCircle size={14} />,
+        教育: <Users size={14} />,
+        社会保障: <Users size={14} />,
+        安全保障: <AlertCircle size={14} />,
+        外交: <Users size={14} />,
+        労働: <Activity size={14} />,
+        健康: <Users size={14} />,
+        科学技術: <Activity size={14} />,
+        地方創生: <Building size={14} />,
+      };
+
+      const categoryColors: Record<string, string> = {
+        経済: "#06B6D4",
+        環境: "#10B981",
+        教育: "#F59E0B",
+        社会保障: "#8B5CF6",
+        安全保障: "#EF4444",
+        外交: "#3B82F6",
+        労働: "#EC4899",
+        健康: "#14B8A6",
+        科学技術: "#3B82F6",
+        地方創生: "#10B981",
+      };
+
+      const formattedCategories = [
+        {
+          id: "all",
+          name: "すべて",
+          color: "#6366F1",
+          icon: <Activity size={14} />,
+        },
+        ...allCategories.map((category) => ({
+          id: category,
+          name: category,
+          color: categoryColors[category] || "#6B7280", // デフォルトの色
+          icon: categoryIcons[category] || <Activity size={14} />, // デフォルトのアイコン
+        })),
+      ];
+
+      setCategories(formattedCategories);
+
+      // 政党データを設定（今回はサンプルとして固定リスト）
+      const partyData = [
+        { id: "all", name: "すべての政党", color: "#6366F1" },
+        { id: "自由民主党", name: "自由民主党", color: "#555555" },
+        { id: "立憲民主党", name: "立憲民主党", color: "#4361EE" },
+        { id: "公明党", name: "公明党", color: "#7209B7" },
+        { id: "日本維新の会", name: "日本維新の会", color: "#228B22" },
+        { id: "国民民主党", name: "国民民主党", color: "#000080" },
+        { id: "日本共産党", name: "日本共産党", color: "#E63946" },
+        { id: "れいわ新選組", name: "れいわ新選組", color: "#F72585" },
+        { id: "社民党", name: "社民党", color: "#118AB2" },
+        { id: "参政党", name: "参政党", color: "#FF4500" },
+      ];
+
+      setParties(partyData);
+    } catch (error) {
+      console.error("カテゴリ・政党データ取得エラー:", error);
+      setError("カテゴリデータの取得中にエラーが発生しました。");
+    }
+  };
+
+  // ---- イベントハンドラ ----
   // 検索入力フィールドの変更時の処理（一時変数のみ更新）
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTempSearchQuery(e.target.value);
@@ -302,9 +298,21 @@ const PolicyListingPage: React.FC = () => {
   // 検索送信時の処理
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     // フォーム送信時に検索クエリを更新し、フィルタリングをトリガー
     setSearchQuery(tempSearchQuery);
-    setAnimateItems(true); // 検索時にアニメーションを有効化
+
+    // データをリセットして新たに検索
+    setPolicies([]);
+    setLastDocumentId(undefined);
+    setHasMore(true);
+    loadPolicies(
+      activeCategory,
+      activeParty,
+      sortMethod,
+      tempSearchQuery,
+      true
+    );
 
     // 検索エフェクトをトリガー
     setSearchFired(true);
@@ -322,34 +330,116 @@ const PolicyListingPage: React.FC = () => {
   const handleSortChange = (method: string) => {
     setSortMethod(method);
     setShowFilterMenu(false);
-    setAnimateItems(true); // ソート変更時にアニメーションを有効化
 
     // URLを更新
     updateUrlParams({ sort: method });
+
+    // データをリセットして再取得
+    setPolicies([]);
+    setLastDocumentId(undefined);
+    setHasMore(true);
+    loadPolicies(activeCategory, activeParty, method, searchQuery, true);
   };
 
   // カテゴリ選択時の処理
   const handleCategorySelect = (categoryId: string) => {
     setActiveCategory(categoryId);
-    setSearchQuery(""); // 検索条件をリセット
-    setTempSearchQuery(""); // 検索入力欄もクリア
-    setAnimateItems(true); // カテゴリ変更時にアニメーションを有効化
 
+    // 検索条件はリセットしない（検索+カテゴリで絞り込み可能）
     // URLを更新
     updateUrlParams({ category: categoryId });
+
+    // データをリセットして再取得
+    setPolicies([]);
+    setLastDocumentId(undefined);
+    setHasMore(true);
+    loadPolicies(categoryId, activeParty, sortMethod, searchQuery, true);
   };
 
   // 政党選択時の処理
   const handlePartySelect = (partyId: string) => {
     setActiveParty(partyId);
-    setSearchQuery(""); // 検索条件をリセット
-    setTempSearchQuery(""); // 検索入力欄もクリア
     setShowFilterMenu(false); // 選択後にドロップダウンを閉じる
-    setAnimateItems(true); // 政党変更時にアニメーションを有効化
 
-    // URLを更新
+    // URL更新
     updateUrlParams({ party: partyId });
+
+    // データをリセットして再取得
+    setPolicies([]);
+    setLastDocumentId(undefined);
+    setHasMore(true);
+    loadPolicies(activeCategory, partyId, sortMethod, searchQuery, true);
   };
+
+  // 政策カードクリック時の処理
+  const handlePolicyClick = (policyId: string) => {
+    navigateToPolicy(navigate, policyId);
+  };
+
+  // ---- 無限スクロール ----
+  // 無限スクロールのための追加読み込み処理
+  const loadMorePolicies = () => {
+    if (!isLoadingMore && hasMore) {
+      setIsLoadingMore(true);
+
+      // 意図的に読み込みを遅延させる（UXと過剰読み込み防止のため）
+      setTimeout(() => {
+        loadPolicies(
+          activeCategory,
+          activeParty,
+          sortMethod,
+          searchQuery,
+          false
+        );
+      }, 800); // 0.8秒の読み込み遅延を設定
+    }
+  };
+
+  // ---- Effect Hooks ----
+  // 初期ロード
+  useEffect(() => {
+    // マスターデータを読み込む
+    loadCategoriesAndParties();
+
+    // URLパラメータから初期状態を設定
+    const params = getUrlParams();
+    setActiveCategory(params.category);
+    setActiveParty(params.party);
+    setSortMethod(params.sort);
+
+    // 政策データを初回読み込み
+    loadPolicies(params.category, params.party, params.sort, "", true);
+  }, []);
+
+  // URL変更時の処理
+  useEffect(() => {
+    const params = getUrlParams();
+
+    if (
+      params.category !== activeCategory ||
+      params.party !== activeParty ||
+      params.sort !== sortMethod
+    ) {
+      console.log("URLパラメータが変更されました:", params);
+
+      // パラメータが変更された場合、状態を更新して再読み込み
+      setActiveCategory(params.category);
+      setActiveParty(params.party);
+      setSortMethod(params.sort);
+
+      // データをリセットして再取得
+      setPolicies([]);
+      setLastDocumentId(undefined);
+      setHasMore(true);
+      loadPolicies(
+        params.category,
+        params.party,
+        params.sort,
+        searchQuery,
+        true
+      );
+    }
+  }, [location.search]);
 
   // メニュー外クリック時にドロップダウンを閉じる
   useEffect(() => {
@@ -376,7 +466,7 @@ const PolicyListingPage: React.FC = () => {
         window.innerHeight + document.documentElement.scrollTop + 100 >=
           document.documentElement.offsetHeight &&
         !isLoadingMore &&
-        visiblePoliciesCount < filteredPolicies.length
+        hasMore
       ) {
         loadMorePolicies();
       }
@@ -384,26 +474,16 @@ const PolicyListingPage: React.FC = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [visiblePoliciesCount, isLoadingMore, filteredPolicies.length]);
+  }, [
+    isLoadingMore,
+    hasMore,
+    activeCategory,
+    activeParty,
+    sortMethod,
+    searchQuery,
+  ]);
 
-  // 無限スクロールのための追加読み込み処理
-  const loadMorePolicies = () => {
-    if (!isLoadingMore && visiblePoliciesCount < filteredPolicies.length) {
-      setIsLoadingMore(true);
-
-      // 意図的に読み込みを遅延させる（UXと過剰読み込み防止のため）
-      setTimeout(() => {
-        setVisiblePoliciesCount((prev) => prev + 5); // 5件ずつ追加
-        setIsLoadingMore(false);
-      }, 800); // 0.8秒の読み込み遅延を設定
-    }
-  };
-
-  // 政策カードクリック時の処理
-  const handlePolicyClick = (policyId: string) => {
-    navigateToPolicy(navigate, policyId);
-  };
-
+  // ---- ヘルパー関数 ----
   // トレンドアイコンの取得
   const getTrendingIcon = (trend: string) => {
     if (trend === "up") {
@@ -450,7 +530,7 @@ const PolicyListingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Compact header with modern design */}
+      {/* Header with gradient background */}
       <div className="relative bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-400 via-transparent to-transparent opacity-20"></div>
@@ -491,9 +571,9 @@ const PolicyListingPage: React.FC = () => {
                   : `${selectedParty.name}の政策を検索...`
               }
               className={`w-full pl-10 pr-10 py-2 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20 
-  focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white 
-  placeholder-white placeholder-opacity-70 backdrop-blur-sm md:w-[300px] lg:w-[350px] xl:w-[400px]
-  ${searchFired ? "search-input-flash" : ""}`}
+                focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white 
+                placeholder-white placeholder-opacity-70 backdrop-blur-sm md:w-[300px] lg:w-[350px] xl:w-[400px]
+                ${searchFired ? "search-input-flash" : ""}`}
               value={tempSearchQuery}
               onChange={handleSearchChange}
             />
@@ -513,7 +593,7 @@ const PolicyListingPage: React.FC = () => {
 
       {/* Main content */}
       <div className="container mx-auto px-4 py-8">
-        {/* Category tabs - Original horizontal layout */}
+        {/* Category tabs - horizontal scrollable */}
         <div className="mb-8 overflow-x-auto">
           <div className="flex space-x-3 pb-2">
             {categories.map((category) => {
@@ -569,7 +649,9 @@ const PolicyListingPage: React.FC = () => {
                 <span>政策一覧</span>
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                {filteredPolicies.length}件の政策が見つかりました
+                {policies.length}件の政策が見つかりました
+                {!hasMore && policies.length > 0 && " (全件表示中)"}
+                {isLoading && " (読み込み中...)"}
               </p>
             </div>
 
@@ -589,21 +671,33 @@ const PolicyListingPage: React.FC = () => {
                       並び替え
                     </div>
                     <button
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
+                      className={`w-full text-left px-4 py-2 text-sm ${
+                        sortMethod === "supportDesc"
+                          ? "bg-indigo-50 text-indigo-600 font-medium"
+                          : "text-gray-700 hover:bg-indigo-50"
+                      } flex items-center`}
                       onClick={() => handleSortChange("supportDesc")}
                     >
                       <ArrowUp size={16} className="mr-2 text-indigo-600" />
                       <span>支持率（高い順）</span>
                     </button>
                     <button
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
+                      className={`w-full text-left px-4 py-2 text-sm ${
+                        sortMethod === "supportAsc"
+                          ? "bg-indigo-50 text-indigo-600 font-medium"
+                          : "text-gray-700 hover:bg-indigo-50"
+                      } flex items-center`}
                       onClick={() => handleSortChange("supportAsc")}
                     >
                       <ArrowDown size={16} className="mr-2 text-indigo-600" />
                       <span>支持率（低い順）</span>
                     </button>
                     <button
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
+                      className={`w-full text-left px-4 py-2 text-sm ${
+                        sortMethod === "newest"
+                          ? "bg-indigo-50 text-indigo-600 font-medium"
+                          : "text-gray-700 hover:bg-indigo-50"
+                      } flex items-center`}
                       onClick={() => handleSortChange("newest")}
                     >
                       <Clock size={16} className="mr-2 text-indigo-600" />
@@ -666,7 +760,7 @@ const PolicyListingPage: React.FC = () => {
         )}
 
         {/* データが見つからない場合 */}
-        {!isLoading && filteredPolicies.length === 0 && !error && (
+        {!isLoading && policies.length === 0 && !error && (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <AlertCircle size={40} className="mx-auto mb-4 text-gray-400" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -680,147 +774,116 @@ const PolicyListingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Policy Cards - Changed to display one per row in a vertical list */}
+        {/* Policy Cards - vertical list */}
         <div className="space-y-4">
-          {filteredPolicies
-            .slice(0, visiblePoliciesCount)
-            .map((policy, index) => {
-              const category = getCategoryById(policy.category);
+          {policies.map((policy, index) => {
+            const category = getCategoryById(policy.category);
 
-              // 順番にアニメーション表示するためのスタイル
-              const animationStyle = animateItems
-                ? {
-                    animation: "fadeIn 0.3s ease-out forwards",
-                    animationDelay: `${index * 0.05}s`,
-                    opacity: 0, // 初期状態は非表示
-                  }
-                : {};
+            // 順番にアニメーション表示するためのスタイル
+            const animationStyle = animateItems
+              ? {
+                  animation: "fadeIn 0.3s ease-out forwards",
+                  animationDelay: `${index * 0.05}s`,
+                  opacity: 0, // 初期状態は非表示
+                }
+              : {};
 
-              return (
-                <div
-                  key={policy.id}
-                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                  style={{
-                    borderLeft: `4px solid ${policy.proposingParty.color}`,
-                    ...animationStyle,
-                  }}
-                  onClick={() => handlePolicyClick(policy.id)}
-                >
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div
-                        className="text-xs font-medium px-2.5 py-1 rounded-full"
-                        style={{
-                          backgroundColor: `${policy.proposingParty.color}15`,
-                          color: policy.proposingParty.color,
-                        }}
-                      >
-                        {policy.proposingParty.name}
-                      </div>
-                      {getTrendingIcon(policy.trending)}
+            return (
+              <div
+                key={policy.id}
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                style={{
+                  borderLeft: `4px solid ${policy.proposingParty.color}`,
+                  ...animationStyle,
+                }}
+                onClick={() => handlePolicyClick(policy.id)}
+              >
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div
+                      className="text-xs font-medium px-2.5 py-1 rounded-full"
+                      style={{
+                        backgroundColor: `${policy.proposingParty.color}15`,
+                        color: policy.proposingParty.color,
+                      }}
+                    >
+                      {policy.proposingParty.name}
                     </div>
+                    {getTrendingIcon(policy.trending)}
+                  </div>
 
-                    <h3 className="font-bold text-lg mb-2 text-gray-800">
-                      {policy.title}
-                    </h3>
+                  <h3 className="font-bold text-lg mb-2 text-gray-800">
+                    {policy.title}
+                  </h3>
 
-                    <p className="text-gray-600 text-sm mb-4">
-                      {policy.description}
-                    </p>
+                  <p className="text-gray-600 text-sm mb-4">
+                    {policy.description}
+                  </p>
 
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {policy.affectedFields.map((field, index) => {
-                        const fieldCategory = getCategoryById(field);
-                        return (
-                          <span
-                            key={index}
-                            className="text-xs px-2.5 py-1 rounded-full text-white"
-                            style={{
-                              backgroundColor: fieldCategory.color,
-                            }}
-                          >
-                            {field}
-                          </span>
-                        );
-                      })}
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 flex items-center">
-                        <MessageSquare
-                          size={12}
-                          className="mr-1 flex-shrink-0"
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {policy.affectedFields.map((field, index) => {
+                      const fieldCategory = getCategoryById(field);
+                      return (
+                        <span
+                          key={index}
+                          className="text-xs px-2.5 py-1 rounded-full text-white"
+                          style={{
+                            backgroundColor: fieldCategory.color,
+                          }}
+                        >
+                          {field}
+                        </span>
+                      );
+                    })}
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 flex items-center">
+                      <MessageSquare size={12} className="mr-1 flex-shrink-0" />
+                      {policy.commentsCount}件のコメント
+                    </span>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center text-sm mb-2">
+                      <div className="flex items-center">
+                        <ThumbsUp
+                          size={14}
+                          className="text-green-500 mr-1.5 animate-bounce-slow"
                         />
-                        {policy.commentsCount}件のコメント
-                      </span>
+                        <span className="font-medium text-green-600">
+                          {policy.supportRate}%
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <ThumbsDown
+                          size={14}
+                          className="text-red-500 mr-1.5 animate-bounce-slow"
+                        />
+                        <span className="font-medium text-red-600">
+                          {policy.opposeRate}%
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="mt-4">
-                      <div className="flex justify-between items-center text-sm mb-2">
-                        <div className="flex items-center">
-                          <ThumbsUp
-                            size={14}
-                            className="text-green-500 mr-1.5 animate-bounce-slow"
-                          />
-                          <span className="font-medium text-green-600">
-                            {policy.supportRate}%
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <ThumbsDown
-                            size={14}
-                            className="text-red-500 mr-1.5 animate-bounce-slow"
-                          />
-                          <span className="font-medium text-red-600">
-                            {policy.opposeRate}%
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
-                        <div
-                          className="h-full rounded-l-full"
-                          style={{
-                            width: `${policy.supportRate}%`,
-                            backgroundColor: "#10B981", // Green
-                          }}
-                        ></div>
-                        <div
-                          className="h-full rounded-r-full"
-                          style={{
-                            width: `${policy.opposeRate}%`,
-                            backgroundColor: "#EF4444", // Red
-                          }}
-                        ></div>
-                      </div>
+                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
+                      <div
+                        className="h-full rounded-l-full"
+                        style={{
+                          width: `${policy.supportRate}%`,
+                          backgroundColor: "#10B981", // Green
+                        }}
+                      ></div>
+                      <div
+                        className="h-full rounded-r-full"
+                        style={{
+                          width: `${policy.opposeRate}%`,
+                          backgroundColor: "#EF4444", // Red
+                        }}
+                      ></div>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-
-          {/* 初期データ読み込み中のローディング表示 */}
-          {isLoading && policies.length > 0 && !isLoadingMore && (
-            <div className="flex flex-col items-center justify-center py-6 overflow-hidden">
-              <div className="relative flex">
-                {/* モダンな波形アニメーション */}
-                <div className="flex space-x-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-2 h-6 rounded-full bg-indigo-500"
-                      style={{
-                        animation: `waveAnimation 0.8s ease-in-out ${
-                          i * 0.08
-                        }s infinite alternate`,
-                        opacity: 0.7 + i * 0.05,
-                      }}
-                    ></div>
-                  ))}
-                </div>
               </div>
-              <div className="mt-4 text-indigo-600 font-medium text-sm tracking-wider animate-pulse">
-                政策データを読み込み中...
-              </div>
-            </div>
-          )}
+            );
+          })}
 
           {/* 無限スクロール用ローディングインジケーター */}
           {isLoadingMore && (
@@ -849,13 +912,11 @@ const PolicyListingPage: React.FC = () => {
           )}
 
           {/* 全データ表示済みメッセージ */}
-          {!isLoadingMore &&
-            visiblePoliciesCount >= filteredPolicies.length &&
-            filteredPolicies.length > 0 && (
-              <div className="text-center py-4 text-gray-500 text-sm">
-                すべての政策を表示しました
-              </div>
-            )}
+          {!isLoadingMore && !hasMore && policies.length > 0 && (
+            <div className="text-center py-4 text-gray-500 text-sm">
+              すべての政策を表示しました
+            </div>
+          )}
         </div>
       </div>
 

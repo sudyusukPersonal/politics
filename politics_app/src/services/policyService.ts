@@ -12,6 +12,7 @@ import {
   Firestore,
   updateDoc,
   increment,
+  OrderByDirection,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { getPartyColor } from "./politicianService";
@@ -274,6 +275,143 @@ export const addVoteToPolicy = async (
     console.log(`政策 ${policyId} に ${voteType} 票を追加しました`);
   } catch (error) {
     console.error(`政策への ${voteType} 投票追加エラー:`, error);
+    throw error;
+  }
+};
+
+export const fetchPoliciesWithFilterAndSort = async (
+  categoryFilter: string,
+  partyFilter: string,
+  sortMethod: string,
+  lastDocumentId?: string,
+  docId?: string | undefined,
+  limitCount: number = 5
+): Promise<{
+  policies: Policy[];
+  lastDocumentId?: string;
+  hasMore: boolean;
+}> => {
+  try {
+    const policiesRef = collection(db, "policy");
+    let q;
+
+    // ソートのフィールドと方向を定義
+    let orderByField = "SupportRate";
+    let orderDirection: OrderByDirection = "desc";
+
+    switch (sortMethod) {
+      case "supportDesc":
+        orderByField = "SupportRate";
+        orderDirection = "desc";
+        break;
+      case "supportAsc":
+        orderByField = "SupportRate";
+        orderDirection = "asc";
+        break;
+      case "opposeDesc":
+        orderByField = "NonSupportRate";
+        orderDirection = "desc";
+        break;
+      // その他のソート方法
+    }
+
+    // クエリ構築のロジック
+    if (categoryFilter !== "all" && partyFilter !== "all") {
+      // カテゴリと政党の両方でフィルタリング
+      // 注意: これには複合インデックスが必要
+      if (!lastDocumentId) {
+        q = query(
+          policiesRef,
+          where("AffectedFields", "array-contains", categoryFilter),
+          where("name", "==", partyFilter),
+          orderBy(orderByField, orderDirection),
+          limit(limitCount)
+        );
+      } else {
+        const lastDoc = await getDoc(doc(db, "policy", lastDocumentId));
+        q = query(
+          policiesRef,
+          where("AffectedFields", "array-contains", categoryFilter),
+          where("name", "==", partyFilter),
+          orderBy(orderByField, orderDirection),
+          startAfter(lastDoc),
+          limit(limitCount)
+        );
+      }
+    } else if (categoryFilter !== "all") {
+      // カテゴリのみでフィルタリング
+      if (!lastDocumentId) {
+        q = query(
+          policiesRef,
+          where("AffectedFields", "array-contains", categoryFilter),
+          orderBy(orderByField, orderDirection),
+          limit(limitCount)
+        );
+      } else {
+        const lastDoc = await getDoc(doc(db, "policy", lastDocumentId));
+        q = query(
+          policiesRef,
+          where("AffectedFields", "array-contains", categoryFilter),
+          orderBy(orderByField, orderDirection),
+          startAfter(lastDoc),
+          limit(limitCount)
+        );
+      }
+    } else if (partyFilter !== "all") {
+      // 政党のみでフィルタリング
+      if (!lastDocumentId) {
+        q = query(
+          policiesRef,
+          where("name", "==", partyFilter),
+          orderBy(orderByField, orderDirection),
+          limit(limitCount)
+        );
+      } else {
+        const lastDoc = await getDoc(doc(db, "policy", lastDocumentId));
+        q = query(
+          policiesRef,
+          where("name", "==", partyFilter),
+          orderBy(orderByField, orderDirection),
+          startAfter(lastDoc),
+          limit(limitCount)
+        );
+      }
+    } else {
+      // フィルタなし、ソートのみ
+      if (!lastDocumentId) {
+        q = query(
+          policiesRef,
+          orderBy(orderByField, orderDirection),
+          limit(limitCount)
+        );
+      } else {
+        const lastDoc = await getDoc(doc(db, "policy", lastDocumentId));
+        q = query(
+          policiesRef,
+          orderBy(orderByField, orderDirection),
+          startAfter(lastDoc),
+          limit(limitCount)
+        );
+      }
+    }
+
+    // クエリ実行とデータ変換
+    const querySnapshot = await getDocs(q);
+    const policies = querySnapshot.docs.map((doc) =>
+      convertToPolicyObject(doc.id, doc.data())
+    );
+
+    const hasMore = policies.length === limitCount;
+    const lastVisibleDocument =
+      querySnapshot.docs[querySnapshot.docs.length - 1];
+
+    return {
+      policies,
+      lastDocumentId: lastVisibleDocument ? lastVisibleDocument.id : undefined,
+      hasMore,
+    };
+  } catch (error) {
+    console.error("政策データ取得エラー:", error);
     throw error;
   }
 };
