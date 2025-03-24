@@ -283,8 +283,8 @@ export const fetchPoliciesWithFilterAndSort = async (
   categoryFilter: string,
   partyFilter: string,
   sortMethod: string,
+  searchTerm: string = "",
   lastDocumentId?: string,
-  docId?: string | undefined,
   limitCount: number = 5
 ): Promise<{
   policies: Policy[];
@@ -312,94 +312,64 @@ export const fetchPoliciesWithFilterAndSort = async (
         orderByField = "NonSupportRate";
         orderDirection = "desc";
         break;
-      // その他のソート方法
     }
 
-    // クエリ構築のロジック
-    if (categoryFilter !== "all" && partyFilter !== "all") {
-      // カテゴリと政党の両方でフィルタリング
-      // 注意: これには複合インデックスが必要
-      if (!lastDocumentId) {
-        q = query(
-          policiesRef,
-          where("AffectedFields", "array-contains", categoryFilter),
-          where("name", "==", partyFilter),
-          orderBy(orderByField, orderDirection),
-          limit(limitCount)
-        );
-      } else {
+    // フィルタリングと検索の処理
+    const conditions: any[] = [];
+
+    if (categoryFilter !== "all") {
+      conditions.push(
+        where("AffectedFields", "array-contains", categoryFilter)
+      );
+    }
+
+    if (partyFilter !== "all") {
+      conditions.push(where("name", "==", partyFilter));
+    }
+
+    if (searchTerm.trim()) {
+      // クライアントサイドでの絞り込みは別途実装する
+    }
+
+    conditions.push(orderBy(orderByField, orderDirection));
+
+    // クエリ構築
+    if (lastDocumentId) {
+      try {
         const lastDoc = await getDoc(doc(db, "policy", lastDocumentId));
-        q = query(
-          policiesRef,
-          where("AffectedFields", "array-contains", categoryFilter),
-          where("name", "==", partyFilter),
-          orderBy(orderByField, orderDirection),
-          startAfter(lastDoc),
-          limit(limitCount)
-        );
-      }
-    } else if (categoryFilter !== "all") {
-      // カテゴリのみでフィルタリング
-      if (!lastDocumentId) {
-        q = query(
-          policiesRef,
-          where("AffectedFields", "array-contains", categoryFilter),
-          orderBy(orderByField, orderDirection),
-          limit(limitCount)
-        );
-      } else {
-        const lastDoc = await getDoc(doc(db, "policy", lastDocumentId));
-        q = query(
-          policiesRef,
-          where("AffectedFields", "array-contains", categoryFilter),
-          orderBy(orderByField, orderDirection),
-          startAfter(lastDoc),
-          limit(limitCount)
-        );
-      }
-    } else if (partyFilter !== "all") {
-      // 政党のみでフィルタリング
-      if (!lastDocumentId) {
-        q = query(
-          policiesRef,
-          where("name", "==", partyFilter),
-          orderBy(orderByField, orderDirection),
-          limit(limitCount)
-        );
-      } else {
-        const lastDoc = await getDoc(doc(db, "policy", lastDocumentId));
-        q = query(
-          policiesRef,
-          where("name", "==", partyFilter),
-          orderBy(orderByField, orderDirection),
-          startAfter(lastDoc),
-          limit(limitCount)
-        );
-      }
-    } else {
-      // フィルタなし、ソートのみ
-      if (!lastDocumentId) {
-        q = query(
-          policiesRef,
-          orderBy(orderByField, orderDirection),
-          limit(limitCount)
-        );
-      } else {
-        const lastDoc = await getDoc(doc(db, "policy", lastDocumentId));
-        q = query(
-          policiesRef,
-          orderBy(orderByField, orderDirection),
-          startAfter(lastDoc),
-          limit(limitCount)
-        );
+
+        if (lastDoc.exists()) {
+          conditions.push(startAfter(lastDoc));
+        } else {
+          console.warn(
+            `最後のドキュメントID ${lastDocumentId} が見つかりません`
+          );
+        }
+      } catch (docError) {
+        console.error("ドキュメント取得エラー:", docError);
       }
     }
 
-    // クエリ実行とデータ変換
+    conditions.push(limit(limitCount));
+
+    // クエリの実行
+    q = query(policiesRef, ...conditions);
+
     const querySnapshot = await getDocs(q);
-    const policies = querySnapshot.docs.map((doc) =>
+
+    // 検索語による追加のフィルタリング（クライアントサイド）
+    let policies = querySnapshot.docs.map((doc) =>
       convertToPolicyObject(doc.id, doc.data())
     );
+
+    if (searchTerm.trim()) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      policies = policies.filter(
+        (policy) =>
+          policy.title.toLowerCase().includes(lowerSearchTerm) ||
+          policy.description.toLowerCase().includes(lowerSearchTerm)
+      );
+    }
 
     const hasMore = policies.length === limitCount;
     const lastVisibleDocument =

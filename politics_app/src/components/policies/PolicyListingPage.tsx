@@ -138,6 +138,7 @@ const PolicyListingPage: React.FC = () => {
     refresh: boolean = false
   ) => {
     try {
+      // ローディング状態の管理
       if (refresh) {
         setIsLoading(true);
       } else {
@@ -163,24 +164,21 @@ const PolicyListingPage: React.FC = () => {
         sort,
         searchTerm,
         docId,
-        5
+        5 // ページあたりの表示件数
       );
 
+      // データの追加または置き換え
       if (refresh) {
         // 全データ置き換え
         setPolicies(result.policies);
 
-        // 表示数をリセット
-        setVisiblePoliciesCount(6);
-
-        // アニメーション終了後に状態をリセット（アニメーション実行後）
+        // アニメーション終了後に状態をリセット
         setTimeout(() => {
           setAnimateItems(false);
         }, 800);
       } else {
-        // 既存データに追加（無限スクロール用）
+        // 既存データに追加（重複を防ぐ）
         setPolicies((prev) => {
-          // 重複を除去（念のため）
           const existingIds = new Set(prev.map((p) => p.id));
           const newPolicies = result.policies.filter(
             (p) => !existingIds.has(p.id)
@@ -189,6 +187,7 @@ const PolicyListingPage: React.FC = () => {
         });
       }
 
+      // 状態の更新
       setLastDocumentId(result.lastDocumentId);
       setHasMore(result.hasMore);
 
@@ -197,17 +196,15 @@ const PolicyListingPage: React.FC = () => {
           result.hasMore ? "あり" : "なし"
         }`
       );
-
-      if (result.policies.length === 0 && refresh) {
-        console.log("現在のフィルタ条件に一致する政策はありません");
-      }
     } catch (error) {
       console.error("政策データ読み込みエラー:", error);
       setError("政策データの読み込みに失敗しました。もう一度お試しください。");
+
       if (refresh) {
         setPolicies([]); // エラー時はデータをクリア
       }
     } finally {
+      // ローディング状態の解除
       if (refresh) {
         setIsLoading(false);
       } else {
@@ -215,7 +212,6 @@ const PolicyListingPage: React.FC = () => {
       }
     }
   };
-
   // カテゴリとパーティのマスターデータを読み込む
   const loadCategoriesAndParties = async () => {
     try {
@@ -379,22 +375,14 @@ const PolicyListingPage: React.FC = () => {
   // ---- 無限スクロール ----
   // 無限スクロールのための追加読み込み処理
   const loadMorePolicies = () => {
-    if (!isLoadingMore && hasMore) {
+    // ロード中でなく、さらにデータがある場合のみ追加読み込み
+    if (!isLoading && !isLoadingMore && hasMore && lastDocumentId) {
       setIsLoadingMore(true);
 
-      // 意図的に読み込みを遅延させる（UXと過剰読み込み防止のため）
-      setTimeout(() => {
-        loadPolicies(
-          activeCategory,
-          activeParty,
-          sortMethod,
-          searchQuery,
-          false
-        );
-      }, 800); // 0.8秒の読み込み遅延を設定
+      // 追加データ読み込み
+      loadPolicies(activeCategory, activeParty, sortMethod, searchQuery, false);
     }
   };
-
   // ---- Effect Hooks ----
   // 初期ロード
   useEffect(() => {
@@ -462,21 +450,27 @@ const PolicyListingPage: React.FC = () => {
   // 無限スクロール検出のためのイベントリスナー
   useEffect(() => {
     const handleScroll = () => {
+      // スクロール位置が画面下部に近づいたかを判定
       if (
         window.innerHeight + document.documentElement.scrollTop + 100 >=
           document.documentElement.offsetHeight &&
+        !isLoading &&
         !isLoadingMore &&
-        hasMore
+        hasMore &&
+        lastDocumentId
       ) {
         loadMorePolicies();
       }
     };
 
+    // スクロールイベントリスナーの追加と削除
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [
+    isLoading,
     isLoadingMore,
     hasMore,
+    lastDocumentId,
     activeCategory,
     activeParty,
     sortMethod,
