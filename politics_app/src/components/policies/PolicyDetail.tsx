@@ -27,6 +27,7 @@ import {
   commonAnimations,
   styles,
 } from "../../utils/styleUtils";
+import { saveRecentlyViewedPolicy } from "../../utils/dataUtils";
 
 const PolicyDiscussionPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -58,6 +59,12 @@ const PolicyDiscussionPage = () => {
         if (policyData) {
           setPolicy(policyData);
           console.log("政策データを取得しました:", policyData);
+
+          // 最近見た政策として保存
+          saveRecentlyViewedPolicy({
+            id: policyData.id,
+            title: policyData.title,
+          });
         } else {
           setError("指定された政策データが見つかりませんでした");
         }

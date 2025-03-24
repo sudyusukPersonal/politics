@@ -15,11 +15,11 @@ import TrendIcon from "../common/TrendIcon";
 import EntityRatingsSection from "../common/EntityRatingsSectio";
 import { styles } from "../../utils/styleUtils";
 import UnifiedVoteComponent from "../common/UnifiedVoteComponent";
-
 import { CommentSection } from "../comments/OptimizedCommentSystem";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { Politician } from "../../types";
 import { fetchPoliticianById } from "../../services/politicianService";
+import { saveRecentlyViewedPolitician } from "../../utils/dataUtils"; // この行を追加
 
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +53,12 @@ const PoliticianDetail: React.FC = () => {
           setPolitician(politicianData);
           // Update in DataContext so other components can access it
           setSelectedPolitician(politicianData);
+
+          // 最近見た政治家リストに追加（この部分を追加）
+          saveRecentlyViewedPolitician({
+            id: politicianData.id,
+            name: politicianData.name,
+          });
         } else {
           setError("指定された政治家データが見つかりませんでした");
         }

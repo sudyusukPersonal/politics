@@ -1,60 +1,101 @@
 // src/components/home/PoliticiansTab.tsx
 import React, { useEffect, useState, useMemo } from "react";
-import { Users, BarChart3, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, FileText, ChevronRight } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
+import PolicyCard from "../policies/PolicyCard";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
-import { Politician } from "../../types";
+import {
+  getRecentlyViewedPoliticianIds,
+  getRecentlyViewedPolicyIds,
+} from "../../utils/dataUtils";
+import { fetchPolicyById } from "../../services/policyService";
 
 const PoliticiansTab: React.FC = () => {
-  const {
-    globalPoliticians,
-    dataInitialized,
-    getSortedPoliticians,
-    showAllPoliticiansList,
-    handlePoliticianSelect,
-  } = useData();
+  const navigate = useNavigate();
+  const { globalPoliticians, dataInitialized, showAllPoliticiansList } =
+    useData();
 
+  // 統合されたローディング状態
   const [loading, setLoading] = useState(true);
+  const [recentPolicies, setRecentPolicies] = useState<any[]>([]);
+  const [dataLoadingComplete, setDataLoadingComplete] = useState(false);
 
-  // Use global data directly when initialized
-  useEffect(() => {
-    // Simply check if data is initialized
-    if (dataInitialized) {
-      setLoading(false);
-    }
-  }, [dataInitialized]);
+  // 表示用の状態 - これが重要なポイント
+  const [isVisible, setIsVisible] = useState(false);
 
-  // Memoize sorted politicians to prevent unnecessary recomputation
-  const topPoliticians = useMemo(() => {
-    if (!globalPoliticians.length) return [];
-    return getSortedPoliticians(globalPoliticians).slice(0, 3);
-  }, [globalPoliticians, getSortedPoliticians]);
+  // 最近見た政治家のデータを取得
+  const recentlyViewedPoliticians = useMemo(() => {
+    if (!globalPoliticians?.length) return [];
 
-  // Memoize most active politicians
-  const mostActivePoliticians = useMemo(() => {
-    if (!globalPoliticians.length) return [];
-    return [...globalPoliticians]
-      .sort((a, b) => b.activity - a.activity)
+    const recentIds = getRecentlyViewedPoliticianIds();
+    if (recentIds.length === 0) return [];
+
+    return recentIds
+      .map((id) => globalPoliticians.find((p) => p.id === id))
+      .filter(Boolean)
       .slice(0, 3);
   }, [globalPoliticians]);
 
-  // Skeleton loading display
-  if (loading) {
+  // データ取得
+  useEffect(() => {
+    const initializeData = async () => {
+      if (!dataInitialized) return;
+
+      try {
+        setLoading(true);
+        setIsVisible(false); // 重要: データ取得中は表示をオフに
+
+        // 政策データを取得
+        const recentIds = getRecentlyViewedPolicyIds();
+        if (recentIds.length > 0) {
+          const policiesPromises = recentIds
+            .slice(0, 3)
+            .map((id) => fetchPolicyById(id));
+          const policiesData = await Promise.all(policiesPromises);
+          setRecentPolicies(policiesData.filter(Boolean));
+        }
+
+        // すべてのデータロードが完了
+        setDataLoadingComplete(true);
+      } catch (error) {
+        console.error("データの取得に失敗しました:", error);
+        setDataLoadingComplete(true);
+      } finally {
+        setLoading(false);
+
+        // データロード完了後、少し遅延させてから表示
+        setTimeout(() => {
+          setIsVisible(true);
+        }, 50); // 小さな遅延でDOM更新を確実に
+      }
+    };
+
+    initializeData();
+  }, [dataInitialized]);
+
+  // 政策一覧ページへのナビゲーション
+  const navigateToPolicyList = () => {
+    navigate("/policy");
+    window.scrollTo(0, 0);
+  };
+
+  // ロード中表示
+  if (loading && !dataLoadingComplete) {
     return (
       <div className="space-y-6">
-        {/* Skeleton: Premium banner */}
-        <div className="h-20 bg-gray-100 rounded-xl animate-pulse"></div>
+        {/* Premium banner */}
+        <PremiumBanner />
 
-        {/* Skeleton: Featured politicians card */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+        {/* スケルトンローディング - 両方のセクション用 */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 h-[300px]">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center">
             <div className="w-40 h-6 bg-gray-200 rounded animate-pulse"></div>
             <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
           </div>
-
           <div className="p-8 flex flex-col items-center justify-center">
             <LoadingAnimation
               type="spinner"
@@ -63,147 +104,159 @@ const PoliticiansTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Skeleton: Activity ranking card */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 p-4">
-          <div className="w-48 h-6 bg-gray-200 rounded animate-pulse mb-6"></div>
-          <div className="space-y-5">
-            {[1, 2, 3].map((_, index) => (
-              <div key={index} className="flex items-center">
-                <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse mr-3"></div>
-                <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse mr-3"></div>
-                <div className="flex-1">
-                  <div className="w-full max-w-[180px] h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
-                  <div className="w-full h-1.5 bg-gray-200 rounded-full animate-pulse"></div>
-                </div>
-              </div>
-            ))}
+        {/* 政策カードのスケルトン */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 h-[300px]">
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+            <div className="w-40 h-6 bg-gray-200 rounded animate-pulse"></div>
+            <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="p-8 flex flex-col items-center justify-center">
+            <LoadingAnimation
+              type="spinner"
+              message="政策データを読み込んでいます"
+            />
           </div>
         </div>
       </div>
     );
   }
 
+  // コンテンツ表示（データ取得済み）
   return (
     <section className="space-y-6">
       {/* Premium banner */}
       <PremiumBanner />
 
-      {/* Top politicians card */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
-        <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800 flex items-center">
-              <Users size={18} className="mr-2 text-indigo-600" />
-              注目の政治家
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              市民による評価が高い政治家
-            </p>
-          </div>
-
-          <button
-            onClick={() => showAllPoliticiansList()}
-            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
-          >
-            全議員を見る
-            <ChevronRight size={16} className="ml-1" />
-          </button>
-        </div>
-
-        <div>
-          {/* Display top politicians */}
-          {topPoliticians.length > 0 ? (
-            topPoliticians.map((politician, index) => (
-              <PoliticianCard
-                key={politician.id}
-                politician={politician}
-                index={index}
-              />
-            ))
-          ) : (
-            <div className="p-4 text-center text-gray-500">
-              データがありません
-            </div>
-          )}
-        </div>
-
-        {/* Ad banner */}
-        <InlineAdBanner format="rectangle" showCloseButton={true} />
-      </div>
-
-      {/* Activity ranking card */}
+      {/* 両方のセクションを共通のアニメーションでラップ */}
       <div
-        className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 p-4 animate-fadeIn"
-        style={{ animationDelay: "0.2s" }}
+        className={`transition-all duration-500 ease-in-out ${
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        }`}
       >
-        <h2 className="text-lg font-bold text-gray-800 flex items-center mb-4">
-          <BarChart3 size={18} className="mr-2 text-indigo-600" />
-          活動指数ランキング
-        </h2>
-        <div className="space-y-4">
-          {mostActivePoliticians.length > 0 ? (
-            mostActivePoliticians.map((politician, index) => (
-              <div
-                key={politician.id}
-                className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition"
-                onClick={() => handlePoliticianSelect(politician)}
-              >
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 font-bold text-gray-700 mr-3 flex-shrink-0">
-                  {index + 1}
-                </div>
-                <img
-                  src={politician.image}
-                  alt={politician.name}
-                  className="w-10 h-10 rounded-full object-cover border border-gray-200 mr-3 flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-medium text-sm truncate">
-                      {politician.name}
-                    </h3>
-                    <span className="font-bold text-indigo-600 flex-shrink-0">
-                      {politician.activity}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                    <div
-                      className="rounded-full h-full transition-all duration-500"
-                      style={{
-                        width: `${politician.activity}%`,
-                        backgroundColor: politician.party.color,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-4 text-center text-gray-500">
-              データがありません
+        {/* 最近見た政治家カード */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 mb-6">
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                <Users size={18} className="mr-2 text-indigo-600" />
+                最近見た政治家
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                あなたが最近閲覧した政治家
+              </p>
             </div>
-          )}
 
-          {/* Sponsored content */}
-          <div className="flex items-center p-2 rounded-lg bg-gray-50 border border-gray-200">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-500 mr-3 flex-shrink-0">
-              <span className="text-xs">PR</span>
-            </div>
-            <img
-              src="/api/placeholder/40/40"
-              alt="広告"
-              className="w-10 h-10 rounded-full object-cover border border-gray-200 mr-3 flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center">
-                <h3 className="font-medium text-sm truncate">
-                  選挙・政治情報アプリ
-                </h3>
-              </div>
-              <div className="text-xs text-gray-500 mt-0.5 truncate">
-                政治に関する詳しい情報はこちらから
-              </div>
-            </div>
+            <button
+              onClick={() => showAllPoliticiansList()}
+              className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
+            >
+              全議員を見る
+              <ChevronRight size={16} className="ml-1" />
+            </button>
           </div>
+
+          <div>
+            {/* 最近見た政治家を表示 */}
+            {recentlyViewedPoliticians.length > 0 ? (
+              recentlyViewedPoliticians.map((politician, index) => {
+                if (!politician) return null; // Ensure politician is defined
+                return (
+                  <PoliticianCard
+                    key={politician.id}
+                    politician={politician}
+                    index={index}
+                  />
+                );
+              })
+            ) : (
+              <div className="p-6 text-center">
+                <div className="text-gray-500 mb-4">
+                  まだ政治家プロフィールを閲覧していません
+                </div>
+
+                <button
+                  onClick={() => showAllPoliticiansList()}
+                  className="group relative overflow-hidden rounded-lg bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-3 text-white shadow-lg transition-all duration-300 hover:shadow-slate-300/30 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+                >
+                  {/* ボタン内容 */}
+                  <span className="absolute inset-0 bg-gradient-to-r from-slate-700 to-slate-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"></span>
+                  <span className="relative flex items-center justify-center">
+                    <Users size={18} className="mr-2 animate-pulse" />
+                    全議員一覧を見る
+                    <span className="ml-2 group-hover:translate-x-1 transition-transform duration-300">
+                      →
+                    </span>
+                  </span>
+                </button>
+
+                <div className="mt-4 text-xs text-gray-400 max-w-xs mx-auto">
+                  政治家プロフィールを閲覧すると、このセクションに最近見た政治家が表示されます
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Ad banner */}
+          {/* <InlineAdBanner format="rectangle" showCloseButton={true} /> */}
+        </div>
+
+        {/* 最近見た政策カード */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 min-h-[200px]">
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                <FileText size={18} className="mr-2 text-indigo-600" />
+                最近見た政策
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                あなたが最近閲覧した政策
+              </p>
+            </div>
+
+            <button
+              onClick={navigateToPolicyList}
+              className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
+            >
+              全政策を見る
+              <ChevronRight size={16} className="ml-1" />
+            </button>
+          </div>
+
+          <div>
+            {recentPolicies.length > 0 ? (
+              recentPolicies.map((policy, index) => (
+                <PolicyCard key={policy.id} policy={policy} index={index} />
+              ))
+            ) : (
+              <div className="p-6 text-center">
+                <div className="text-gray-500 mb-4">
+                  まだ政策を閲覧していません
+                </div>
+
+                <button
+                  onClick={navigateToPolicyList}
+                  className="group relative overflow-hidden rounded-lg bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-3 text-white shadow-lg transition-all duration-300 hover:shadow-slate-300/30 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+                >
+                  {/* ボタン内容 */}
+                  <span className="absolute inset-0 bg-gradient-to-r from-slate-700 to-slate-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"></span>
+                  <span className="relative flex items-center justify-center">
+                    <FileText size={18} className="mr-2 animate-pulse" />
+                    全政策一覧を見る
+                    <span className="ml-2 group-hover:translate-x-1 transition-transform duration-300">
+                      →
+                    </span>
+                  </span>
+                </button>
+
+                <div className="mt-4 text-xs text-gray-400 max-w-xs mx-auto">
+                  政策を閲覧すると、このセクションに最近見た政策が表示されます
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 政策タブ用の広告バナー */}
+          {/* <InlineAdBanner format="rectangle" showCloseButton={true} /> */}
         </div>
       </div>
     </section>

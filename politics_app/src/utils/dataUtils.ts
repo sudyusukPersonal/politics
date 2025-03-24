@@ -257,3 +257,138 @@ export const searchPoliticians = (keyword: string): Politician[] => {
     return name.includes(searchTerm) || furigana.includes(searchTerm);
   });
 };
+
+// src/utils/dataUtils.ts の末尾に追加
+
+/**
+ * 最近見た政治家のデータをlocalStorageに保存する
+ * 最新の閲覧が先頭に来るように並び替え、最大5件まで保持する
+ */
+export const saveRecentlyViewedPolitician = (politician: {
+  id: string;
+  name: string;
+}) => {
+  try {
+    // localStorage から既存のデータを取得
+    const recentlyViewedString = localStorage.getItem(
+      "recentlyViewedPoliticians"
+    );
+    let recentlyViewed: { id: string; name: string; timestamp: number }[] = [];
+
+    if (recentlyViewedString) {
+      recentlyViewed = JSON.parse(recentlyViewedString);
+    }
+
+    // 既に同じIDが存在する場合は一度削除（重複を防ぐため）
+    const existingIndex = recentlyViewed.findIndex(
+      (item) => item.id === politician.id
+    );
+    if (existingIndex !== -1) {
+      recentlyViewed.splice(existingIndex, 1);
+    }
+
+    // 新しい項目を先頭に追加（タイムスタンプ付き）
+    recentlyViewed.unshift({
+      id: politician.id,
+      name: politician.name,
+      timestamp: Date.now(),
+    });
+
+    // 最大5件まで保持
+    if (recentlyViewed.length > 5) {
+      recentlyViewed = recentlyViewed.slice(0, 5);
+    }
+
+    // localStorageに保存
+    localStorage.setItem(
+      "recentlyViewedPoliticians",
+      JSON.stringify(recentlyViewed)
+    );
+
+    console.log("最近見た政治家を保存しました:", politician.name);
+  } catch (error) {
+    console.error("LocalStorageへの保存に失敗しました:", error);
+  }
+};
+
+/**
+ * localStorageから最近見た政治家のIDリストを取得する
+ * 閲覧した順（新しい順）で返される
+ */
+export const getRecentlyViewedPoliticianIds = (): string[] => {
+  try {
+    const recentlyViewedString = localStorage.getItem(
+      "recentlyViewedPoliticians"
+    );
+    if (!recentlyViewedString) {
+      return [];
+    }
+
+    const recentlyViewed = JSON.parse(recentlyViewedString);
+    return recentlyViewed.map((item: { id: string }) => item.id);
+  } catch (error) {
+    console.error("LocalStorageからの読み込みに失敗しました:", error);
+    return [];
+  }
+};
+
+export const saveRecentlyViewedPolicy = (policy: {
+  id: string;
+  title: string;
+}) => {
+  try {
+    // localStorage から既存のデータを取得
+    const recentlyViewedString = localStorage.getItem("recentlyViewedPolicies");
+    let recentlyViewed: { id: string; title: string; timestamp: number }[] = [];
+
+    if (recentlyViewedString) {
+      recentlyViewed = JSON.parse(recentlyViewedString);
+    }
+
+    // 既に同じIDが存在する場合は一度削除
+    const existingIndex = recentlyViewed.findIndex(
+      (item) => item.id === policy.id
+    );
+    if (existingIndex !== -1) {
+      recentlyViewed.splice(existingIndex, 1);
+    }
+
+    // 新しい項目を先頭に追加（タイムスタンプ付き）
+    recentlyViewed.unshift({
+      id: policy.id,
+      title: policy.title,
+      timestamp: Date.now(),
+    });
+
+    // 最大5件まで保持
+    if (recentlyViewed.length > 5) {
+      recentlyViewed = recentlyViewed.slice(0, 5);
+    }
+
+    // localStorageに保存
+    localStorage.setItem(
+      "recentlyViewedPolicies",
+      JSON.stringify(recentlyViewed)
+    );
+
+    console.log("最近見た政策を保存しました:", policy.title);
+  } catch (error) {
+    console.error("LocalStorageへの政策保存に失敗しました:", error);
+  }
+};
+
+// 最近見た政策のIDリストを取得
+export const getRecentlyViewedPolicyIds = (): string[] => {
+  try {
+    const recentlyViewedString = localStorage.getItem("recentlyViewedPolicies");
+    if (!recentlyViewedString) {
+      return [];
+    }
+
+    const recentlyViewed = JSON.parse(recentlyViewedString);
+    return recentlyViewed.map((item: { id: string }) => item.id);
+  } catch (error) {
+    console.error("LocalStorageからの政策読み込みに失敗しました:", error);
+    return [];
+  }
+};
