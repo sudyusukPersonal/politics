@@ -1,11 +1,13 @@
+// src/services/authService.ts
 import {
   getAuth,
-  signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   TwitterAuthProvider,
   signOut,
   onAuthStateChanged,
   User,
+  getRedirectResult,
 } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
 
@@ -13,24 +15,41 @@ import { auth } from "../config/firebaseConfig";
 const googleProvider = new GoogleAuthProvider();
 const twitterProvider = new TwitterAuthProvider();
 
-// Simple function to handle Google sign-in
+// Function to handle Google sign-in with redirect
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return { success: true, user: result.user };
+    await signInWithRedirect(auth, googleProvider);
+    return { success: true };
   } catch (error) {
     console.error("Google login error:", error);
     return { success: false, error };
   }
 };
 
-// Simple function to handle Twitter sign-in
+// Function to handle Twitter sign-in with redirect
 export const signInWithTwitter = async () => {
   try {
-    const result = await signInWithPopup(auth, twitterProvider);
-    return { success: true, user: result.user };
+    await signInWithRedirect(auth, twitterProvider);
+    return { success: true };
   } catch (error) {
     console.error("Twitter login error:", error);
+    return { success: false, error };
+  }
+};
+
+// Function to handle redirect result
+export const handleRedirectResult = async () => {
+  try {
+    console.log("Checking for redirect result...");
+    const result = await getRedirectResult(auth);
+    if (result) {
+      console.log("Redirect result found:", result.user?.displayName);
+      return { success: true, user: result.user };
+    }
+    console.log("No redirect result found");
+    return { success: false, user: null };
+  } catch (error) {
+    console.error("Redirect result error:", error);
     return { success: false, error };
   }
 };

@@ -1,5 +1,5 @@
 // src/components/auth/LoginButton.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { User } from "lucide-react";
 import {
   signInWithGoogle,
@@ -9,32 +9,40 @@ import {
 import { useAuth } from "../../context/AuthContext";
 
 const LoginButton: React.FC = () => {
-  const { currentUser, isAuthenticated, showAuthMessage } = useAuth();
+  const { currentUser, isAuthenticated, isAuthLoading, showAuthMessage } =
+    useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Debug log for current state
+  useEffect(() => {
+    console.log(
+      "LoginButton component state:",
+      isAuthenticated ? "Authenticated" : "Not authenticated",
+      currentUser?.displayName || "",
+      "Loading:",
+      isAuthLoading
+    );
+  }, [currentUser, isAuthenticated, isAuthLoading]);
+
   const handleGoogleLogin = async () => {
-    const result = await signInWithGoogle();
-    if (result.success) {
-      showAuthMessage(
-        `認証できました。ようこそ、${
-          result.user?.displayName || "ユーザー"
-        }さん！`
-      );
-    } else {
+    try {
+      console.log("Starting Google login redirect...");
+      await signInWithGoogle();
+      // The actual success message will be shown after redirect completes
+    } catch (error) {
+      console.error("Google login error:", error);
       showAuthMessage("認証に失敗しました。");
     }
     setIsMenuOpen(false);
   };
 
   const handleTwitterLogin = async () => {
-    const result = await signInWithTwitter();
-    if (result.success) {
-      showAuthMessage(
-        `認証できました。ようこそ、${
-          result.user?.displayName || "ユーザー"
-        }さん！`
-      );
-    } else {
+    try {
+      console.log("Starting Twitter login redirect...");
+      await signInWithTwitter();
+      // The actual success message will be shown after redirect completes
+    } catch (error) {
+      console.error("Twitter login error:", error);
       showAuthMessage("認証に失敗しました。");
     }
     setIsMenuOpen(false);
@@ -65,6 +73,9 @@ const LoginButton: React.FC = () => {
           <span className="ml-2 text-xs hidden sm:inline-block">
             {currentUser?.displayName?.split(" ")[0] || "ユーザー"}
           </span>
+        )}
+        {isAuthLoading && (
+          <span className="ml-2 text-xs animate-pulse">読込中...</span>
         )}
       </button>
 
