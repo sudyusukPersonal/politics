@@ -1,7 +1,7 @@
 // src/services/authService.ts
 import {
   getAuth,
-  signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   TwitterAuthProvider,
   signOut,
@@ -10,49 +10,49 @@ import {
 } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
 
-// Create providers
+// プロバイダーを作成
 const googleProvider = new GoogleAuthProvider();
 const twitterProvider = new TwitterAuthProvider();
 
-// Simple function to handle Google sign-in
+// Googleでサインインする関数
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return { success: true, user: result.user };
+    await signInWithRedirect(auth, googleProvider);
+    return { success: true };
   } catch (error) {
-    console.error("Google login error:", error);
+    console.error("Googleログインエラー:", error);
     return { success: false, error };
   }
 };
 
-// Simple function to handle Twitter sign-in
+// Twitterでサインインする関数
 export const signInWithTwitter = async () => {
   try {
-    const result = await signInWithPopup(auth, twitterProvider);
-    return { success: true, user: result.user };
+    await signInWithRedirect(auth, twitterProvider);
+    return { success: true };
   } catch (error) {
-    console.error("Twitter login error:", error);
+    console.error("Twitterログインエラー:", error);
     return { success: false, error };
   }
 };
 
-// Simple function to handle sign-out
+// サインアウトする関数
 export const logOut = async () => {
   try {
     await signOut(auth);
     return { success: true };
   } catch (error) {
-    console.error("Logout error:", error);
+    console.error("ログアウトエラー:", error);
     return { success: false, error };
   }
 };
 
-// Function to get the current user
+// 現在のユーザーを取得する関数
 export const getCurrentUser = () => {
   return auth.currentUser;
 };
 
-// Setup auth state listener
+// 認証状態の変更を監視する関数
 export const subscribeToAuthChanges = (
   callback: (user: User | null) => void
 ) => {
