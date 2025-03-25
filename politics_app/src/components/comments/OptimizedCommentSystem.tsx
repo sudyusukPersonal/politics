@@ -22,11 +22,11 @@ import { useReplyData } from "../../context/ReplyDataContext";
 import { useData } from "../../context/DataContext";
 import InlineAdBanner from "../ads/InlineAdBanner";
 
-// ===== 共通ユーティリティ =====
-// 匿名ユーザー情報（再利用）
+// ===== 共通ユーティリティと定数 =====
+// 匿名ユーザー情報
 const MOCK_USER = { uid: "user_anonymous", displayName: "匿名ユーザー" };
 
-// 日付フォーマット（一度だけ定義して再利用）
+// 日付フォーマット
 const formatDate = (date: string | Date) =>
   new Date(date).toLocaleString("ja-JP", {
     year: "numeric",
@@ -36,43 +36,104 @@ const formatDate = (date: string | Date) =>
     minute: "2-digit",
   });
 
-// スタイルの共通定義（JSXの重複を削減）
+// 共通スタイル定義
 const STYLES = {
-  highlight: `@keyframes highlight-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
-  }
-  .comment-highlight {
-    animation: highlight-pulse 2s 1;
-    scroll-margin-top: 80px;
-  }`,
-  likeButton: (isLiked: boolean) =>
-    `flex items-center text-xs ${
-      isLiked
-        ? "bg-indigo-100 text-indigo-600 cursor-default"
-        : "bg-white text-gray-600 hover:bg-indigo-50 hover:text-indigo-700"
-    } px-2 py-1 rounded-full shadow-sm transition`,
-  replyToggle: "flex items-center text-xs text-gray-500 hover:text-gray-700",
-  commentBase: (highlighted: boolean, type: string) =>
-    `rounded-xl p-4 border transition duration-500 ${
-      highlighted
-        ? type === "support"
-          ? "bg-green-100 border-green-300 shadow-md animate-pulse"
-          : "bg-red-100 border-red-300 shadow-md animate-pulse"
-        : type === "support"
-        ? "bg-green-50 border-green-100 hover:shadow-md"
-        : "bg-red-50 border-red-100 hover:shadow-md"
-    }`,
+  // アニメーションCSS
+  css: `
+    @keyframes highlight-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+    }
+    .comment-highlight {
+      animation: highlight-pulse 2s 1;
+      scroll-margin-top: 80px;
+    }
+  `,
+  // ボタンスタイル
+  button: {
+    like: (isLiked: boolean) =>
+      `flex items-center text-xs ${
+        isLiked
+          ? "bg-indigo-100 text-indigo-600 cursor-default"
+          : "bg-white text-gray-600 hover:bg-indigo-50 hover:text-indigo-700"
+      } px-2 py-1 rounded-full shadow-sm transition`,
+    reply: "text-xs text-indigo-600 hover:text-indigo-800 transition",
+    toggle: "flex items-center text-xs text-gray-500 hover:text-gray-700",
+    sort: (
+      isActive: boolean
+    ) => `w-full text-left px-4 py-2 text-sm flex items-center transition-colors
+        ${
+          isActive
+            ? "bg-indigo-50 text-indigo-600 font-medium"
+            : "text-gray-700 hover:bg-gray-50"
+        }`,
+  },
+  // コンテナスタイル
+  container: {
+    comment: (highlighted: boolean, type: string) =>
+      `rounded-xl p-4 border transition duration-500 ${
+        highlighted
+          ? type === "support"
+            ? "bg-green-100 border-green-300 shadow-md animate-pulse"
+            : "bg-red-100 border-red-300 shadow-md animate-pulse"
+          : type === "support"
+          ? "bg-green-50 border-green-100 hover:shadow-md"
+          : "bg-red-50 border-red-100 hover:shadow-md"
+      }`,
+    reply: "rounded-lg p-3 border bg-white border-gray-100",
+    replyForm:
+      "mt-3 p-3 bg-white rounded-lg border border-gray-200 animate-slideUp",
+    replyList: "mt-2 pl-2 ml-2 border-l-2 border-gray-200",
+  },
 };
 
-// ソートの種類を定義
+// ソートタイプ定義
 type SortType = "latest" | "replies" | "support" | "oppose";
 
-// ===== メインのコメントセクションコンポーネント =====
+// ヘルパー関数
+// ソートラベル取得
+const getSortLabel = (type: SortType): string => {
+  switch (type) {
+    case "latest":
+      return "新着順";
+    case "replies":
+      return "返信の多い順";
+    case "support":
+      return "支持コメント";
+    case "oppose":
+      return "不支持コメント";
+    default:
+      return "並び順";
+  }
+};
+
+// ユーザーデータの正規化
+const normalizeUserData = (comment: any, isReply: boolean) => {
+  return {
+    name: isReply ? comment.userName || comment.user_name : comment.userName,
+    id: isReply ? comment.userID || comment.user_id : comment.userID,
+  };
+};
+
+// 返信参照情報の取得
+const getReplyReference = (reply: any) => {
+  return (
+    reply.reply_to ||
+    (reply.replyTo
+      ? {
+          reply_id: reply.replyTo?.replyID,
+          reply_to_user_id: reply.replyTo?.replyToUserID,
+          reply_to_username: reply.replyTo?.replyToUserName,
+        }
+      : null)
+  );
+};
+
+// ===== メインコメントセクションコンポーネント =====
 export const CommentSection: React.FC<{
   entityId?: string;
-  entityType?: "politician" | "policy" | "party"; // "party"を追加
+  entityType?: "politician" | "policy" | "party";
 }> = ({ entityId, entityType = "politician" }) => {
   const { id } = useParams<{ id: string }>();
   const targetId = entityId || id;
@@ -83,13 +144,10 @@ export const CommentSection: React.FC<{
     fetchCommentsByPolitician,
     newCommentId,
   } = useReplyData();
-  const { handleVoteClick } = useData();
 
-  // ソート方法の状態
+  // ソート状態
   const [sortType, setSortType] = useState<SortType>("latest");
-  // ドロップダウンの表示状態
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  // ドロップダウン参照（外側クリック検出用）
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // データ読み込み
@@ -97,7 +155,7 @@ export const CommentSection: React.FC<{
     targetId && fetchCommentsByPolitician(targetId);
   }, [targetId, fetchCommentsByPolitician]);
 
-  // ドロップダウン外のクリックを検出して閉じる
+  // ドロップダウン外クリック検出
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -107,59 +165,34 @@ export const CommentSection: React.FC<{
         setShowSortDropdown(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ソートタイプに応じたラベルを取得
-  const getSortLabel = (type: SortType): string => {
-    switch (type) {
-      case "latest":
-        return "新着順";
-      case "replies":
-        return "返信の多い順";
-      case "support":
-        return "支持コメント";
-      case "oppose":
-        return "不支持コメント";
-      default:
-        return "並び順";
-    }
-  };
-
-  // ソートされたコメントリストを計算
+  // ソートされたコメントリスト
   const sortedComments = useMemo(() => {
     if (!comments.length) return [];
 
     switch (sortType) {
       case "latest":
-        // 日付の新しい順（降順）に並べる
         return [...comments].sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       case "replies":
-        // 返信数の多い順に並べる
         return [...comments].sort((a, b) => b.repliesCount - a.repliesCount);
       case "support":
-        // 支持コメントを先に表示
         return [...comments].sort((a, b) => {
           if (a.type === "support" && b.type !== "support") return -1;
           if (a.type !== "support" && b.type === "support") return 1;
-          // 同じタイプの場合は日付順
           return (
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
         });
       case "oppose":
-        // 不支持コメントを先に表示
         return [...comments].sort((a, b) => {
           if (a.type === "oppose" && b.type !== "oppose") return -1;
           if (a.type !== "oppose" && b.type === "oppose") return 1;
-          // 同じタイプの場合は日付順
           return (
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
@@ -169,10 +202,11 @@ export const CommentSection: React.FC<{
     }
   }, [comments, sortType]);
 
-  // コメント数と種類のサマリーを表示 - 位置の修正のみ
+  // コメントサマリーのレンダリング
   const renderCommentSummary = () => {
     const supportCount = comments.filter((c) => c.type === "support").length;
     const opposeCount = comments.filter((c) => c.type === "oppose").length;
+
     return (
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
@@ -181,7 +215,7 @@ export const CommentSection: React.FC<{
             {comments.length}件のコメント
           </h3>
 
-          {/* ソートボタン - 位置を同じ高さに、色だけ変更 */}
+          {/* ソートボタン */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
@@ -197,10 +231,7 @@ export const CommentSection: React.FC<{
             </button>
 
             {showSortDropdown && (
-              <div
-                className="absolute top-full right-0 mt-1 w-44 bg-white rounded-md shadow-lg z-20 py-1 border border-gray-200
-              overflow-hidden"
-              >
+              <div className="absolute top-full right-0 mt-1 w-44 bg-white rounded-md shadow-lg z-20 py-1 border border-gray-200 overflow-hidden">
                 {(["latest", "replies", "support", "oppose"] as SortType[]).map(
                   (type) => (
                     <button
@@ -209,12 +240,7 @@ export const CommentSection: React.FC<{
                         setSortType(type);
                         setShowSortDropdown(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-sm flex items-center transition-colors
-                      ${
-                        sortType === type
-                          ? "bg-indigo-50 text-indigo-600 font-medium"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
+                      className={STYLES.button.sort(sortType === type)}
                     >
                       <span
                         className={`w-2 h-2 rounded-full mr-2 ${
@@ -230,7 +256,7 @@ export const CommentSection: React.FC<{
           </div>
         </div>
 
-        {/* コメント件数表示を下に移動 */}
+        {/* コメント件数表示 */}
         <div className="flex space-x-2 text-xs">
           <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center">
             <ThumbsUp size={12} className="mr-1" />
@@ -244,37 +270,6 @@ export const CommentSection: React.FC<{
       </div>
     );
   };
-
-  // 共通の追加コメントボタン
-  // const renderAddCommentButton = () => (
-  //   <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 my-6 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
-  //     <span className="text-sm text-gray-700">
-  //       <MessageSquare size={16} className="inline mr-1" />
-  //       あなたも{entityType === "politician" ? "この政治家" : "この政策"}
-  //       に対する評価を投稿できます
-  //     </span>
-  //     <div className="flex space-x-2">
-  //       {["support", "oppose"].map((type) => (
-  //         <button
-  //           key={type}
-  //           onClick={() => handleVoteClick(type as "support" | "oppose")}
-  //           className={`px-4 py-1.5 ${
-  //             type === "support"
-  //               ? "bg-green-500 hover:bg-green-600"
-  //               : "bg-red-500 hover:bg-red-600"
-  //           } text-white text-sm rounded-full flex items-center transition`}
-  //         >
-  //           {type === "support" ? (
-  //             <ThumbsUp size={14} className="mr-1" />
-  //           ) : (
-  //             <ThumbsDown size={14} className="mr-1" />
-  //           )}
-  //           支持{type === "oppose" ? "しない" : "する"}
-  //         </button>
-  //       ))}
-  //     </div>
-  //   </div>
-  // );
 
   // ローディング状態
   if (isLoadingComments) {
@@ -308,26 +303,17 @@ export const CommentSection: React.FC<{
   // 最終レンダリング
   return (
     <>
-      <style>{STYLES.highlight}</style>
+      <style>{STYLES.css}</style>
       <InlineAdBanner format="rectangle" showCloseButton={true} />
-      {/* {renderAddCommentButton()} */}
-      {renderCommentSummary()}{" "}
-      {/* この中にソートボタンも含まれるようになりました */}
+      {renderCommentSummary()}
       <div className="space-y-2">
-        {sortedComments.map((comment, index) => (
-          <React.Fragment key={comment.id}>
-            <CommentItem
-              comment={comment}
-              type={comment.type}
-              isNew={newCommentId === comment.id}
-            />
-            {/* 3番目のコメントの後に広告を表示 */}
-            {/* {index === 2 && sortedComments.length > 3 && (
-              <div className="my-4 flex justify-center">
-                <InlineAdBanner format="rectangle" showCloseButton={true} />
-              </div>
-            )} */}
-          </React.Fragment>
+        {sortedComments.map((comment) => (
+          <CommentItem
+            key={comment.id}
+            comment={comment}
+            type={comment.type}
+            isNew={newCommentId === comment.id}
+          />
         ))}
 
         {/* コメントがない場合の表示 */}
@@ -350,7 +336,6 @@ interface CommentItemProps {
   parentComment?: Comment;
 }
 
-// 統合されたコメントアイテムコンポーネント - コメントとリプライの両方を処理
 export const CommentItem: React.FC<CommentItemProps> = ({
   comment,
   type,
@@ -403,7 +388,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const openReplyForm = () => setIsReplyFormVisible(true);
   const closeReplyForm = () => setIsReplyFormVisible(false);
 
-  // いいねハンドラー - 最適化（リプライとコメントで共通の処理）
+  // いいねハンドラー
   const handleLike = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (!isLiked) {
@@ -414,26 +399,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
-  // レンダー関数 - リプライの場合とコメントの場合で条件分岐
-  // 返信対象情報の正規化（クライアント/サーバー命名規則の両方に対応）
+  // ユーザーとリプライデータの正規化
+  const user = normalizeUserData(comment, isReply);
   const replyTo = isReply
-    ? (comment as unknown as Reply).reply_to ||
-      ((comment as unknown as Reply).replyTo
-        ? {
-            reply_id: (comment as unknown as Reply).replyTo?.replyID,
-            reply_to_user_id: (comment as unknown as Reply).replyTo
-              ?.replyToUserID,
-            reply_to_username: (comment as unknown as Reply).replyTo
-              ?.replyToUserName,
-          }
-        : null)
+    ? getReplyReference(comment as unknown as Reply)
     : null;
-
-  // ユーザー名の正規化
-  const userName = isReply
-    ? (comment as unknown as Reply).userName ||
-      (comment as unknown as Reply).user_name
-    : comment.userName;
 
   return (
     <div
@@ -444,11 +414,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       <div
         className={
           isReply
-            ? "rounded-lg p-3 border bg-white border-gray-100"
-            : STYLES.commentBase(highlighted, type)
+            ? STYLES.container.reply
+            : STYLES.container.comment(highlighted, type)
         }
       >
-        {/* Reply reference header - リプライの場合のみ表示 */}
+        {/* 返信参照ヘッダー - リプライの場合のみ */}
         {isReply && replyTo && (
           <div className="flex items-center mb-2 text-xs text-gray-500">
             <CornerDownRight size={12} className="mr-1" />
@@ -459,15 +429,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           </div>
         )}
 
-        {/* コメント本文 - スタイルのみ条件分岐 */}
+        {/* コメント本文 */}
         <p className={`text-gray-700 ${isReply ? "text-sm" : ""}`}>
           {comment.text}
         </p>
 
-        {/* メタデータ＆アクション - 共通化 */}
+        {/* メタデータ＆アクション */}
         <div className="flex justify-between mt-2 items-center">
           <div className="flex items-center text-xs text-gray-500">
-            <span className="font-medium">{userName}</span>
+            <span className="font-medium">{user.name}</span>
             <span className="mx-2">•</span>
             <span>{formatDate(comment.createdAt)}</span>
           </div>
@@ -476,25 +446,22 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             <button
               onClick={handleLike}
               disabled={isLiked}
-              className={STYLES.likeButton(isLiked)}
+              className={STYLES.button.like(isLiked)}
             >
               <ThumbsUp size={isReply ? 10 : 12} className="mr-1" />
               <span>{comment.likes}</span>
             </button>
 
-            <button
-              className="text-xs text-indigo-600 hover:text-indigo-800 transition"
-              onClick={openReplyForm}
-            >
+            <button className={STYLES.button.reply} onClick={openReplyForm}>
               返信
             </button>
           </div>
         </div>
 
-        {/* 返信トグル - 非リプライかつ返信がある場合のみ表示 */}
+        {/* 返信トグル - 非リプライかつ返信がある場合のみ */}
         {!isReply && comment.repliesCount > 0 && (
           <div className="mt-3 pt-2 border-t border-gray-200">
-            <button className={STYLES.replyToggle} onClick={toggleReplies}>
+            <button className={STYLES.button.toggle} onClick={toggleReplies}>
               <MessageSquare size={14} className="mr-1" />
               <span>{comment.repliesCount} 返信</span>
               {isRepliesExpanded ? (
@@ -518,7 +485,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
       {/* 返信一覧 - 展開時のみ表示 */}
       {!isReply && isRepliesExpanded && comment.replies?.length > 0 && (
-        <div className="mt-2 pl-2 ml-2 border-l-2 border-gray-200">
+        <div className={STYLES.container.replyList}>
           {comment.replies.map((reply) => (
             <CommentItem
               key={reply.id}
@@ -603,7 +570,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
       : "";
 
   return (
-    <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200 animate-slideUp">
+    <div className={STYLES.container.replyForm}>
       <form onSubmit={handleSubmit}>
         {/* 返信対象表示 */}
         {replyingTo && (
