@@ -188,7 +188,7 @@ const AllPoliticiansList: React.FC = () => {
         loadPoliticians(nextPage, currentSort, currentParty, false);
         // Update URL without triggering a reload
         updateUrl(nextPage, currentSort, currentParty);
-      }, 800); // 0.8秒の読み込み遅延を設定
+      }, 300); // 0.8秒の読み込み遅延を設定
     }
   };
 

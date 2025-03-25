@@ -1,4 +1,5 @@
-// src/services/politicianService.ts
+// Modified politicianService.ts with Firebase Storage integration
+
 import {
   doc,
   getDoc,
@@ -14,6 +15,7 @@ import {
   startAfter,
   OrderByDirection,
 } from "firebase/firestore";
+import { getStorage, ref, getDownloadURL } from "firebase/storage"; // Import Firebase Storage
 import { db } from "../config/firebaseConfig";
 import { Politician, Party } from "../types";
 
@@ -48,17 +50,6 @@ const generatePartyId = (partyName: string): string => {
   return `party-${partyName.replace(/\s+/g, "-")}`;
 };
 
-// Get local image path based on politician name
-const getLocalImagePath = (name: string): string => {
-  try {
-    // Encode name to create a safe URL
-    return `/images/${encodeURIComponent(name)}.jpg`;
-  } catch (error) {
-    console.warn(`画像が見つかりません: ${name}.jpg`);
-    return "/api/placeholder/80/80";
-  }
-};
-
 const getPartyID = (affiliation: string): string => {
   switch (affiliation) {
     case "自由民主党":
@@ -84,58 +75,21 @@ const getPartyID = (affiliation: string): string => {
   }
 };
 
-// Function to convert Firestore data to Politician type
-const convertToPolitician = (id: string, data: any): Politician => {
-  // Create a party object from the affiliation
-  const party = {
-    id: getPartyID(data.affiliation || ""),
-    name: data.affiliation || "",
-    color: getPartyColor(data.affiliation || ""),
-  };
-
-  // Calculate support/oppose rates
-  const totalVotes = (data.supportCount || 0) + (data.opposeCount || 0);
-  const supportRate =
-    data.supportRate ||
-    (totalVotes > 0
-      ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
-      : 50); // Default to 50% if no votes or supportRate field
-
-  return {
-    id,
-    name: data.name || "",
-    furigana: data.furigana || "",
-    position: data.type || "議員",
-    region: data.region || "",
-    age: data.age || Math.floor(Math.random() * 30) + 35, // Default age if not provided
-    party,
-    supportRate,
-    opposeRate: 100 - supportRate,
-    totalVotes: data.totalVotes || totalVotes || 0,
-    activity: data.activity || Math.floor(Math.random() * 40) + 50, // Random activity score
-    image: data.imageUrl || getLocalImagePath(data.name || ""), // Use local image path based on name
-    trending: data.trending || (Math.random() > 0.5 ? "up" : "down"), // Random trend if not provided
-    recentActivity: data.recentActivity || "最近の活動情報",
-  };
-};
-
-// Fetch a politician by ID
-export const fetchPoliticianById = async (
-  id: string
-): Promise<Politician | null> => {
+// Get Firebase Storage image URL for politician
+export const getPoliticianImageUrl = async (
+  politicianName: string
+): Promise<string> => {
   try {
-    const politicianRef = doc(db, "politicians", id);
-    const politicianSnap = await getDoc(politicianRef);
+    const storage = getStorage();
+    const imagePath = `list_images/${encodeURIComponent(politicianName)}.jpg`;
+    const imageRef = ref(storage, imagePath);
 
-    if (politicianSnap.exists()) {
-      return convertToPolitician(id, politicianSnap.data());
-    } else {
-      console.error(`Politician with ID ${id} not found`);
-      return null;
-    }
+    // Get the download URL
+    const url = await getDownloadURL(imageRef);
+    return url;
   } catch (error) {
-    console.error("Error fetching politician:", error);
-    throw error;
+    console.error(`Failed to load image for ${politicianName}:`, error);
+    return "/api/placeholder/80/80"; // Fallback to placeholder image
   }
 };
 
@@ -168,9 +122,12 @@ export const fetchPoliticiansByParty = async (
     const q = query(politiciansRef, where("affiliation", "==", partyName));
     const querySnapshot = await getDocs(q);
 
-    return querySnapshot.docs.map((doc) =>
-      convertToPolitician(doc.id, doc.data())
+    // Process in parallel for better performance
+    const politiciansPromises = querySnapshot.docs.map(
+      async (doc) => await convertToPolitician(doc.id, doc.data())
     );
+
+    return await Promise.all(politiciansPromises);
   } catch (error) {
     console.error("Error fetching politicians by party:", error);
     throw error;
@@ -214,9 +171,12 @@ export const fetchPoliticiansByPartyWithPagination = async (
 
     const querySnapshot = await getDocs(q);
 
-    const politicians = querySnapshot.docs.map((doc) =>
-      convertToPolitician(doc.id, doc.data())
+    // Process in parallel for better performance
+    const politiciansPromises = querySnapshot.docs.map(
+      async (doc) => await convertToPolitician(doc.id, doc.data())
     );
+
+    const politicians = await Promise.all(politiciansPromises);
 
     // 次のページがあるかどうかを確認（取得した件数が15件未満なら追加データなし）
     const hasMore = politicians.length === limitCount;
@@ -275,9 +235,12 @@ export const fetchPoliticiansWithPagination = async (
     const querySnapshot = await getDocs(q);
     console.log("querySnapshot", querySnapshot.docs);
 
-    const politicians = querySnapshot.docs.map((doc) =>
-      convertToPolitician(doc.id, doc.data())
+    // Process in parallel for better performance
+    const politiciansPromises = querySnapshot.docs.map(
+      async (doc) => await convertToPolitician(doc.id, doc.data())
     );
+
+    const politicians = await Promise.all(politiciansPromises);
 
     // 次のページがあるかどうかを確認
     const hasMore = politicians.length === limitCount;
@@ -297,7 +260,109 @@ export const fetchPoliticiansWithPagination = async (
   }
 };
 
-// Function to fetch politicians with party filter and sort method
+// Cache for image URLs to avoid redundant storage calls
+const imageUrlCache: Record<string, string> = {};
+
+// Function to convert Firestore data to Politician type
+const convertToPolitician = async (
+  id: string,
+  data: any,
+  isDetailPage: boolean = false
+): Promise<Politician> => {
+  // Create a party object from the affiliation
+  const party = {
+    id: getPartyID(data.affiliation || ""),
+    name: data.affiliation || "",
+    color: getPartyColor(data.affiliation || ""),
+  };
+
+  // Calculate support/oppose rates
+  const totalVotes = (data.supportCount || 0) + (data.opposeCount || 0);
+  const supportRate =
+    data.supportRate ||
+    (totalVotes > 0
+      ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
+      : 50); // Default to 50% if no votes or supportRate field
+
+  // Get politician image URL - THIS IS THE KEY CHANGE
+  const politicianName = data.name || "";
+
+  // ここが重要な変更点: Firebase Storageから画像を取得
+  let imageUrl;
+
+  // キャッシュキーには詳細ページかどうかの情報も含める
+  const cacheKey = isDetailPage
+    ? `detail_${politicianName}`
+    : `list_${politicianName}`;
+
+  // Check if image URL is already cached for performance
+  if (imageUrlCache[cacheKey]) {
+    imageUrl = imageUrlCache[cacheKey];
+  } else {
+    // Firebase Storageから画像URLを取得
+    try {
+      const storage = getStorage();
+      // 詳細ページか一覧ページかに応じて異なるパスを使用
+      const imagePath = isDetailPage
+        ? `detail_images/${politicianName}.jpg`
+        : `list_images/${politicianName}.jpg`;
+
+      imageUrl = await getDownloadURL(ref(storage, imagePath));
+
+      // キャッシュに保存して再利用
+      imageUrlCache[cacheKey] = imageUrl;
+    } catch (error) {
+      console.error(
+        `Firebase Storage画像取得エラー: ${politicianName} (${
+          isDetailPage ? "detail" : "list"
+        })`,
+        error
+      );
+      // エラー時はフォールバックとしてimage_urlを使用するか、プレースホルダーを表示
+      imageUrl = data.imageUrl || "/api/placeholder/80/80";
+    }
+  }
+
+  return {
+    id,
+    name: data.name || "",
+    furigana: data.furigana || "",
+    position: data.type || "議員",
+    region: data.region || "",
+    age: data.age || Math.floor(Math.random() * 30) + 35, // Default age if not provided
+    party,
+    supportRate,
+    opposeRate: 100 - supportRate,
+    totalVotes: data.totalVotes || totalVotes || 0,
+    activity: data.activity || Math.floor(Math.random() * 40) + 50, // Random activity score
+    image: imageUrl, // Firebase Storageから取得した画像URLを使用
+    trending: data.trending || (Math.random() > 0.5 ? "up" : "down"), // Random trend if not provided
+    recentActivity: data.recentActivity || "最近の活動情報",
+  };
+};
+
+// Fetch a politician by ID - modified to handle async image loading
+export const fetchPoliticianById = async (
+  id: string
+): Promise<Politician | null> => {
+  try {
+    const politicianRef = doc(db, "politicians", id);
+    const politicianSnap = await getDoc(politicianRef);
+
+    if (politicianSnap.exists()) {
+      // 詳細ページ用にisDetailPage=trueを指定
+      return await convertToPolitician(id, politicianSnap.data(), true);
+    } else {
+      console.error(`Politician with ID ${id} not found`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching politician:", error);
+    throw error;
+  }
+};
+
+// Modified to handle async image loading for multiple politicians
 export const fetchPoliticiansWithFilterAndSort = async (
   partyFilter: string,
   sortMethod: string,
@@ -395,18 +460,13 @@ export const fetchPoliticiansWithFilterAndSort = async (
     const querySnapshot = await getDocs(q);
     console.log(`Query returned ${querySnapshot.docs.length} documents`);
 
-    // Map documents to politician objects
-    const politicians = querySnapshot.docs.map((doc) => {
+    // Map documents to politician objects - Process them in parallel for efficiency
+    const politiciansPromises = querySnapshot.docs.map(async (doc) => {
       const data = doc.data();
-      console.log(
-        `Document data: ${JSON.stringify({
-          id: doc.id,
-          affiliation: data.affiliation,
-          supportRate: data.supportRate || 0,
-        })}`
-      );
-      return convertToPolitician(doc.id, data);
+      return await convertToPolitician(doc.id, data);
     });
+
+    const politicians = await Promise.all(politiciansPromises);
 
     const hasMore = politicians.length === limitCount;
     const lastVisibleDocument =
@@ -422,3 +482,8 @@ export const fetchPoliticiansWithFilterAndSort = async (
     throw error;
   }
 };
+
+// Keep other existing functions (getPartyColor, generatePartyId, etc.)
+// Make sure to update any other functions that fetch multiple politicians to use the async convertToPolitician
+
+// Rest of the file remains unchanged...
