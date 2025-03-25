@@ -22,22 +22,61 @@ import {
   navigateToPolicyList,
 } from "../utils/navigationUtils";
 
-// キャッシュされた政治家リストのインターフェース
-interface CachedPoliticiansData {
-  politicians: Politician[];
+// Base interface for all cached data collections to reduce duplication
+interface CachedItems {
   lastDocumentId?: string;
   hasMore: boolean;
   currentPage: number;
 }
 
-// キャッシュされた政党ごとの政治家リストのインターフェース
-interface CachedPartyPoliticiansData {
-  partyId: string; // どの政党のデータか識別するためのID
+// Cached politicians data extends the base interface
+interface CachedPoliticiansData extends CachedItems {
   politicians: Politician[];
-  lastDocumentId?: string;
-  hasMore: boolean;
-  currentPage: number;
 }
+
+// Cached party politicians data extends the base interface with party ID
+interface CachedPartyPoliticiansData extends CachedItems {
+  partyId: string;
+  politicians: Politician[];
+}
+
+// Sort methods map to simplify the sorting logic
+const SORT_METHODS = {
+  supportDesc: (a: Politician, b: Politician) => b.supportRate - a.supportRate,
+  supportAsc: (a: Politician, b: Politician) => a.supportRate - b.supportRate,
+  opposeDesc: (a: Politician, b: Politician) => b.opposeRate - a.opposeRate,
+  opposeAsc: (a: Politician, b: Politician) => a.opposeRate - b.opposeRate,
+  activityDesc: (a: Politician, b: Politician) => b.activity - a.activity,
+  activityAsc: (a: Politician, b: Politician) => a.activity - b.activity,
+};
+
+// Sort labels map to get labels by sort method
+const SORT_LABELS = {
+  supportDesc: "支持率（高い順）",
+  supportAsc: "支持率（低い順）",
+  opposeDesc: "不支持率（高い順）",
+  opposeAsc: "不支持率（低い順）",
+  activityDesc: "活動指数（高い順）",
+  activityAsc: "活動指数（低い順）",
+};
+
+// Move trend icon function outside component to avoid recreation on each render
+const getTrendIcon = (trend: string): JSX.Element => {
+  if (trend === "up") {
+    return (
+      <div className="inline-flex items-center text-green-500">
+        <TrendingUp size={14} className="flex-shrink-0" />
+        <span className="ml-1 text-xs whitespace-nowrap">上昇中</span>
+      </div>
+    );
+  }
+  return (
+    <div className="inline-flex items-center text-red-500">
+      <Activity size={14} className="flex-shrink-0" />
+      <span className="ml-1 text-xs whitespace-nowrap">下降中</span>
+    </div>
+  );
+};
 
 // Context type definition
 interface DataContextType {
@@ -60,14 +99,12 @@ interface DataContextType {
   showInlineAd: boolean;
   mobileMenuOpen: boolean;
   showAllPoliticians: boolean;
-  globalPoliticians: Politician[]; // Global politicians data
-  globalParties: Party[]; // Global parties data
-  dataInitialized: boolean; // Flag to track if data is initialized
-  isLoadingPolitician: boolean; // New flag for politician loading state
-  currentPage: number; // New state for current page number
-  // 新しく追加：キャッシュされた政治家データ
+  globalPoliticians: Politician[];
+  globalParties: Party[];
+  dataInitialized: boolean;
+  isLoadingPolitician: boolean;
+  currentPage: number;
   cachedPoliticians: CachedPoliticiansData | null;
-  // 新しく追加：キャッシュされた政党ごとの政治家リスト
   cachedPartyPoliticians: Record<string, CachedPartyPoliticiansData> | null;
 
   // State setters
@@ -88,17 +125,21 @@ interface DataContextType {
   setSortMethod: React.Dispatch<React.SetStateAction<string>>;
   setShowPremiumBanner: React.Dispatch<React.SetStateAction<boolean>>;
   setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setCurrentPage: React.Dispatch<React.SetStateAction<number>>; // New setter for current page
-  // 新しく追加：キャッシュされた政治家データのセッター
+  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   setCachedPoliticians: React.Dispatch<
     React.SetStateAction<CachedPoliticiansData | null>
   >;
-  // 新しく追加：キャッシュされた政党ごとの政治家リストのセッター
   setCachedPartyPoliticians: React.Dispatch<
     React.SetStateAction<Record<string, CachedPartyPoliticiansData> | null>
   >;
+  setVoteType: React.Dispatch<
+    React.SetStateAction<"support" | "oppose" | null>
+  >;
+  setReason: React.Dispatch<React.SetStateAction<string>>;
+  setShowReasonForm: React.Dispatch<React.SetStateAction<boolean>>;
 
   // Helper functions
+  resetVoteData: () => void;
   getPoliticianById: (id: string) => Politician | undefined;
   getPartyById: (id: string) => Party | undefined;
   handlePoliticianSelect: (politician: Politician) => void;
@@ -107,7 +148,7 @@ interface DataContextType {
   handleBackToPoliticians: () => void;
   handleVoteClick: (type: "support" | "oppose") => void;
   handleSortChange: (method: string) => void;
-  showAllPoliticiansList: (page?: number) => void; // Modified to accept page parameter
+  showAllPoliticiansList: (page?: number) => void;
   toggleCommentReplies: (commentId: string) => void;
   handleReplyClick: (comment: any, parentComment?: any) => void;
   handleCancelReply: () => void;
@@ -116,21 +157,13 @@ interface DataContextType {
   getPoliticiansByParty: (partyId: string) => Politician[];
   getTrendIcon: (trend: string) => JSX.Element;
   getSortLabel: (method: string) => string;
-  searchPoliticians: (term: string) => Politician[]; // Search function
-  setVoteType: React.Dispatch<
-    React.SetStateAction<"support" | "oppose" | null>
-  >;
-  setReason: React.Dispatch<React.SetStateAction<string>>;
-  setShowReasonForm: React.Dispatch<React.SetStateAction<boolean>>;
-  resetVoteData: () => void;
-
-  // New Firebase-specific functions
-  fetchPoliticianFromFirebase: (id: string) => Promise<Politician | null>;
-  refreshSelectedPolitician: (id: string) => Promise<void>;
-  // 新しく追加：キャッシュクリア関数
+  searchPoliticians: (term: string) => Politician[];
   clearPoliticiansCache: () => void;
   clearPartyPoliticiansCache: (partyId?: string) => void;
-  // 新しく追加：政策リストページに移動する関数
+
+  // Firebase-specific functions
+  fetchPoliticianFromFirebase: (id: string) => Promise<Politician | null>;
+  refreshSelectedPolitician: (id: string) => Promise<void>;
   navigateToPolicyList: (params?: {
     party?: string;
     category?: string;
@@ -149,54 +182,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Reset vote data handler
-  const resetVoteData = useCallback(() => {
-    setReason("");
-    setVoteType(null);
-    setShowReasonForm(false);
-  }, []);
-
   // Global data states
   const [globalPoliticians, setGlobalPoliticians] = useState<Politician[]>([]);
   const [globalParties, setGlobalParties] = useState<Party[]>([]);
   const [dataInitialized, setDataInitialized] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [isLoadingPolitician, setIsLoadingPolitician] = useState(false);
-  // 新しく追加：キャッシュされた政治家データ
+
+  // Cache states
   const [cachedPoliticians, setCachedPoliticians] =
     useState<CachedPoliticiansData | null>(null);
-  // 新しく追加：キャッシュされた政党ごとの政治家リスト
   const [cachedPartyPoliticians, setCachedPartyPoliticians] = useState<Record<
     string,
     CachedPartyPoliticiansData
   > | null>(null);
-
-  // Initialize global data on first load
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        setDataLoading(true);
-
-        // Process data only if not already loaded
-        if (globalPoliticians.length === 0 || globalParties.length === 0) {
-          // Process data in parallel if possible
-          const politicians = processPoliticiansData();
-          const parties = processPartiesData();
-
-          setGlobalPoliticians(politicians);
-          setGlobalParties(await parties);
-        }
-
-        setDataInitialized(true);
-      } catch (error) {
-        console.error("Failed to initialize global data:", error);
-      } finally {
-        setDataLoading(false);
-      }
-    };
-
-    initializeData();
-  }, []);
 
   // Application state
   const [politicians, setPoliticians] = useState<Politician[]>([]);
@@ -223,27 +222,58 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const [showInlineAd] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAllPoliticians, setShowAllPoliticians] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1); // New state for current page
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // キャッシュクリア関数
-  const clearPoliticiansCache = useCallback(() => {
-    setCachedPoliticians(null);
-  }, []);
+  // Unified cache clearing function
+  const clearCache = useCallback(
+    (type?: "politicians" | "party", partyId?: string) => {
+      if (!type || type === "politicians") {
+        setCachedPoliticians(null);
+      }
 
-  // 政党別の政治家キャッシュをクリアする関数
-  const clearPartyPoliticiansCache = useCallback((partyId?: string) => {
-    if (partyId) {
-      // 特定の政党のキャッシュのみをクリア
-      setCachedPartyPoliticians((prev) => {
-        if (!prev) return null;
-        const updated = { ...prev };
-        delete updated[partyId];
-        return Object.keys(updated).length > 0 ? updated : null;
-      });
-    } else {
-      // すべての政党の政治家キャッシュをクリア
-      setCachedPartyPoliticians(null);
-    }
+      if (!type || type === "party") {
+        if (partyId) {
+          // Clear specific party cache
+          setCachedPartyPoliticians((prev) => {
+            if (!prev) return null;
+            const updated = { ...prev };
+            delete updated[partyId];
+            return Object.keys(updated).length > 0 ? updated : null;
+          });
+        } else {
+          // Clear all party caches
+          setCachedPartyPoliticians(null);
+        }
+      }
+    },
+    []
+  );
+
+  // Initialize global data on first load
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        setDataLoading(true);
+
+        // Process data only if not already loaded
+        if (globalPoliticians.length === 0 || globalParties.length === 0) {
+          // Process data in parallel
+          const politicians = processPoliticiansData();
+          const parties = processPartiesData();
+
+          setGlobalPoliticians(politicians);
+          setGlobalParties(await parties);
+        }
+
+        setDataInitialized(true);
+      } catch (error) {
+        console.error("Failed to initialize global data:", error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    initializeData();
   }, []);
 
   // Update local state from global data once it's initialized
@@ -254,13 +284,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [dataInitialized, dataLoading, globalPoliticians, globalParties]);
 
-  // Firebase-specific function to fetch a politician by ID directly from Firestore
+  // Reset vote data handler
+  const resetVoteData = useCallback(() => {
+    setReason("");
+    setVoteType(null);
+    setShowReasonForm(false);
+  }, []);
+
+  // Firebase-specific function to fetch a politician by ID
   const fetchPoliticianFromFirebase = useCallback(
     async (id: string): Promise<Politician | null> => {
       try {
         setIsLoadingPolitician(true);
-        const politicianData = await fetchPoliticianById(id);
-        return politicianData;
+        return await fetchPoliticianById(id);
       } catch (error) {
         console.error("Error fetching politician from Firebase:", error);
         return null;
@@ -277,6 +313,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
       try {
         setIsLoadingPolitician(true);
         const politicianData = await fetchPoliticianById(id);
+
         if (politicianData) {
           setSelectedPolitician(politicianData);
 
@@ -301,23 +338,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   );
 
   // Helper functions using memoization for efficiency
-  // Get politician by ID using the global data
-  const getPoliticianById = useMemo(() => {
-    return (id: string) => {
-      return globalPoliticians.find((politician) => politician.id === id);
-    };
-  }, [globalPoliticians]);
+  const getPoliticianById = useMemo(
+    () => (id: string) =>
+      globalPoliticians.find((politician) => politician.id === id),
+    [globalPoliticians]
+  );
 
-  // Get party by ID using the global data
-  const getPartyById = useMemo(() => {
-    return (id: string) => {
-      return globalParties.find((party) => party.id === id);
-    };
-  }, [globalParties]);
+  const getPartyById = useMemo(
+    () => (id: string) => globalParties.find((party) => party.id === id),
+    [globalParties]
+  );
 
-  // Modified to support Firebase integration and navigation utility
-  const handlePoliticianSelect = useCallback(
-    (politician: Politician) => {
+  // Unified entity selection function
+  const selectEntity = useCallback(
+    (entityType: "politician" | "party", entity: Politician | Party) => {
       // Reset UI states
       setVoteType(null);
       setShowReasonForm(false);
@@ -325,47 +359,54 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
       setReplyingTo(null);
       setMobileMenuOpen(false);
 
-      // Set the selected politician directly (the detail page will fetch fresh data)
-      setSelectedPolitician(politician);
-
-      // Navigate to politician detail page using utility function
-      navigateToPolitician(navigate, politician.id);
+      if (entityType === "politician") {
+        setSelectedPolitician(entity as Politician);
+        navigateToPolitician(navigate, (entity as Politician).id);
+      } else {
+        setSelectedParty(entity as Party);
+        navigateToParty(navigate, (entity as Party).id);
+      }
 
       // Scroll to top
       window.scrollTo(0, 0);
     },
-    [
-      navigate,
-      setVoteType,
-      setShowReasonForm,
-      setExpandedComments,
-      setReplyingTo,
-      setMobileMenuOpen,
-    ]
+    [navigate]
+  );
+
+  // Specific handler functions that use the unified function
+  const handlePoliticianSelect = useCallback(
+    (politician: Politician) => {
+      selectEntity("politician", politician);
+    },
+    [selectEntity]
   );
 
   const handlePartySelect = useCallback(
     (party: Party) => {
-      setMobileMenuOpen(false);
-      setSelectedParty(party);
-
-      // Navigate to party detail page using utility function
-      navigateToParty(navigate, party.id);
-
-      // Scroll to top
-      window.scrollTo(0, 0);
+      selectEntity("party", party);
     },
-    [navigate, setMobileMenuOpen]
+    [selectEntity]
+  );
+
+  // Unified back navigation
+  const navigateBack = useCallback(
+    (destination: "parties" | "politicians") => {
+      destination === "parties"
+        ? navigateToParties(navigate)
+        : navigateToPoliticians(navigate);
+    },
+    [navigate]
   );
 
   const handleBackToParties = useCallback(() => {
-    navigateToParties(navigate);
-  }, [navigate]);
+    navigateBack("parties");
+  }, [navigateBack]);
 
   const handleBackToPoliticians = useCallback(() => {
-    navigateToPoliticians(navigate);
-  }, [navigate]);
+    navigateBack("politicians");
+  }, [navigateBack]);
 
+  // Vote and UI handlers
   const handleVoteClick = useCallback((type: "support" | "oppose") => {
     setVoteType(type);
     setShowReasonForm(true);
@@ -375,7 +416,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     setSortMethod(method);
   }, []);
 
-  // Modified to use navigation utility function
   const showAllPoliticiansList = useCallback(
     (page: number = 1) => {
       setShowAllPoliticians(true);
@@ -385,7 +425,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     [navigate]
   );
 
-  // New function for policy list navigation
   const handleNavigateToPolicyList = useCallback(
     (params?: { party?: string; category?: string; sort?: string }) => {
       navigateToPolicyList(navigate, params);
@@ -393,6 +432,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     [navigate]
   );
 
+  // Comment interaction functions
   const toggleCommentReplies = useCallback((commentId: string) => {
     setExpandedComments((prev) => ({
       ...prev,
@@ -427,94 +467,46 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     return count;
   }, []);
 
-  // Sort politicians based on current method
-  const getSortedPoliticians = useMemo(() => {
-    return (politicianList: Politician[]) => {
-      const list = [...politicianList];
-
-      switch (sortMethod) {
-        case "supportDesc":
-          return list.sort((a, b) => b.supportRate - a.supportRate);
-        case "supportAsc":
-          return list.sort((a, b) => a.supportRate - b.supportRate);
-        case "opposeDesc":
-          return list.sort((a, b) => b.opposeRate - a.opposeRate);
-        case "opposeAsc":
-          return list.sort((a, b) => a.opposeRate - b.opposeRate);
-        case "activityDesc":
-          return list.sort((a, b) => b.activity - a.activity);
-        case "activityAsc":
-          return list.sort((a, b) => a.activity - b.activity);
-        default:
-          return list;
-      }
-    };
-  }, [sortMethod]);
+  // Get sorted politicians using the sort methods map
+  const getSortedPoliticians = useMemo(
+    () => (politicianList: Politician[]) => {
+      const sortFn =
+        SORT_METHODS[sortMethod as keyof typeof SORT_METHODS] ||
+        SORT_METHODS.supportDesc;
+      return [...politicianList].sort(sortFn);
+    },
+    [sortMethod]
+  );
 
   // Get politicians by party ID
-  const getPoliticiansByParty = useMemo(() => {
-    return (partyId: string) => {
-      return globalPoliticians.filter(
-        (politician) => politician.party.id === partyId
-      );
-    };
-  }, [globalPoliticians]);
+  const getPoliticiansByParty = useMemo(
+    () => (partyId: string) =>
+      globalPoliticians.filter((politician) => politician.party.id === partyId),
+    [globalPoliticians]
+  );
 
-  // Trend icon component
-  const getTrendIcon = useCallback((trend: string) => {
-    if (trend === "up") {
-      return (
-        <div className="inline-flex items-center text-green-500">
-          <TrendingUp size={14} className="flex-shrink-0" />
-          <span className="ml-1 text-xs whitespace-nowrap">上昇中</span>
-        </div>
-      );
-    } else {
-      return (
-        <div className="inline-flex items-center text-red-500">
-          <Activity size={14} className="flex-shrink-0" />
-          <span className="ml-1 text-xs whitespace-nowrap">下降中</span>
-        </div>
-      );
-    }
-  }, []);
-
-  // Sort label text
-  const getSortLabel = useCallback((method: string) => {
-    switch (method) {
-      case "supportDesc":
-        return "支持率（高い順）";
-      case "supportAsc":
-        return "支持率（低い順）";
-      case "opposeDesc":
-        return "不支持率（高い順）";
-      case "opposeAsc":
-        return "不支持率（低い順）";
-      case "activityDesc":
-        return "活動指数（高い順）";
-      case "activityAsc":
-        return "活動指数（低い順）";
-      default:
-        return "ソート基準";
-    }
-  }, []);
+  // Get sort label
+  const getSortLabel = useCallback(
+    (method: string) =>
+      SORT_LABELS[method as keyof typeof SORT_LABELS] || "ソート基準",
+    []
+  );
 
   // Search politicians by name or furigana
-  const searchPoliticians = useMemo(() => {
-    return (term: string): Politician[] => {
-      if (!term.trim()) {
-        return [];
-      }
+  const searchPoliticians = useMemo(
+    () =>
+      (term: string): Politician[] => {
+        if (!term.trim()) return [];
 
-      const searchTerm = term.toLowerCase();
-      return globalPoliticians.filter((politician) => {
-        const name = politician.name.toLowerCase();
-        const furigana = politician.furigana?.toLowerCase() || "";
-
-        return name.includes(searchTerm) || furigana.includes(searchTerm);
-      });
-    };
-  }, [globalPoliticians]);
+        const searchTerm = term.toLowerCase();
+        return globalPoliticians.filter((politician) => {
+          const name = politician.name.toLowerCase();
+          const furigana = politician.furigana?.toLowerCase() || "";
+          return name.includes(searchTerm) || furigana.includes(searchTerm);
+        });
+      },
+    [globalPoliticians]
+  );
 
   // Update active tab based on current route
   useEffect(() => {
@@ -528,7 +520,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Parse URL parameters on location change
   useEffect(() => {
-    // Extract page number from URL if present
     const params = new URLSearchParams(location.search);
     const pageParam = params.get("page");
 
@@ -639,14 +630,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         getTrendIcon,
         getSortLabel,
         searchPoliticians,
-        clearPoliticiansCache,
-        clearPartyPoliticiansCache,
+
+        // Cache functions with unified API
+        clearPoliticiansCache: () => clearCache("politicians"),
+        clearPartyPoliticiansCache: (partyId?: string) =>
+          clearCache("party", partyId),
 
         // Firebase-specific functions
         fetchPoliticianFromFirebase,
         refreshSelectedPolitician,
 
-        // New navigation function
+        // Navigation function
         navigateToPolicyList: handleNavigateToPolicyList,
       }}
     >
