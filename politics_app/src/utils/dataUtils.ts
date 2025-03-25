@@ -69,7 +69,7 @@ const getLocalImagePath = (name: string): string => {
   try {
     // public/images/の画像パスを返す
     // ファイル名にスペースなどが含まれているため、エンコードして安全なURLにする
-    return `/images/${encodeURIComponent(name)}.jpg`;
+    return `/cm_images/${encodeURIComponent(name)}.jpg`;
   } catch (error) {
     // 画像が見つからない場合はプレースホルダー画像を返す
     console.warn(`画像が見つかりません: ${name}.jpg`);

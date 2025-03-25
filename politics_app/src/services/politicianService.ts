@@ -76,6 +76,8 @@ const getPartyID = (affiliation: string): string => {
 };
 
 // Get Firebase Storage image URL for politician
+
+// Get Firebase Storage image URL for politician
 export const getPoliticianImageUrl = async (
   politicianName: string
 ): Promise<string> => {
@@ -284,43 +286,39 @@ const convertToPolitician = async (
       ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
       : 50); // Default to 50% if no votes or supportRate field
 
-  // Get politician image URL - THIS IS THE KEY CHANGE
+  // Get politician image URL
   const politicianName = data.name || "";
 
-  // ここが重要な変更点: Firebase Storageから画像を取得
   let imageUrl;
 
-  // キャッシュキーには詳細ページかどうかの情報も含める
-  const cacheKey = isDetailPage
-    ? `detail_${politicianName}`
-    : `list_${politicianName}`;
+  if (isDetailPage) {
+    // 詳細ページの場合は Firebase Storage から画像を取得
+    const cacheKey = `detail_${politicianName}`;
 
-  // Check if image URL is already cached for performance
-  if (imageUrlCache[cacheKey]) {
-    imageUrl = imageUrlCache[cacheKey];
-  } else {
-    // Firebase Storageから画像URLを取得
-    try {
-      const storage = getStorage();
-      // 詳細ページか一覧ページかに応じて異なるパスを使用
-      const imagePath = isDetailPage
-        ? `detail_images/${politicianName}.jpg`
-        : `list_images/${politicianName}.jpg`;
+    // Check if image URL is already cached for performance
+    if (imageUrlCache[cacheKey]) {
+      imageUrl = imageUrlCache[cacheKey];
+    } else {
+      // Firebase Storageから画像URLを取得
+      try {
+        const storage = getStorage();
+        const imagePath = `detail_images/${politicianName}.jpg`;
+        imageUrl = await getDownloadURL(ref(storage, imagePath));
 
-      imageUrl = await getDownloadURL(ref(storage, imagePath));
-
-      // キャッシュに保存して再利用
-      imageUrlCache[cacheKey] = imageUrl;
-    } catch (error) {
-      console.error(
-        `Firebase Storage画像取得エラー: ${politicianName} (${
-          isDetailPage ? "detail" : "list"
-        })`,
-        error
-      );
-      // エラー時はフォールバックとしてimage_urlを使用するか、プレースホルダーを表示
-      imageUrl = data.imageUrl || "/api/placeholder/80/80";
+        // キャッシュに保存して再利用
+        imageUrlCache[cacheKey] = imageUrl;
+      } catch (error) {
+        console.error(
+          `Firebase Storage画像取得エラー: ${politicianName} (detail)`,
+          error
+        );
+        // エラー時はフォールバックとしてimage_urlを使用するか、プレースホルダーを表示
+        imageUrl = data.imageUrl || "/api/placeholder/80/80";
+      }
     }
+  } else {
+    // 一覧ページの場合は cm_images フォルダから画像を取得
+    imageUrl = `/cm_images/${politicianName}.jpg`;
   }
 
   return {
