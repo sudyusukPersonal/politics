@@ -156,10 +156,18 @@ const PartyDetail: React.FC = () => {
                 {/* 党ロゴ - モバイルでセンタリング */}
                 <div className="flex justify-center sm:justify-start w-full sm:w-auto">
                   <div
-                    className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-xl mb-4 sm:mb-0"
-                    style={{ backgroundColor: party.color }}
+                    className="w-20 h-20 rounded-full mb-4 sm:mb-0 overflow-hidden border-2 flex items-center justify-center"
+                    style={{ borderColor: party.color }}
                   >
-                    {party.name.charAt(0)}
+                    <img
+                      src={party.image}
+                      alt={party.name}
+                      className="w-full h-full object-cover rounded-full"
+                      onError={(e) => {
+                        // エラー時に元のイニシャル表示に戻す
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -172,10 +180,6 @@ const PartyDetail: React.FC = () => {
                   </h2>
                   <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 mt-1">
                     <span>所属議員: {party.members}名</span>
-                    <span className="mx-2 hidden sm:inline">•</span>
-                    <span className="sm:hidden">
-                      総投票数: {party.totalVotes.toLocaleString()}
-                    </span>
                   </div>
 
                   {/* ボタンエリア - モバイルでの等間隔配置 */}
@@ -230,11 +234,6 @@ const PartyDetail: React.FC = () => {
               </div>
 
               {/* 右側: デスクトップでの総得票数 */}
-              <div className="hidden sm:flex items-center justify-end">
-                <span className="text-sm text-gray-500">
-                  総投票数: {party.totalVotes.toLocaleString()}
-                </span>
-              </div>
             </div>
 
             {/* EntityRatingsSection（支持率・不支持率表示） */}

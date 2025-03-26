@@ -111,11 +111,19 @@ const PartiesTab: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
-                    <span
-                      className="w-4 h-4 rounded-full mr-2 flex-shrink-0"
-                      style={{ backgroundColor: party.color }}
-                    ></span>
-                    <span className="font-bold truncate">{party.name}</span>
+                    <div className="flex items-center">
+                      <img
+                        src={party.image}
+                        alt={party.name}
+                        className="w-6 h-6 rounded-full mr-2 flex-shrink-0 object-cover border"
+                        style={{ borderColor: party.color }}
+                        onError={(e) => {
+                          // エラー時に元の色付き円に戻す
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                      <span className="font-bold truncate">{party.name}</span>
+                    </div>
                   </div>
                   <ChevronRight
                     size={16}

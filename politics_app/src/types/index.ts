@@ -11,6 +11,7 @@ export interface Party {
   members: number;
   keyPolicies: string[];
   description: string;
+  image: string; // 追加: 政党のアイコン画像パス
 }
 
 export interface Politician {

@@ -88,6 +88,7 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
         setComments(fetchedComments);
 
         console.log(`${fetchedComments.length}件のコメントを取得しました`);
+        console.log(fetchedComments);
       } catch (error) {
         console.error("コメントの取得中にエラーが発生しました:", error);
         setCommentError("コメントの取得に失敗しました");

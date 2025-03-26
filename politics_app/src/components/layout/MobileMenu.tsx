@@ -36,7 +36,7 @@ const MobileMenu: React.FC = () => {
               <button
                 onClick={() => {
                   setActiveTab("politicians");
-                  navigate("/");
+                  navigate("/politicians?page=1");
                   setMobileMenuOpen(false);
                 }}
                 className="flex items-center w-full px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-indigo-50 transition-colors"
@@ -56,18 +56,6 @@ const MobileMenu: React.FC = () => {
               >
                 <Building size={18} className="mr-3 text-indigo-600" />
                 政党一覧
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => {
-                  navigate("/politicians");
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center w-full px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-indigo-50 transition-colors"
-              >
-                <BarChart3 size={18} className="mr-3 text-indigo-600" />
-                ランキング
               </button>
             </li>
             <li>

@@ -9,7 +9,7 @@ let cachedPoliticians: Politician[] | null = null;
 let cachedParties: Party[] | null = null;
 
 // 政党ごとの色を設定する関数
-const getPartyColor = (affiliation: string): string => {
+export const getPartyColor = (affiliation: string): string => {
   switch (affiliation) {
     case "自由民主党":
       return "#555555"; // 青
@@ -18,9 +18,9 @@ const getPartyColor = (affiliation: string): string => {
     case "公明党":
       return "#7209B7"; // 紫
     case "日本維新の会":
-      return "#FF9E00"; // オレンジ
+      return "#228B22"; // オレンジ
     case "国民民主党":
-      return "#4CC9F0"; // 水色
+      return "#000080"; // 水色
     case "日本共産党":
       return "#E63946"; // 赤
     case "れいわ新選組":
@@ -77,6 +77,16 @@ const getLocalImagePath = (name: string): string => {
   }
 };
 
+const getPartyImagePath = (partyName: string): string => {
+  try {
+    // 政党画像のパスを返す
+    return `/cm_parly_images/${encodeURIComponent(partyName)}.jpg`;
+  } catch (error) {
+    // 画像が見つからない場合はプレースホルダー画像を返す
+    console.warn(`政党画像が見つかりません: ${partyName}.jpg`);
+    return "/api/placeholder/80/80";
+  }
+};
 // Firestoreから政党データを取得して処理する（キャッシング機能付き）
 export const processPartiesData = async (): Promise<Party[]> => {
   // キャッシュがあれば、それを返す（処理の重複を避ける）
@@ -100,18 +110,18 @@ export const processPartiesData = async (): Promise<Party[]> => {
           : 50; // Default to 50% if no votes
 
       return {
-        id: doc.id, // ドキュメントIDを政党IDとして使用
+        id: doc.id,
         name: partyName,
         color: getPartyColor(partyName),
         supportRate: supportRate,
         opposeRate: 100 - supportRate,
         totalVotes: totalVotes || 0,
-        // 既存の方法でメンバー数をカウント（JSONデータから）
         members: politiciansData.filter((p) => p.affiliation === partyName)
           .length,
         keyPolicies: data.majorPolicies || [],
         description:
           data.overview || `${partyName}の政策と理念に基づいた政党です。`,
+        image: getPartyImagePath(partyName), // 新しく追加する画像パスフィールド
       };
     });
 

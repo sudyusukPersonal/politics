@@ -70,6 +70,73 @@ export const fetchCommentById = async (commentId: string): Promise<void> => {
 };
 
 // Add a reply to an existing comment - now returns the created reply object
+// export const addReplyToComment = async (
+//   commentId: string,
+//   newReply: any
+// ): Promise<Reply> => {
+//   try {
+//     // Reference to the specific comment document
+//     const commentRef = doc(db, "comments", commentId);
+
+//     // Get the current comment data to check existing replies
+//     const commentSnap = await getDoc(commentRef);
+//     if (!commentSnap.exists()) {
+//       throw new Error("コメントが見つかりません");
+//     }
+
+//     // Format the reply object to match Firestore structure
+//     const replyToAdd = {
+//       id: `reply_${Date.now()}`, // 一意のIDを生成
+//       text: newReply.text,
+//       user_id: newReply.userID,
+//       user_name: newReply.userName,
+//       created_at: Timestamp.now(),
+//       likes: 0,
+//       reply_to: newReply.replyTo
+//         ? {
+//             reply_id: newReply.replyTo.replyID,
+//             reply_to_user_id: newReply.replyTo.replyToUserID,
+//             reply_to_username: newReply.replyTo.replyToUserName,
+//           }
+//         : null,
+//     };
+
+//     // Update the comment document by adding the new reply to the replies array
+//     await updateDoc(commentRef, {
+//       replies: arrayUnion(replyToAdd),
+//       // Update the reply count
+//       repliesCount: (commentSnap.data().replies?.length || 0) + 1,
+//     });
+
+//     console.log("返信が正常に追加されました", replyToAdd);
+
+//     // Convert the reply to the format expected by the client
+//     const clientReply: Reply = {
+//       id: replyToAdd.id,
+//       text: replyToAdd.text,
+//       userID: replyToAdd.user_id,
+//       userName: replyToAdd.user_name,
+//       createdAt: convertTimestamp(replyToAdd.created_at),
+//       likes: replyToAdd.likes,
+//       reply_to: replyToAdd.reply_to || undefined,
+//       // Also include client-side format for compatibility
+//       replyTo: replyToAdd.reply_to
+//         ? {
+//             replyID: replyToAdd.reply_to.reply_id,
+//             replyToUserID: replyToAdd.reply_to.reply_to_user_id,
+//             replyToUserName: replyToAdd.reply_to.reply_to_username,
+//           }
+//         : undefined,
+//     };
+
+//     // Return the reply for UI update
+//     return clientReply;
+//   } catch (error) {
+//     console.error("返信の追加中にエラーが発生しました:", error);
+//     throw error;
+//   }
+// };
+
 export const addReplyToComment = async (
   commentId: string,
   newReply: any
@@ -84,12 +151,20 @@ export const addReplyToComment = async (
       throw new Error("コメントが見つかりません");
     }
 
+    // 匿名ユーザーの場合のみ、返信数+1を名前に付与
+    let replyUserName = newReply.userName;
+    if (replyUserName === "匿名ユーザー") {
+      const currentReplies = commentSnap.data().replies || [];
+      const replyCount = currentReplies.length + 1;
+      replyUserName = `匿名${replyCount}`;
+    }
+
     // Format the reply object to match Firestore structure
     const replyToAdd = {
       id: `reply_${Date.now()}`, // 一意のIDを生成
       text: newReply.text,
       user_id: newReply.userID,
-      user_name: newReply.userName,
+      user_name: replyUserName, // 修正したユーザー名を使用（返信だけ番号付き）
       created_at: Timestamp.now(),
       likes: 0,
       reply_to: newReply.replyTo
@@ -115,7 +190,7 @@ export const addReplyToComment = async (
       id: replyToAdd.id,
       text: replyToAdd.text,
       userID: replyToAdd.user_id,
-      userName: replyToAdd.user_name,
+      userName: replyToAdd.user_name, // 番号付きの名前を返す
       createdAt: convertTimestamp(replyToAdd.created_at),
       likes: replyToAdd.likes,
       reply_to: replyToAdd.reply_to || undefined,
