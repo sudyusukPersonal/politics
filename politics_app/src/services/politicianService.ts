@@ -76,8 +76,6 @@ const getPartyID = (affiliation: string): string => {
 };
 
 // Get Firebase Storage image URL for politician
-
-// Get Firebase Storage image URL for politician
 export const getPoliticianImageUrl = async (
   politicianName: string
 ): Promise<string> => {
@@ -96,6 +94,7 @@ export const getPoliticianImageUrl = async (
 };
 
 // Record a vote for a politician (support or oppose)
+// 政治家への投票を記録する（支持または不支持）
 export const addVoteToPolitician = async (
   politicianId: string,
   voteType: "support" | "oppose"
@@ -103,9 +102,30 @@ export const addVoteToPolitician = async (
   try {
     const politicianRef = doc(db, "politicians", politicianId);
 
-    // Use increment to atomically update the vote count
+    // まず現在のデータを取得
+    const docSnap = await getDoc(politicianRef);
+
+    if (!docSnap.exists()) {
+      throw new Error(`政治家 ${politicianId} が見つかりません`);
+    }
+
+    const data = docSnap.data();
+    // 現在の値を取得
+    const supportCount = data.supportCount || 0;
+    const opposeCount = data.opposeCount || 0;
+
+    // 新しい値を計算
+    const newSupport = voteType === "support" ? supportCount + 1 : supportCount;
+    const newOppose = voteType === "oppose" ? opposeCount + 1 : opposeCount;
+    const totalVotes = newSupport + newOppose;
+    const supportRate = Math.round((newSupport / totalVotes) * 100);
+
+    // ドキュメントを更新
     await updateDoc(politicianRef, {
-      [voteType === "support" ? "supportCount" : "opposeCount"]: increment(1),
+      supportCount: newSupport,
+      opposeCount: newOppose,
+      totalVotes: totalVotes,
+      supportRate: supportRate,
     });
 
     console.log(`Added ${voteType} vote to politician ${politicianId}`);
@@ -114,7 +134,6 @@ export const addVoteToPolitician = async (
     throw error;
   }
 };
-
 // Fetch all politicians from a specific party
 export const fetchPoliticiansByParty = async (
   partyName: string
@@ -286,39 +305,43 @@ const convertToPolitician = async (
       ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
       : 50); // Default to 50% if no votes or supportRate field
 
-  // Get politician image URL
+  // Get politician image URL - THIS IS THE KEY CHANGE
   const politicianName = data.name || "";
 
+  // ここが重要な変更点: Firebase Storageから画像を取得
   let imageUrl;
 
-  if (isDetailPage) {
-    // 詳細ページの場合は Firebase Storage から画像を取得
-    const cacheKey = `detail_${politicianName}`;
+  // キャッシュキーには詳細ページかどうかの情報も含める
+  const cacheKey = isDetailPage
+    ? `detail_${politicianName}`
+    : `list_${politicianName}`;
 
-    // Check if image URL is already cached for performance
-    if (imageUrlCache[cacheKey]) {
-      imageUrl = imageUrlCache[cacheKey];
-    } else {
-      // Firebase Storageから画像URLを取得
-      try {
-        const storage = getStorage();
-        const imagePath = `detail_images/${politicianName}.jpg`;
-        imageUrl = await getDownloadURL(ref(storage, imagePath));
-
-        // キャッシュに保存して再利用
-        imageUrlCache[cacheKey] = imageUrl;
-      } catch (error) {
-        console.error(
-          `Firebase Storage画像取得エラー: ${politicianName} (detail)`,
-          error
-        );
-        // エラー時はフォールバックとしてimage_urlを使用するか、プレースホルダーを表示
-        imageUrl = data.imageUrl || "/api/placeholder/80/80";
-      }
-    }
+  // Check if image URL is already cached for performance
+  if (imageUrlCache[cacheKey]) {
+    imageUrl = imageUrlCache[cacheKey];
   } else {
-    // 一覧ページの場合は cm_images フォルダから画像を取得
-    imageUrl = `/cm_images/${politicianName}.jpg`;
+    // Firebase Storageから画像URLを取得
+    try {
+      const storage = getStorage();
+      // 詳細ページか一覧ページかに応じて異なるパスを使用
+      const imagePath = isDetailPage
+        ? `detail_images/${politicianName}.jpg`
+        : `list_images/${politicianName}.jpg`;
+
+      imageUrl = await getDownloadURL(ref(storage, imagePath));
+
+      // キャッシュに保存して再利用
+      imageUrlCache[cacheKey] = imageUrl;
+    } catch (error) {
+      console.error(
+        `Firebase Storage画像取得エラー: ${politicianName} (${
+          isDetailPage ? "detail" : "list"
+        })`,
+        error
+      );
+      // エラー時はフォールバックとしてimage_urlを使用するか、プレースホルダーを表示
+      imageUrl = data.imageUrl || "/api/placeholder/80/80";
+    }
   }
 
   return {
