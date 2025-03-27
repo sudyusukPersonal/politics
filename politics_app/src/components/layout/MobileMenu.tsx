@@ -1,7 +1,15 @@
 // politics_app/src/components/layout/MobileMenu.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Users, Building, BarChart3, Crown, FileText } from "lucide-react";
+import {
+  X,
+  Users,
+  Building,
+  BarChart3,
+  Crown,
+  FileText,
+  Shield,
+} from "lucide-react";
 import { useData } from "../../context/DataContext";
 
 const MobileMenu: React.FC = () => {
@@ -99,14 +107,27 @@ const MobileMenu: React.FC = () => {
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">© 2025 Politics Hub</span>
+          <div className="flex flex-col space-y-2">
             <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+              onClick={() => {
+                navigate("/privacy-policy");
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-center text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
             >
-              閉じる
+              <Shield size={16} className="mr-2 text-gray-500" />
+              プライバシーポリシー
             </button>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-gray-500">© 2025 Politics Hub</span>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                閉じる
+              </button>
+            </div>
           </div>
         </div>
       </div>

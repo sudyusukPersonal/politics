@@ -9,6 +9,7 @@ import AllPoliticiansList from "../politicians/AllPoliticiansList";
 import HomeScreen from "../home/HomeScreen";
 import PolicyDiscussionPage from "../policies/PolicyDetail";
 import PolicyListingPage from "../policies/PolicyListingPage";
+import PrivacyPolicyPage from "../privacy/PrivacyPolicyPage";
 // import PartyAdminPage from "../admin/PartyManagementDetail";
 import { AuthProvider } from "../../context/AuthContext";
 import ProtectedAdminRoute from "../auth/ProtectedAdminRoute";
@@ -41,6 +42,7 @@ const AppContent: React.FC = () => {
               <Route path="/parties/:id" element={<PartyDetail />} />
               <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
               <Route path="/policy" element={<PolicyListingPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
               <Route path="/admin/login" element={<LoginPage />} />
               <Route
                 path="/admin/party/:partyId/*"
