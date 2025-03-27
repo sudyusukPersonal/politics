@@ -1,116 +1,100 @@
-// src/context/AuthContext.tsx
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useEffect,
-  ReactNode,
-} from "react";
-import { User } from "firebase/auth";
+// src/context/AuthContext.tsx の拡張
+import React, { createContext, useState, useEffect, useContext } from "react";
 import {
-  subscribeToAuthChanges,
-  getCurrentUser,
-  handleRedirectResult,
-} from "../services/authService";
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../config/firebaseConfig";
 
-// Context type definition
+// 認証コンテキストの型定義
 interface AuthContextType {
-  currentUser: User | null;
-  isAuthenticated: boolean;
-  isAuthLoading: boolean;
-  showAuthMessage: (message: string) => void;
+  currentUser: any;
+  partyId: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  loading: boolean;
 }
 
-// Create context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-// Provider component
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [redirectChecked, setRedirectChecked] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [partyId, setPartyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const auth = getAuth();
 
-  // Show auth message in a popup
-  const showAuthMessage = (message: string) => {
-    // Simple popup message - we're using alert per requirements
-    alert(message);
-  };
-
-  // First set up auth state listener
   useEffect(() => {
-    console.log("Setting up auth state listener");
-
-    const unsubscribe = subscribeToAuthChanges((user) => {
-      console.log("Auth state changed:", user?.displayName || "Not logged in");
-      setCurrentUser(user);
-      setIsAuthLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Firestoreからユーザーに関連付けられた政党IDを取得
+        const userDoc = await getDoc(doc(db, "admin_user", user.uid));
+        if (userDoc.exists()) {
+          setPartyId(userDoc.data().party_id);
+        }
+        setCurrentUser(user);
+      } else {
+        setCurrentUser(null);
+        setPartyId(null);
+      }
+      setLoading(false);
     });
 
-    // Cleanup subscription
-    return () => {
-      console.log("Cleaning up auth state listener");
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
-  // Then check for redirect result (order is important)
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      if (redirectChecked) return;
+  // ログイン機能
+  const login = async (email: string, password: string) => {
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
 
-      try {
-        console.log("Checking for redirect result in AuthContext");
-        setIsAuthLoading(true);
+    // Firestoreからユーザーデータを取得して状態を更新
+    const userDoc = await getDoc(
+      doc(db, "admin_user", userCredential.user.uid)
+    );
+    if (userDoc.exists()) {
+      // 明示的に状態を更新
+      const userData = userDoc.data();
+      setPartyId(userData.party_id);
+      console.log("取得した政党ID:", userData.party_id);
+    } else {
+      console.error("ユーザーデータが存在しません:", userCredential.user.uid);
+    }
 
-        const result = await handleRedirectResult();
-        setRedirectChecked(true);
+    // 最後にユーザー状態を更新
+    setCurrentUser(userCredential.user);
 
-        if (result.success && result.user) {
-          console.log(
-            "Successful login after redirect:",
-            result.user.displayName
-          );
-          setCurrentUser(result.user);
-          showAuthMessage(
-            `認証できました。ようこそ、${
-              result.user?.displayName || "ユーザー"
-            }さん！`
-          );
-        }
-      } catch (error) {
-        console.error("Error handling redirect result in AuthContext:", error);
-      } finally {
-        setIsAuthLoading(false);
-      }
-    };
-
-    checkRedirectResult();
-  }, [redirectChecked]);
-
-  const contextValue = {
-    currentUser,
-    isAuthenticated: !!currentUser,
-    isAuthLoading,
-    showAuthMessage,
+    // 状態が確実に更新されるまで少し待機
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return;
   };
 
-  console.log(
-    "Auth context current state:",
-    contextValue.isAuthenticated ? "Authenticated" : "Not authenticated",
-    contextValue.currentUser?.displayName || ""
-  );
+  // ログアウト機能
+  const logout = async () => {
+    await signOut(auth);
+  };
 
-  return (
-    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
-  );
+  const value = {
+    currentUser,
+    partyId,
+    login,
+    logout,
+    loading,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;

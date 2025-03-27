@@ -8,14 +8,14 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { getPartyAdminData } from "./adminPartyService"; // 専用サービスをインポート
+import { getPartyAdminData } from "./adminPartyService";
 import AdminSidebar from "./AdminSidebar";
 import PartyDetailsPanel from "./PartyDetailsPanel";
 import PolicyManagementPanel from "./PolicyManagementPanel";
 import LoadingAnimation from "../common/LoadingAnimation";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Menu as MenuIcon } from "lucide-react";
 
-// 設定パネルの簡易コンポーネント
+// Simple settings panel component
 const SettingsPanel = () => (
   <div className="bg-white rounded-lg shadow-md p-6 animate-fadeIn">
     <h3 className="text-lg font-bold text-gray-800 mb-4">管理設定</h3>
@@ -23,23 +23,46 @@ const SettingsPanel = () => (
   </div>
 );
 
-// メインのレイアウトコンポーネント
+// Custom hook to detect mobile screen size
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Add event listener for resize
+    window.addEventListener("resize", checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  return isMobile;
+};
+
+// Main layout component
 const PartyAdminLayout: React.FC = () => {
-  // URLパラメータと履歴管理
+  // URL parameters and navigation
   const { partyId } = useParams<{ partyId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
-  // サイドバーの開閉状態
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
 
-  // データ取得状態の管理
+  // Data state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [partyData, setPartyData] = useState<any | null>(null);
   const [policiesData, setPoliciesData] = useState<any[]>([]);
 
-  // データ取得とエラーハンドリング
+  // Fetch data and handle errors
   useEffect(() => {
     const fetchData = async () => {
       if (!partyId) {
@@ -52,7 +75,7 @@ const PartyAdminLayout: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // 専用サービスを使用して政党データと政策データを取得
+        // Use specialized service to get party and policy data
         const { party, policies } = await getPartyAdminData(partyId);
 
         setPartyData(party);
@@ -70,16 +93,16 @@ const PartyAdminLayout: React.FC = () => {
     };
 
     fetchData();
-  }, [partyId]); // partyIdが変わったら再取得
+  }, [partyId]);
 
-  // 現在のアクティブタブを取得する関数
+  // Get active tab from path
   const getActiveTabFromPath = () => {
     if (location.pathname.includes("/policies")) return "policies";
     if (location.pathname.includes("/settings")) return "settings";
-    return "details"; // デフォルトは政党詳細
+    return "details"; // Default is party details
   };
 
-  // ページタイトルを取得する関数
+  // Get page title
   const getPageTitle = () => {
     const activeTab = getActiveTabFromPath();
     if (activeTab === "policies") return "政策の追加・編集・管理";
@@ -87,7 +110,7 @@ const PartyAdminLayout: React.FC = () => {
     return "政党情報の編集・管理";
   };
 
-  // ローディング中の表示
+  // Loading state
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-100 text-gray-800 justify-center items-center">
@@ -98,7 +121,7 @@ const PartyAdminLayout: React.FC = () => {
     );
   }
 
-  // エラー表示
+  // Error state
   if (error) {
     return (
       <div className="flex min-h-screen bg-gray-100 text-gray-800 justify-center items-center">
@@ -134,7 +157,7 @@ const PartyAdminLayout: React.FC = () => {
     );
   }
 
-  // 政党データがない場合
+  // No party data
   if (!partyData) {
     return (
       <div className="flex min-h-screen bg-gray-100 text-gray-800 justify-center items-center">
@@ -159,27 +182,42 @@ const PartyAdminLayout: React.FC = () => {
     );
   }
 
-  // メインレイアウトのレンダリング
+  // Main layout with sidebar and content
   return (
     <div className="flex min-h-screen bg-gray-100 text-gray-800">
-      {/* サイドバー */}
+      {/* Sidebar */}
       <AdminSidebar
         partyData={partyData}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
       />
 
-      {/* メインコンテンツエリア */}
-      <div className="flex-1 p-4 overflow-x-hidden">
+      {/* Main content area */}
+      <div
+        className={`flex-1 p-4 overflow-x-hidden transition-all duration-300 ${
+          isMobile ? "w-full" : sidebarOpen ? "ml-64" : "ml-16"
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
-          {/* ヘッダーセクション */}
+          {/* Header section */}
           <header className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">政党管理</h1>
-              <p className="text-sm text-gray-500">{getPageTitle()}</p>
+            <div className="flex items-center">
+              {/* Mobile menu button */}
+              {isMobile && (
+                <button
+                  className="mr-3 p-2 text-gray-700 hover:bg-gray-100 rounded-md"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <MenuIcon size={20} />
+                </button>
+              )}
+              <div>
+                <h1 className="text-2xl font-bold">政党管理</h1>
+                <p className="text-sm text-gray-500">{getPageTitle()}</p>
+              </div>
             </div>
 
-            {/* 政党情報バッジ */}
+            {/* Party info badge */}
             <div className="flex items-center space-x-2">
               <div className="flex items-center bg-white rounded-full px-3 py-1 shadow-sm border border-gray-200">
                 <div
@@ -191,19 +229,19 @@ const PartyAdminLayout: React.FC = () => {
                     alt={partyData.name}
                     className="w-full h-full object-cover rounded-full"
                     onError={(e) => {
-                      // 画像読み込みエラー時の処理
+                      // Handle image load error
                       e.currentTarget.src = "/api/placeholder/24/24";
                     }}
                   />
                 </div>
-                <span className="ml-2 text-sm font-medium">
+                <span className="ml-2 text-sm font-medium hidden sm:inline">
                   {partyData.name}
                 </span>
               </div>
             </div>
           </header>
 
-          {/* ルートに基づいてパネルをレンダリング */}
+          {/* Render panel based on route */}
           <Routes>
             <Route
               path="details"
@@ -215,11 +253,13 @@ const PartyAdminLayout: React.FC = () => {
                 <PolicyManagementPanel
                   policiesData={policiesData}
                   partyData={partyData}
+                  sidebarOpen={sidebarOpen}
+                  setSidebarOpen={setSidebarOpen}
                 />
               }
             />
             <Route path="settings" element={<SettingsPanel />} />
-            {/* デフォルトで詳細画面にリダイレクト */}
+            {/* Redirect to details page by default */}
             <Route
               path="/"
               element={
@@ -230,7 +270,7 @@ const PartyAdminLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* スクロールトップボタン */}
+      {/* Scroll to top button */}
       <button
         className="fixed bottom-6 right-6 w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors focus:outline-none"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -250,7 +290,7 @@ const PartyAdminLayout: React.FC = () => {
         </svg>
       </button>
 
-      {/* アニメーション用のグローバルスタイル */}
+      {/* Animation styles */}
       <style>{`
         @keyframes fadeIn {
           from {

@@ -82,6 +82,19 @@ const MobileMenu: React.FC = () => {
                 プレミアム会員登録
               </button>
             </li>
+
+            <li>
+              <button
+                className="flex items-center w-full px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-indigo-50 transition-colors"
+                onClick={() => {
+                  navigate("/admin/login");
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <Building size={18} className="mr-3 text-indigo-600" />
+                政党様向け管理画面へ
+              </button>
+            </li>
           </ul>
         </div>
 
