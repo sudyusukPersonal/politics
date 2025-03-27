@@ -88,6 +88,7 @@ export interface Comment {
   createdAt: string | Date;
   likes: number;
   replies: Reply[];
+  entityType?: "politician" | "policy" | "party"; // 新しく追加
   repliesCount: number;
   type: "support" | "oppose";
 }

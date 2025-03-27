@@ -418,3 +418,39 @@ export const fetchPoliciesWithFilterAndSort = async (
     throw error;
   }
 };
+
+export const incrementPolicyCommentCount = async (
+  policyId: string
+): Promise<void> => {
+  try {
+    // 政策IDが存在しない場合は処理をスキップ
+    if (!policyId) {
+      console.warn(
+        "政策IDが指定されていないため、コメント数の更新をスキップします"
+      );
+      return;
+    }
+
+    const policyRef = doc(db, "policy", policyId);
+
+    // ドキュメントが存在するか確認
+    const policySnap = await getDoc(policyRef);
+
+    if (!policySnap.exists()) {
+      console.warn(
+        `政策ID: ${policyId} が見つかりません。コメント数の更新をスキップします。`
+      );
+      return;
+    }
+
+    // 現在のコメント数を取得し、インクリメント
+    await updateDoc(policyRef, {
+      totalCommentCount: increment(1),
+    });
+
+    console.log(`政策ID: ${policyId} のコメント数を更新しました`);
+  } catch (error) {
+    console.error(`政策のコメント数更新エラー:`, error);
+    // エラーをスローせず、ログのみ出力（UIに影響を与えない）
+  }
+};

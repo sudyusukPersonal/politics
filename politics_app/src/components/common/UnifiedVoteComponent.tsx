@@ -90,7 +90,8 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
           result.commentId,
           entityId,
           reason,
-          voteType
+          voteType,
+          entityType // entityTypeも追加で渡す
         );
 
         // ローカルUIのコメント一覧に新しいコメントを追加
@@ -106,7 +107,6 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
       setIsSubmitting(false);
     }
   };
-
   // 投票ボタン表示（showReasonFormがfalseの場合）
   if (!showReasonForm) {
     return (

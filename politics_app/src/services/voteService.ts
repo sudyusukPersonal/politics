@@ -14,7 +14,7 @@ const MOCK_CURRENT_USER = {
 // 統合投票サービス関数 - entityTypeに"party"を追加
 export const addEntityVote = async (
   entityId: string,
-  entityType: "politician" | "policy" | "party", // "party"を追加
+  entityType: "politician" | "policy" | "party",
   voteType: "support" | "oppose",
   reason: string
 ): Promise<{ success: boolean; commentId: string }> => {
@@ -23,23 +23,22 @@ export const addEntityVote = async (
       throw new Error("必要なパラメータが不足しています");
     }
 
-    // 1. エンティティのvoteカウントを更新（政治家/政策/政党に応じて適切な関数を呼び出す）
+    // 1. エンティティのvoteカウントを更新
     if (entityType === "politician") {
       await addVoteToPolitician(entityId, voteType);
     } else if (entityType === "policy") {
-      // 明示的な条件分岐に変更
       await addVoteToPolicy(entityId, voteType);
     } else if (entityType === "party") {
-      // 政党の場合
       await addVoteToParty(entityId, voteType);
     }
 
-    // 2. コメントを追加（全エンティティタイプで共通処理）
+    // 2. コメントを追加（entityTypeを渡す）
     const newCommentId = await addNewComment({
       text: reason,
       userID: MOCK_CURRENT_USER.uid,
       userName: MOCK_CURRENT_USER.displayName,
-      politicianID: entityId, // Firestoreのフィールド名が統一されていないためpoliticianIDを使用
+      politicianID: entityId,
+      entityType: entityType, // ここで明示的にentityTypeを渡す
       type: voteType,
       likes: 0,
     });
@@ -59,7 +58,8 @@ export const createUIComment = (
   commentId: string,
   entityId: string,
   reason: string,
-  voteType: "support" | "oppose"
+  voteType: "support" | "oppose",
+  entityType: "politician" | "policy" | "party" = "politician" // デフォルト値を追加
 ): Comment => {
   return {
     id: commentId,
@@ -67,6 +67,7 @@ export const createUIComment = (
     userID: MOCK_CURRENT_USER.uid,
     userName: MOCK_CURRENT_USER.displayName,
     politicianID: entityId,
+    entityType: entityType, // entityTypeを明示的に追加
     createdAt: new Date(),
     likes: 0,
     replies: [],

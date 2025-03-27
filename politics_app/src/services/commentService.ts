@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { Comment, Reply } from "../types";
+import { incrementPolicyCommentCount } from "./policyService";
 
 // Helper to convert Firestore timestamp to Date
 const convertTimestamp = (timestamp: Timestamp): Date =>
@@ -151,10 +152,12 @@ export const addReplyToComment = async (
       throw new Error("コメントが見つかりません");
     }
 
+    const commentData = commentSnap.data();
+
     // 匿名ユーザーの場合のみ、返信数+1を名前に付与
     let replyUserName = newReply.userName;
     if (replyUserName === "匿名ユーザー") {
-      const currentReplies = commentSnap.data().replies || [];
+      const currentReplies = commentData.replies || [];
       const replyCount = currentReplies.length + 1;
       replyUserName = `匿名${replyCount}`;
     }
@@ -180,8 +183,14 @@ export const addReplyToComment = async (
     await updateDoc(commentRef, {
       replies: arrayUnion(replyToAdd),
       // Update the reply count
-      repliesCount: (commentSnap.data().replies?.length || 0) + 1,
+      repliesCount: (commentData.replies?.length || 0) + 1,
     });
+
+    // コメントのentity_typeフィールドを確認
+    // 政策への返信であれば、政策コメント数をインクリメント
+    if (commentData.entity_type === "policy") {
+      await incrementPolicyCommentCount(commentData.politician_id);
+    }
 
     console.log("返信が正常に追加されました", replyToAdd);
 
@@ -211,7 +220,6 @@ export const addReplyToComment = async (
     throw error;
   }
 };
-
 // Add a new comment
 export const addNewComment = async (
   newComment: Omit<Comment, "id" | "createdAt" | "replies" | "repliesCount">
@@ -223,11 +231,17 @@ export const addNewComment = async (
       user_id: newComment.userID,
       user_name: newComment.userName,
       politician_id: newComment.politicianID,
+      entity_type: newComment.entityType || "politician", // entityTypeフィールドを追加
       created_at: Timestamp.now(),
       likes: 0,
       replies: [],
       type: newComment.type,
     });
+
+    // エンティティタイプが "policy" の場合、政策のコメント数をインクリメント
+    if (newComment.entityType === "policy") {
+      await incrementPolicyCommentCount(newComment.politicianID);
+    }
 
     return commentRef.id;
   } catch (error) {
