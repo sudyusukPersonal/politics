@@ -751,7 +751,7 @@ const PolicyListingPage = () => {
             })}
             <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 flex items-center">
               <MessageSquare size={12} className="mr-1 flex-shrink-0" />
-              {policy.commentsCount}件のコメント
+              {policy.totalCommentCount}件のコメント
             </span>
           </div>
 

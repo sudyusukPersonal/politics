@@ -20,6 +20,7 @@ import { getPartyColor } from "./politicianService";
 
 // 政策データの型定義
 export interface Policy {
+  totalCommentCount: number;
   id: string;
   title: string;
   description: string;
@@ -30,7 +31,6 @@ export interface Policy {
   opposeRate: number;
   totalVotes: number;
   trending: "up" | "down" | "none";
-  commentsCount: number;
   proposingParty: {
     name: string;
     color: string;
@@ -59,7 +59,6 @@ const convertToPolicyObject = (id: string, data: any): Policy => {
     totalVotes > 0 ? Math.round((opposeRate / totalVotes) * 100) : 50;
 
   // コメント数（実際のデータにない場合はランダムな値を生成）
-  const commentsCount = Math.floor(Math.random() * 300) + 50;
 
   // トレンドの決定（実際のデータにない場合はランダムに設定）
   const trendOptions: Array<"up" | "down" | "none"> = ["up", "down", "none"];
@@ -100,7 +99,7 @@ const convertToPolicyObject = (id: string, data: any): Policy => {
     opposeRate: normalizedOpposeRate,
     totalVotes: totalVotes,
     trending,
-    commentsCount,
+    totalCommentCount: data.totalCommentCount,
     proposingParty,
     affectedFields: data.AffectedFields || [],
     keyPoints: data.KeyPoints || [],
@@ -229,7 +228,9 @@ export const sortPolicies = (
         return dateA.getTime() - dateB.getTime();
       });
     case "commentsDesc": // コメント数（多い順）
-      return sortedPolicies.sort((a, b) => b.commentsCount - a.commentsCount);
+      return sortedPolicies.sort(
+        (a, b) => b.totalCommentCount - a.totalCommentCount
+      );
     default:
       return sortedPolicies;
   }

@@ -22,20 +22,19 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy, index }) => {
       <div className="p-4 flex items-center">
         <div className="relative flex-shrink-0">
           <div
-            className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white"
+            className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white overflow-hidden"
             style={{
               backgroundColor: policy.proposingParty?.color || "#4F46E5",
             }}
           >
-            <FileText size={24} />
-          </div>
-          <div
-            className="absolute bottom-0 right-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs text-white font-bold shadow-lg"
-            style={{
-              backgroundColor: policy.proposingParty?.color || "#4F46E5",
-            }}
-          >
-            {policy.proposingParty?.name?.charAt(0) || "P"}
+            {/* 政党画像を直接参照 */}
+            <img
+              src={`/cm_parly_images/${encodeURIComponent(
+                policy.proposingParty?.name
+              )}.jpg`}
+              alt={policy.proposingParty?.name}
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
 
