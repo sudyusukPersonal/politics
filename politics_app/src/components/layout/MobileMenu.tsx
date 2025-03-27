@@ -9,6 +9,7 @@ import {
   Crown,
   FileText,
   Shield,
+  MessageCircle,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 
@@ -85,13 +86,6 @@ const MobileMenu: React.FC = () => {
           </div>
           <ul className="space-y-1 px-2">
             <li>
-              <button className="flex items-center w-full px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-yellow-50 transition-colors">
-                <Crown size={18} className="mr-3 text-yellow-500" />
-                プレミアム会員登録
-              </button>
-            </li>
-
-            <li>
               <button
                 className="flex items-center w-full px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-indigo-50 transition-colors"
                 onClick={() => {
@@ -104,10 +98,24 @@ const MobileMenu: React.FC = () => {
               </button>
             </li>
           </ul>
+
+          {/* お問い合わせリンクはフッターに移動したため、このセクションを削除 */}
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
           <div className="flex flex-col space-y-2">
+            {/* お問い合わせリンクをフッター部分に移動 */}
+            <a
+              href="https://docs.google.com/forms/d/1ZcgPtJWDM83K544yzeWrUjo7RHdk4AVVeoYnzprDlcM/edit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center text-sm font-medium text-gray-600 hover:text-green-600 transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <MessageCircle size={16} className="mr-2 text-gray-500" />
+              お問い合わせ
+            </a>
+
             <button
               onClick={() => {
                 navigate("/privacy-policy");
