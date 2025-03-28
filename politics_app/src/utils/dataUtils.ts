@@ -1,5 +1,5 @@
 // src/utils/dataUtils.ts
-import politiciansData from "../data/politicians_with_id.json";
+import politiciansData from "../data/politicians_processed.json";
 import { Politician, Party } from "../types";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../config/firebaseConfig"; // Firebaseの設定をインポート
@@ -113,7 +113,7 @@ export const processPoliticiansData = (): Politician[] => {
         id: item.id, // 一意のIDを生成
         name: item.name,
         furigana: furigana, // ふりがなフィールドを追加
-        position: item.type || "議員",
+        position: "",
         age: Math.floor(Math.random() * 30) + 35, // 35-65の乱数（元データにないため）
         party: {
           id: getPartyID(item.affiliation),
@@ -124,10 +124,10 @@ export const processPoliticiansData = (): Politician[] => {
         opposeRate: 0, // あとで計算
         totalVotes: Math.floor(Math.random() * 5000) + 2000, // ランダムな投票数
         activity: Math.floor(Math.random() * 40) + 50, // 50-90のランダムな活動指数
-        image: getLocalImagePath(item.name) || item.image_url, // 画像URLがある場合はそれを使用、無い場合はローカル画像を参照
+        image: getLocalImagePath(item.name) || "", // 画像URLがある場合はそれを使用、無い場合はローカル画像を参照
         trending: Math.random() > 0.5 ? "up" : "down", // ランダムなトレンド
         recentActivity: "最近の活動情報",
-        region: item.region || "未設定", // 地域情報を追加
+        region: "", // 地域情報を追加
       };
     })
     .map((politician) => {

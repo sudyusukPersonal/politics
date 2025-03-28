@@ -24,8 +24,7 @@ import { saveRecentlyViewedPolitician } from "../../utils/dataUtils"; // この�
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { handlePartySelect, voteType, showReasonForm, setSelectedPolitician } =
-    useData();
+  const { voteType, showReasonForm, setSelectedPolitician } = useData();
 
   // Local state for politician data
   const [politician, setPolitician] = useState<Politician | null>(null);
@@ -209,7 +208,11 @@ const PoliticianDetail: React.FC = () => {
             評価理由
           </h3>
 
-          <CommentSection />
+          <CommentSection
+            entityType="politician"
+            entityId={politician.id}
+            totalCommentCount={politician.totalCommentCount}
+          />
         </div>
       </div>
     </section>

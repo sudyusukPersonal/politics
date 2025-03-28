@@ -359,6 +359,7 @@ const convertToPolitician = async (
     image: imageUrl, // Firebase Storageから取得した画像URLを使用
     trending: data.trending || (Math.random() > 0.5 ? "up" : "down"), // Random trend if not provided
     recentActivity: data.recentActivity || "最近の活動情報",
+    totalCommentCount: data.totalCommentCount || 0, // ここを追加
   };
 };
 

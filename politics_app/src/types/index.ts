@@ -34,6 +34,7 @@ export interface Politician {
   image: string;
   trending: string;
   recentActivity: string;
+  totalCommentCount?: number;
 }
 
 // export interface Comment {
