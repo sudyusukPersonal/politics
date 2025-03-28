@@ -656,11 +656,6 @@ const PolicyListingPage = () => {
                 label: "支持率（低い順）",
                 icon: <ArrowDown size={16} className="mr-2 text-indigo-600" />,
               },
-              {
-                id: "newest",
-                label: "新しい順",
-                icon: <Clock size={16} className="mr-2 text-indigo-600" />,
-              },
             ].map((option) => (
               <button
                 key={option.id}

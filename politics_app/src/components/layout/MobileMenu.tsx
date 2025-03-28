@@ -81,24 +81,6 @@ const MobileMenu: React.FC = () => {
             </li>
           </ul>
 
-          <div className="mt-6 px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
-            アカウント
-          </div>
-          <ul className="space-y-1 px-2">
-            <li>
-              <button
-                className="flex items-center w-full px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-indigo-50 transition-colors"
-                onClick={() => {
-                  navigate("/admin/login");
-                  setMobileMenuOpen(false);
-                }}
-              >
-                <Building size={18} className="mr-3 text-indigo-600" />
-                政党様向け管理画面へ
-              </button>
-            </li>
-          </ul>
-
           {/* お問い合わせリンクはフッターに移動したため、このセクションを削除 */}
         </div>
 

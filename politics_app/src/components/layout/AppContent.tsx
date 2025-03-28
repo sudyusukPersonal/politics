@@ -10,11 +10,6 @@ import HomeScreen from "../home/HomeScreen";
 import PolicyDiscussionPage from "../policies/PolicyDetail";
 import PolicyListingPage from "../policies/PolicyListingPage";
 import PrivacyPolicyPage from "../privacy/PrivacyPolicyPage";
-// import PartyAdminPage from "../admin/PartyManagementDetail";
-import { AuthProvider } from "../../context/AuthContext";
-import ProtectedAdminRoute from "../auth/ProtectedAdminRoute";
-import LoginPage from "../auth/LoginPage";
-import PartyAdminLayout from "../admin/PartyAdminLayout";
 
 const AppContent: React.FC = () => {
   return (
@@ -28,36 +23,21 @@ const AppContent: React.FC = () => {
       {/* Main content */}
       <main className="flex-1 pb-16 sm:p-4 px-0 container mx-auto max-w-7xl">
         <div className="mx-auto sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full">
-          <AuthProvider>
-            <Routes>
-              <Route path="*" element={<Navigate to="/" replace />} />
+          <Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
 
-              <Route path="/" element={<HomeScreen />} />
-              <Route path="/politicians" element={<AllPoliticiansList />} />
-              <Route path="/politicians/:id" element={<PoliticianDetail />} />
-              <Route
-                path="/parties"
-                element={<HomeScreen initialTab="parties" />}
-              />
-              <Route path="/parties/:id" element={<PartyDetail />} />
-              <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
-              <Route path="/policy" element={<PolicyListingPage />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="/admin/login" element={<LoginPage />} />
-              <Route
-                path="/admin/party/:partyId/*"
-                element={
-                  <ProtectedAdminRoute>
-                    <PartyAdminLayout />
-                  </ProtectedAdminRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={<Navigate to="/admin/login" replace />}
-              />
-            </Routes>
-          </AuthProvider>
+            <Route path="/" element={<HomeScreen />} />
+            <Route path="/politicians" element={<AllPoliticiansList />} />
+            <Route path="/politicians/:id" element={<PoliticianDetail />} />
+            <Route
+              path="/parties"
+              element={<HomeScreen initialTab="parties" />}
+            />
+            <Route path="/parties/:id" element={<PartyDetail />} />
+            <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
+            <Route path="/policy" element={<PolicyListingPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          </Routes>
         </div>
       </main>
 
