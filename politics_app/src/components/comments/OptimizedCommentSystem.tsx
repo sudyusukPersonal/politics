@@ -131,10 +131,12 @@ const getReplyReference = (reply: any) => {
 };
 
 // ===== メインコメントセクションコンポーネント =====
+// src/components/comments/OptimizedCommentSystem.tsx の一部
 export const CommentSection: React.FC<{
   entityId?: string;
   entityType?: "politician" | "policy" | "party";
-}> = ({ entityId, entityType = "politician" }) => {
+  totalCommentCount?: number; // 追加：エンティティの総コメント数
+}> = ({ entityId, entityType = "politician", totalCommentCount }) => {
   const { id } = useParams<{ id: string }>();
   const targetId = entityId || id;
   const {
@@ -212,7 +214,11 @@ export const CommentSection: React.FC<{
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold flex items-center text-lg">
             <MessageSquare size={16} className="mr-2 text-indigo-600" />
-            {comments.length}件のコメント
+            {/* totalCommentCountがあればそれを使用、なければcommentsの長さを使用 */}
+            {totalCommentCount !== undefined
+              ? totalCommentCount
+              : comments.length}
+            件のコメント
           </h3>
 
           {/* ソートボタン */}

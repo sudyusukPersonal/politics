@@ -34,7 +34,6 @@ import { navigateToParty } from "../../utils/navigationUtils";
 const PolicyDiscussionPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { globalParties } = useData();
 
   // 状態管理
   const [policy, setPolicy] = useState<any>(null);
@@ -43,11 +42,23 @@ const PolicyDiscussionPage = () => {
   const [voteType, setVoteType] = useState<"support" | "oppose" | null>(null);
   const [showReasonForm, setShowReasonForm] = useState(false);
 
+  const PARTY_ID_MAP = [
+    { id: "mJV3F03DLgaLLeBzfCdG", name: "自由民主党", color: "#555555" },
+    { id: "lMixB0EYLpBHl0uQlo16", name: "立憲民主党", color: "#4361EE" },
+    { id: "neEopBo0RyDA2yBBszOp", name: "公明党", color: "#7209B7" },
+    { id: "R4ZedESxj6ZRqfB4Ak4z", name: "日本維新の会", color: "#228B22" },
+    { id: "YY0BG8CCjpeBaATG9KvF", name: "国民民主党", color: "#000080" },
+    { id: "Mn7qK9AvCbZNtMaQY8Wz", name: "日本共産党", color: "#E63946" },
+    { id: "yFV5XVFt5GCdzA0LU5c0", name: "れいわ新選組", color: "#F72585" },
+    { id: "ufc1i9eAFULfldtQ04DQ", name: "社民党", color: "#118AB2" },
+    { id: "E9BuFD9eUKNMpCBDCSDM", name: "参政党", color: "#FF4500" },
+  ];
+
   // 政党名クリック時のハンドラー
   const handlePartyClick = useCallback(
     (partyName: string) => {
-      // グローバルの政党一覧から名前で政党を探す
-      const party = globalParties.find((p) => p.name === partyName);
+      // 静的マッピングから政党IDを探す
+      const party = PARTY_ID_MAP.find((p) => p.name === partyName);
 
       if (party) {
         // 見つかった場合は政党詳細ページに遷移
@@ -56,9 +67,8 @@ const PolicyDiscussionPage = () => {
         console.warn(`Party not found with name: ${partyName}`);
       }
     },
-    [navigate, globalParties]
+    [navigate]
   );
-
   // 政策データの取得
   useEffect(() => {
     const loadPolicy = async () => {
@@ -486,7 +496,11 @@ const PolicyDiscussionPage = () => {
                     </h3>
 
                     {/* CommentSectionコンポーネントにはReplyDataProviderが不要に */}
-                    <CommentSection entityType="policy" />
+                    <CommentSection
+                      entityType="policy"
+                      entityId={policy.id}
+                      totalCommentCount={policy.totalCommentCount}
+                    />
                   </div>
                 </div>
               </ReplyDataProvider>

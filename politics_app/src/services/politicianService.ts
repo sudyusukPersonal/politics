@@ -508,3 +508,26 @@ export const fetchPoliticiansWithFilterAndSort = async (
 // Make sure to update any other functions that fetch multiple politicians to use the async convertToPolitician
 
 // Rest of the file remains unchanged...
+export const incrementPoliticianCommentCount = async (
+  politicianId: string
+): Promise<void> => {
+  try {
+    if (!politicianId) {
+      console.warn(
+        "政治家IDが指定されていないため、コメント数の更新をスキップします"
+      );
+      return;
+    }
+
+    // 存在確認なしで直接更新
+    const politicianRef = doc(db, "politicians", politicianId);
+    await updateDoc(politicianRef, {
+      totalCommentCount: increment(1),
+    });
+
+    console.log(`政治家ID: ${politicianId} のコメント数を更新しました`);
+  } catch (error) {
+    console.error(`政治家のコメント数更新エラー:`, error);
+    // エラーをスローせず、ログのみ出力
+  }
+};

@@ -2,6 +2,7 @@
 // アプリケーションの基本型定義
 
 export interface Party {
+  totalCommentCount: number;
   id: string;
   name: string;
   color: string;

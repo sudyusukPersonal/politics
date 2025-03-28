@@ -1,5 +1,5 @@
 // src/components/home/PartiesTab.tsx
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TrendingUp,
   ThumbsUp,
@@ -8,28 +8,46 @@ import {
   Activity,
   ChevronRight,
 } from "lucide-react";
-import { useData } from "../../context/DataContext";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { Party } from "../../types";
+import { fetchAllParties } from "../../services/partyService";
+import { useNavigate } from "react-router-dom";
 
 const PartiesTab: React.FC = () => {
-  const {
-    globalParties,
-    dataInitialized,
-    getPoliticiansByParty,
-    handlePartySelect,
-  } = useData();
-
+  const [parties, setParties] = useState<Party[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  // グローバルデータが初期化されたらロード完了とみなす
+  // 政党データを取得する
   useEffect(() => {
-    if (dataInitialized) {
-      setLoading(false);
-    }
-  }, [dataInitialized]);
+    const loadParties = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Firestoreから政党データを取得
+        const partiesData = await fetchAllParties();
+        setParties(partiesData);
+
+        console.log(`${partiesData.length}件の政党データを読み込みました`);
+      } catch (err) {
+        console.error("政党データの読み込みに失敗しました:", err);
+        setError("政党データの取得に失敗しました。もう一度お試しください。");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadParties();
+  }, []);
+
+  // 政党クリック時のハンドラー
+  const handlePartySelect = (party: Party) => {
+    navigate(`/parties/${party.id}`);
+  };
 
   // スケルトンローディング表示
   if (loading) {
@@ -56,8 +74,42 @@ const PartiesTab: React.FC = () => {
     );
   }
 
+  // エラー表示
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+        <div className="text-red-500 mb-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-12 w-12 mx-auto"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h3 className="text-lg font-medium text-gray-900">
+          政党データの取得に失敗
+        </h3>
+        <p className="mt-2 text-gray-600">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+        >
+          再読み込み
+        </button>
+      </div>
+    );
+  }
+
   // 政党データが空の場合
-  if (!globalParties.length) {
+  if (!parties.length) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 text-center">
         <div className="text-indigo-500 mb-2">
@@ -103,7 +155,7 @@ const PartiesTab: React.FC = () => {
         </div>
 
         <div className="p-4 space-y-6">
-          {globalParties.map((party, index) => (
+          {parties.map((party, index) => (
             <React.Fragment key={party.id}>
               <div
                 className="relative hover:bg-gray-50 p-2 rounded-lg transition cursor-pointer"

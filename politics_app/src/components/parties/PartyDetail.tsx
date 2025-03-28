@@ -1,6 +1,6 @@
 // src/components/parties/PartyDetail.tsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Users,
@@ -8,7 +8,6 @@ import {
   MessageSquare,
   FileText,
 } from "lucide-react";
-import { useData } from "../../context/DataContext";
 import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { Party } from "../../types";
@@ -18,19 +17,15 @@ import EntityRatingsSection from "../common/EntityRatingsSectio";
 import UnifiedVoteComponent from "../common/UnifiedVoteComponent";
 import { styles } from "../../utils/styleUtils";
 import { navigateToPolicyList } from "../../utils/navigationUtils";
+import { fetchPartyById } from "../../services/partyService";
 
 const PartyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    handleBackToParties,
-    setSelectedParty,
-    getPartyById,
-    dataInitialized,
-  } = useData();
 
   const [party, setParty] = useState<Party | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // 所属議員一覧ページへ遷移する関数
   const navigateToPartyMembers = useCallback(() => {
@@ -42,10 +37,9 @@ const PartyDetail: React.FC = () => {
     }
   }, [party, navigate]);
 
-  // 政党の政策一覧ページへ遷移する関数を追加
+  // 政党の政策一覧ページへ遷移する関数
   const navigateToPartyPolicies = useCallback(() => {
     if (party) {
-      // navigateToPolicyList関数を使用して政策一覧ページへ遷移
       navigateToPolicyList(navigate, {
         party: party.name,
         sort: "supportDesc",
@@ -53,38 +47,54 @@ const PartyDetail: React.FC = () => {
     }
   }, [party, navigate]);
 
-  // グローバルデータから政党データを取得（メモ化）
-  const selectedParty = useMemo(() => {
-    if (!id || !dataInitialized) return null;
-    return getPartyById(id);
-  }, [id, dataInitialized, getPartyById]);
+  // 戻るボタンのハンドラ
+  const handleBackToParties = () => {
+    navigate("/parties");
+  };
 
-  // データ読み込み状態の管理
+  // 政党データの取得
   useEffect(() => {
-    if (dataInitialized) {
-      if (selectedParty) {
-        setParty(selectedParty);
+    const loadParty = async () => {
+      if (!id) {
+        setError("政党IDが指定されていません");
         setIsLoading(false);
-      } else {
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Firestoreから政党データを取得
+        const partyData = await fetchPartyById(id);
+
+        if (partyData) {
+          setParty(partyData);
+          console.log("政党データを取得しました:", partyData);
+        } else {
+          setError("指定された政党データが見つかりませんでした");
+        }
+      } catch (err) {
+        console.error("政党データの取得中にエラーが発生しました:", err);
+        setError(
+          "政党データの読み込みに失敗しました。もう一度お試しください。"
+        );
+      } finally {
         setIsLoading(false);
       }
-    }
-  }, [dataInitialized, selectedParty]);
+    };
 
-  // 選択された政党をコンテキストに設定
-  useEffect(() => {
-    if (party) {
-      setSelectedParty(party);
-      window.scrollTo(0, 0);
-    }
-  }, [party, setSelectedParty]);
+    loadParty();
+    // ページトップにスクロール
+    window.scrollTo(0, 0);
+  }, [id]);
 
   // リダイレクト処理（データロード後に政党が見つからない場合）
   useEffect(() => {
-    if (!isLoading && !party && dataInitialized) {
+    if (!isLoading && !party && !error) {
       navigate("/parties");
     }
-  }, [party, isLoading, navigate, dataInitialized]);
+  }, [party, isLoading, navigate, error]);
 
   // モダンなローディング表示
   if (isLoading) {
@@ -95,7 +105,8 @@ const PartyDetail: React.FC = () => {
     );
   }
 
-  if (!party) {
+  // エラー表示
+  if (error || !party) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 text-center">
         <div className="text-red-500 mb-2">
@@ -118,7 +129,7 @@ const PartyDetail: React.FC = () => {
           政党が見つかりません
         </h3>
         <p className="mt-2 text-gray-600">
-          指定されたIDの政党情報を取得できませんでした。
+          {error || "指定されたIDの政党情報を取得できませんでした。"}
         </p>
         <button
           onClick={() => navigate("/parties")}
@@ -129,7 +140,6 @@ const PartyDetail: React.FC = () => {
       </div>
     );
   }
-
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between mb-2">
@@ -288,8 +298,11 @@ const PartyDetail: React.FC = () => {
                 <MessageSquare size={18} className="mr-2 text-indigo-600" />
                 評価理由
               </h3>
-
-              <CommentSection entityType="party" entityId={party.id} />
+              <CommentSection
+                entityType="policy"
+                entityId={party.id}
+                totalCommentCount={party.totalCommentCount}
+              />
             </div>
           </div>
         </div>

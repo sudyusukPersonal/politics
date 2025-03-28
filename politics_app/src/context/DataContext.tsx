@@ -12,7 +12,7 @@ import React, {
 import { useNavigate, useLocation } from "react-router-dom";
 import { Politician, Party } from "../types";
 import { TrendingUp, Activity } from "lucide-react";
-import { processPoliticiansData, processPartiesData } from "../utils/dataUtils";
+import { processPoliticiansData } from "../utils/dataUtils";
 import { fetchPoliticianById } from "../services/politicianService";
 import {
   navigateToPolitician,
@@ -82,9 +82,7 @@ const getTrendIcon = (trend: string): JSX.Element => {
 interface DataContextType {
   // State
   politicians: Politician[];
-  parties: Party[];
   selectedPolitician: Politician | null;
-  selectedParty: Party | null;
   voteType: "support" | "oppose" | null;
   activeTab: string;
   showReasonForm: boolean;
@@ -100,7 +98,6 @@ interface DataContextType {
   mobileMenuOpen: boolean;
   showAllPoliticians: boolean;
   globalPoliticians: Politician[];
-  globalParties: Party[];
   dataInitialized: boolean;
   isLoadingPolitician: boolean;
   currentPage: number;
@@ -109,11 +106,9 @@ interface DataContextType {
 
   // State setters
   setPoliticians: React.Dispatch<React.SetStateAction<Politician[]>>;
-  setParties: React.Dispatch<React.SetStateAction<Party[]>>;
   setSelectedPolitician: React.Dispatch<
     React.SetStateAction<Politician | null>
   >;
-  setSelectedParty: React.Dispatch<React.SetStateAction<Party | null>>;
   setActiveTab: React.Dispatch<React.SetStateAction<string>>;
   setExpandedComments: React.Dispatch<
     React.SetStateAction<Record<string, boolean>>
@@ -141,9 +136,7 @@ interface DataContextType {
   // Helper functions
   resetVoteData: () => void;
   getPoliticianById: (id: string) => Politician | undefined;
-  getPartyById: (id: string) => Party | undefined;
   handlePoliticianSelect: (politician: Politician) => void;
-  handlePartySelect: (party: Party) => void;
   handleBackToParties: () => void;
   handleBackToPoliticians: () => void;
   handleVoteClick: (type: "support" | "oppose") => void;
@@ -184,7 +177,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Global data states
   const [globalPoliticians, setGlobalPoliticians] = useState<Politician[]>([]);
-  const [globalParties, setGlobalParties] = useState<Party[]>([]);
   const [dataInitialized, setDataInitialized] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [isLoadingPolitician, setIsLoadingPolitician] = useState(false);
@@ -199,10 +191,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Application state
   const [politicians, setPoliticians] = useState<Politician[]>([]);
-  const [parties, setParties] = useState<Party[]>([]);
   const [selectedPolitician, setSelectedPolitician] =
     useState<Politician | null>(null);
-  const [selectedParty, setSelectedParty] = useState<Party | null>(null);
   const [voteType, setVoteType] = useState<"support" | "oppose" | null>(null);
   const [reason, setReason] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
@@ -256,13 +246,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setDataLoading(true);
 
         // Process data only if not already loaded
-        if (globalPoliticians.length === 0 || globalParties.length === 0) {
+        if (globalPoliticians.length === 0) {
           // Process data in parallel
           const politicians = processPoliticiansData();
-          const parties = processPartiesData();
 
           setGlobalPoliticians(politicians);
-          setGlobalParties(await parties);
         }
 
         setDataInitialized(true);
@@ -280,9 +268,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     if (dataInitialized && !dataLoading) {
       setPoliticians(globalPoliticians);
-      setParties(globalParties);
     }
-  }, [dataInitialized, dataLoading, globalPoliticians, globalParties]);
+  }, [dataInitialized, dataLoading, globalPoliticians]);
 
   // Reset vote data handler
   const resetVoteData = useCallback(() => {
@@ -344,11 +331,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     [globalPoliticians]
   );
 
-  const getPartyById = useMemo(
-    () => (id: string) => globalParties.find((party) => party.id === id),
-    [globalParties]
-  );
-
   // Unified entity selection function
   const selectEntity = useCallback(
     (entityType: "politician" | "party", entity: Politician | Party) => {
@@ -363,7 +345,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         setSelectedPolitician(entity as Politician);
         navigateToPolitician(navigate, (entity as Politician).id);
       } else {
-        setSelectedParty(entity as Party);
         navigateToParty(navigate, (entity as Party).id);
       }
 
@@ -377,13 +358,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
   const handlePoliticianSelect = useCallback(
     (politician: Politician) => {
       selectEntity("politician", politician);
-    },
-    [selectEntity]
-  );
-
-  const handlePartySelect = useCallback(
-    (party: Party) => {
-      selectEntity("party", party);
     },
     [selectEntity]
   );
@@ -566,9 +540,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
       value={{
         // State
         politicians,
-        parties,
         selectedPolitician,
-        selectedParty,
         voteType,
         reason,
         activeTab,
@@ -584,7 +556,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         mobileMenuOpen,
         showAllPoliticians,
         globalPoliticians,
-        globalParties,
         dataInitialized,
         isLoadingPolitician,
         currentPage,
@@ -593,9 +564,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
 
         // State setters
         setPoliticians,
-        setParties,
         setSelectedPolitician,
-        setSelectedParty,
         setActiveTab,
         setExpandedComments,
         setReplyingTo,
@@ -613,9 +582,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         // Helper functions
         resetVoteData,
         getPoliticianById,
-        getPartyById,
         handlePoliticianSelect,
-        handlePartySelect,
         handleBackToParties,
         handleBackToPoliticians,
         handleVoteClick,

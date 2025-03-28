@@ -12,6 +12,8 @@ import {
   increment, // increment関数を追加
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
+import { Party } from "../types";
+import { getPartyColor } from "./politicianService";
 
 // 既存のコード...
 
@@ -38,5 +40,140 @@ export const addVoteToParty = async (
   } catch (error) {
     console.error(`政党への ${voteType} 投票追加エラー:`, error);
     throw error;
+  }
+};
+
+export const incrementPartyCommentCount = async (
+  partyId: string
+): Promise<void> => {
+  try {
+    if (!partyId) {
+      console.warn(
+        "政党IDが指定されていないため、コメント数の更新をスキップします"
+      );
+      return;
+    }
+
+    // 存在確認なしで直接更新
+    const partyRef = doc(db, "parties", partyId);
+    await updateDoc(partyRef, {
+      totalCommentCount: increment(1),
+    });
+
+    console.log(`政党ID: ${partyId} のコメント数を更新しました`);
+  } catch (error) {
+    console.error(`政党のコメント数更新エラー:`, error);
+    // エラーをスローせず、ログのみ出力
+  }
+};
+
+/**
+ * Firestoreから全ての政党データを取得する
+ * @returns 政党データの配列
+ */
+export const fetchAllParties = async (): Promise<Party[]> => {
+  try {
+    // Firestoreのpartiesコレクションからデータを取得
+    const partiesCollection = collection(db, "parties");
+    const partiesSnapshot = await getDocs(partiesCollection);
+
+    // 取得したデータを処理
+    const parties = partiesSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const totalVotes = (data.supportCount || 0) + (data.oppositionCount || 0);
+      const supportRate =
+        totalVotes > 0
+          ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
+          : 50; // Default to 50% if no votes
+
+      return {
+        id: doc.id,
+        name: data.name,
+        color: getPartyColor(data.name),
+        supportRate: supportRate,
+        opposeRate: 100 - supportRate,
+        totalVotes: totalVotes || 0,
+        members: parseInt(data.politicians_count) || 0,
+        keyPolicies: data.majorPolicies || [],
+        description: data.overview || "",
+        image: getPartyImagePath(data.name),
+        totalCommentCount: data.totalCommentCount || 0,
+      };
+    });
+
+    console.log(`${parties.length}件の政党データを取得しました`);
+    return parties;
+  } catch (error) {
+    console.error("Firestoreからの政党データ取得に失敗しました:", error);
+    throw error;
+  }
+};
+
+/**
+ * 特定の政党IDに基づいて詳細情報を取得する
+ * @param partyId 政党のドキュメントID
+ * @returns 政党データまたはnull
+ */
+export const fetchPartyById = async (
+  partyId: string
+): Promise<Party | null> => {
+  try {
+    if (!partyId) {
+      console.error("政党IDが指定されていません");
+      return null;
+    }
+
+    // 特定の政党ドキュメントを取得
+    const partyRef = doc(db, "parties", partyId);
+    const partySnap = await getDoc(partyRef);
+
+    if (!partySnap.exists()) {
+      console.error(`ID: ${partyId} の政党が見つかりません`);
+      return null;
+    }
+
+    // ドキュメントデータを取得
+    const data = partySnap.data();
+
+    // 支持率と投票数の計算
+    const totalVotes = (data.supportCount || 0) + (data.oppositionCount || 0);
+    const supportRate =
+      totalVotes > 0
+        ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
+        : 50;
+
+    // 政党オブジェクトを構築して返す
+    return {
+      id: partyId,
+      name: data.name,
+      color: getPartyColor(data.name),
+      supportRate: supportRate,
+      opposeRate: 100 - supportRate,
+      totalVotes: totalVotes || 0,
+      members: parseInt(data.politicians_count) || 0,
+      keyPolicies: data.majorPolicies || [],
+      description: data.overview || "",
+      image: getPartyImagePath(data.name),
+      totalCommentCount: data.totalCommentCount || 0,
+    };
+  } catch (error) {
+    console.error(`政党ID: ${partyId} の取得エラー:`, error);
+    throw error;
+  }
+};
+
+/**
+ * 政党の画像パスを取得する補助関数
+ * @param partyName 政党名
+ * @returns 画像パス
+ */
+const getPartyImagePath = (partyName: string): string => {
+  try {
+    // 政党画像のパスを返す
+    return `/cm_parly_images/${encodeURIComponent(partyName)}.jpg`;
+  } catch (error) {
+    // 画像が見つからない場合はプレースホルダー画像を返す
+    console.warn(`政党画像が見つかりません: ${partyName}.jpg`);
+    return "/api/placeholder/80/80";
   }
 };

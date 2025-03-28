@@ -87,53 +87,6 @@ const getPartyImagePath = (partyName: string): string => {
     return "/api/placeholder/80/80";
   }
 };
-// Firestoreから政党データを取得して処理する（キャッシング機能付き）
-export const processPartiesData = async (): Promise<Party[]> => {
-  // キャッシュがあれば、それを返す（処理の重複を避ける）
-  if (cachedParties !== null) {
-    return cachedParties;
-  }
-
-  try {
-    // Firestoreのpartiesコレクションからデータを取得
-    const partiesCollection = collection(db, "parties");
-    const partiesSnapshot = await getDocs(partiesCollection);
-
-    // 取得したデータを処理
-    const parties = partiesSnapshot.docs.map((doc) => {
-      const data = doc.data();
-      const partyName = data.name;
-      const totalVotes = (data.supportCount || 0) + (data.oppositionCount || 0);
-      const supportRate =
-        totalVotes > 0
-          ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
-          : 50; // Default to 50% if no votes
-
-      return {
-        id: doc.id,
-        name: partyName,
-        color: getPartyColor(partyName),
-        supportRate: supportRate,
-        opposeRate: 100 - supportRate,
-        totalVotes: totalVotes || 0,
-        members: politiciansData.filter((p) => p.affiliation === partyName)
-          .length,
-        keyPolicies: data.majorPolicies || [],
-        description:
-          data.overview || `${partyName}の政策と理念に基づいた政党です。`,
-        image: getPartyImagePath(partyName), // 新しく追加する画像パスフィールド
-      };
-    });
-
-    // 結果をキャッシュして今後の呼び出しで再利用できるようにする
-    cachedParties = parties;
-
-    return parties;
-  } catch (error) {
-    console.error("Firestoreからの政党データ取得に失敗しました:", error);
-    return [];
-  }
-};
 
 // JSONデータを処理してアプリケーションのデータモデルに合わせる（キャッシング機能付き）
 export const processPoliticiansData = (): Politician[] => {
@@ -207,11 +160,6 @@ const extractFurigana = (name: string): string => {
 };
 
 // キャッシュをクリアする関数（データ更新時などに使用）
-export const clearDataCache = () => {
-  cachedPoliticians = null;
-  cachedParties = null;
-  console.log("データキャッシュをクリアしました");
-};
 
 // 特定の政党に所属する政治家を取得する（キャッシュ利用）
 export const getPoliticiansByParty = (partyId: string): Politician[] => {
@@ -238,15 +186,6 @@ export const getPoliticianById = (id: string): Politician | undefined => {
 };
 
 // 特定のIDの政党を取得する（キャッシュ利用）
-export const getPartyById = async (id: string): Promise<Party | undefined> => {
-  // まずキャッシュをチェック
-  if (!cachedParties) {
-    await processPartiesData(); // キャッシュがなければデータを処理
-  }
-
-  // キャッシュから直接検索
-  return (cachedParties || []).find((party) => party.id === id);
-};
 
 // キーワードで政治家を検索する（名前とふりがなで部分一致検索）
 export const searchPoliticians = (keyword: string): Politician[] => {

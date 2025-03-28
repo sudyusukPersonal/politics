@@ -9,10 +9,13 @@ import {
   getDoc,
   Timestamp,
   arrayUnion,
+  increment,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { Comment, Reply } from "../types";
 import { incrementPolicyCommentCount } from "./policyService";
+import { incrementPartyCommentCount } from "./partyService";
+import { incrementPoliticianCommentCount } from "./politicianService";
 
 // Helper to convert Firestore timestamp to Date
 const convertTimestamp = (timestamp: Timestamp): Date =>
@@ -70,74 +73,6 @@ export const fetchCommentById = async (commentId: string): Promise<void> => {
   }
 };
 
-// Add a reply to an existing comment - now returns the created reply object
-// export const addReplyToComment = async (
-//   commentId: string,
-//   newReply: any
-// ): Promise<Reply> => {
-//   try {
-//     // Reference to the specific comment document
-//     const commentRef = doc(db, "comments", commentId);
-
-//     // Get the current comment data to check existing replies
-//     const commentSnap = await getDoc(commentRef);
-//     if (!commentSnap.exists()) {
-//       throw new Error("コメントが見つかりません");
-//     }
-
-//     // Format the reply object to match Firestore structure
-//     const replyToAdd = {
-//       id: `reply_${Date.now()}`, // 一意のIDを生成
-//       text: newReply.text,
-//       user_id: newReply.userID,
-//       user_name: newReply.userName,
-//       created_at: Timestamp.now(),
-//       likes: 0,
-//       reply_to: newReply.replyTo
-//         ? {
-//             reply_id: newReply.replyTo.replyID,
-//             reply_to_user_id: newReply.replyTo.replyToUserID,
-//             reply_to_username: newReply.replyTo.replyToUserName,
-//           }
-//         : null,
-//     };
-
-//     // Update the comment document by adding the new reply to the replies array
-//     await updateDoc(commentRef, {
-//       replies: arrayUnion(replyToAdd),
-//       // Update the reply count
-//       repliesCount: (commentSnap.data().replies?.length || 0) + 1,
-//     });
-
-//     console.log("返信が正常に追加されました", replyToAdd);
-
-//     // Convert the reply to the format expected by the client
-//     const clientReply: Reply = {
-//       id: replyToAdd.id,
-//       text: replyToAdd.text,
-//       userID: replyToAdd.user_id,
-//       userName: replyToAdd.user_name,
-//       createdAt: convertTimestamp(replyToAdd.created_at),
-//       likes: replyToAdd.likes,
-//       reply_to: replyToAdd.reply_to || undefined,
-//       // Also include client-side format for compatibility
-//       replyTo: replyToAdd.reply_to
-//         ? {
-//             replyID: replyToAdd.reply_to.reply_id,
-//             replyToUserID: replyToAdd.reply_to.reply_to_user_id,
-//             replyToUserName: replyToAdd.reply_to.reply_to_username,
-//           }
-//         : undefined,
-//     };
-
-//     // Return the reply for UI update
-//     return clientReply;
-//   } catch (error) {
-//     console.error("返信の追加中にエラーが発生しました:", error);
-//     throw error;
-//   }
-// };
-
 export const addReplyToComment = async (
   commentId: string,
   newReply: any
@@ -186,10 +121,13 @@ export const addReplyToComment = async (
       repliesCount: (commentData.replies?.length || 0) + 1,
     });
 
-    // コメントのentity_typeフィールドを確認
-    // 政策への返信であれば、政策コメント数をインクリメント
+    // エンティティタイプに応じてコメント数をインクリメント
     if (commentData.entity_type === "policy") {
       await incrementPolicyCommentCount(commentData.politician_id);
+    } else if (commentData.entity_type === "party") {
+      await incrementPartyCommentCount(commentData.politician_id);
+    } else if (commentData.entity_type === "politician") {
+      await incrementPoliticianCommentCount(commentData.politician_id);
     }
 
     console.log("返信が正常に追加されました", replyToAdd);
@@ -220,7 +158,7 @@ export const addReplyToComment = async (
     throw error;
   }
 };
-// Add a new comment
+// Add a new comment///
 export const addNewComment = async (
   newComment: Omit<Comment, "id" | "createdAt" | "replies" | "repliesCount">
 ): Promise<string> => {
@@ -238,9 +176,13 @@ export const addNewComment = async (
       type: newComment.type,
     });
 
-    // エンティティタイプが "policy" の場合、政策のコメント数をインクリメント
+    // エンティティタイプに応じてコメント数をインクリメント
     if (newComment.entityType === "policy") {
       await incrementPolicyCommentCount(newComment.politicianID);
+    } else if (newComment.entityType === "party") {
+      await incrementPartyCommentCount(newComment.politicianID);
+    } else if (newComment.entityType === "politician") {
+      await incrementPoliticianCommentCount(newComment.politicianID);
     }
 
     return commentRef.id;
@@ -249,7 +191,6 @@ export const addNewComment = async (
     throw error;
   }
 };
-
 // Like a comment
 export const likeComment = async (
   commentId: string,
@@ -257,13 +198,15 @@ export const likeComment = async (
 ): Promise<void> => {
   try {
     const commentRef = doc(db, "comments", commentId);
-    const commentSnap = await getDoc(commentRef);
-
-    if (!commentSnap.exists()) {
-      throw new Error("コメントが見つかりません");
-    }
 
     if (replyId) {
+      // For replies, we still need to read the document to find the specific reply
+      const commentSnap = await getDoc(commentRef);
+
+      if (!commentSnap.exists()) {
+        throw new Error("コメントが見つかりません");
+      }
+
       // For replies, we need to find and update a specific reply's likes
       const commentData = commentSnap.data();
       const replies = commentData.replies || [];
@@ -276,9 +219,9 @@ export const likeComment = async (
 
       await updateDoc(commentRef, { replies: updatedReplies });
     } else {
-      // For main comments, simply increment the likes counter
+      // For main comments, directly increment the likes counter without reading first
       await updateDoc(commentRef, {
-        likes: (commentSnap.data().likes || 0) + 1,
+        likes: increment(1),
       });
     }
   } catch (error) {
