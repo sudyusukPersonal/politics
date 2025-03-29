@@ -11,7 +11,6 @@ import LoadingAnimation from "../common/LoadingAnimation";
 import {
   getRecentlyViewedPoliticians,
   getRecentlyViewedPolicyIds,
-  getPoliticianById,
 } from "../../utils/dataUtils";
 import { fetchPolicyById } from "../../services/policyService";
 import { Politician } from "../../types";
@@ -154,17 +153,15 @@ const PoliticiansTab: React.FC = () => {
             {recentlyViewedPoliticians.length > 0 ? (
               recentlyViewedPoliticians.map(
                 (politician: Politician, index: number) => {
-                  if (!politician) return null;
-                  else {
-                    const target = getPoliticianById(politician.id);
-                    return target ? (
-                      <PoliticianCard
-                        key={target.id}
-                        politician={target}
-                        index={index}
-                      />
-                    ) : null;
-                  }
+                  if (!politician) return null; // Ensure politician is defined
+                  console.log("Politician:", politician); // Debug log
+                  return (
+                    <PoliticianCard
+                      key={politician.id}
+                      politician={politician}
+                      index={index}
+                    />
+                  );
                 }
               )
             ) : (
