@@ -12,6 +12,17 @@ import InlineAdBanner from "../ads/InlineAdBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { fetchPoliticiansWithFilterAndSort } from "../../services/politicianService";
 
+// アプリケーション側でデータを保持するための単一のグローバル変数
+// Reactのレンダリングサイクルの外に保持するため、リロードされるまで維持される
+const APP_STATE = {
+  politicians: [] as Politician[],
+  scrollPosition: 0,
+  lastDocumentId: undefined as string | undefined,
+  hasMore: true,
+  sort: "",
+  party: "",
+};
+
 const AllPoliticiansList: React.FC = () => {
   const { handleBackToPoliticians } = useData();
 
@@ -43,6 +54,67 @@ const AllPoliticiansList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(getUrlParams().page);
   const [currentSort, setCurrentSort] = useState(getUrlParams().sort);
   const [currentParty, setCurrentParty] = useState(getUrlParams().party);
+
+  // アプリケーション状態にデータを保存
+  const saveToAppState = (
+    politicians: Politician[],
+    lastDocId: string | undefined,
+    hasMoreData: boolean,
+    party: string,
+    sort: string
+  ) => {
+    APP_STATE.politicians = politicians;
+    APP_STATE.lastDocumentId = lastDocId;
+    APP_STATE.hasMore = hasMoreData;
+    APP_STATE.scrollPosition = window.scrollY;
+    APP_STATE.sort = sort;
+    APP_STATE.party = party;
+
+    // APP_STATEの状態をテーブル形式でログ出力
+    console.table({
+      データ件数: APP_STATE.politicians.length,
+      スクロール位置: APP_STATE.scrollPosition,
+      ドキュメントID: APP_STATE.lastDocumentId,
+      続きあり: APP_STATE.hasMore,
+      ソート条件: APP_STATE.sort,
+      政党フィルター: APP_STATE.party,
+    });
+
+    // 政治家データの最初の数件をテーブル形式で出力
+    if (APP_STATE.politicians.length > 0) {
+      console.log("政治家データサンプル:");
+      console.table(
+        APP_STATE.politicians.slice(0, 3).map((p) => ({
+          id: p.id,
+          name: p.name,
+          party: p.party.name,
+          support: p.supportRate,
+        }))
+      );
+    }
+  };
+
+  // アプリケーション状態のリセット
+  const resetAppState = () => {
+    console.log("APP_STATEをリセットします");
+
+    APP_STATE.politicians = [];
+    APP_STATE.lastDocumentId = undefined;
+    APP_STATE.hasMore = true;
+    APP_STATE.scrollPosition = 0;
+    APP_STATE.sort = "";
+    APP_STATE.party = "";
+
+    // リセット後の状態をログ出力
+    console.table({
+      データ件数: APP_STATE.politicians.length,
+      スクロール位置: APP_STATE.scrollPosition,
+      ドキュメントID: APP_STATE.lastDocumentId,
+      続きあり: APP_STATE.hasMore,
+      ソート条件: APP_STATE.sort,
+      政党フィルター: APP_STATE.party,
+    });
+  };
 
   // Get display text for current filter
   const getFilterDisplayText = (): string => {
@@ -90,15 +162,11 @@ const AllPoliticiansList: React.FC = () => {
     setCurrentPage(1);
     // アニメーションを再度有効化
     setAnimateItems(true);
-    loadPoliticians(1, currentSort, party, true);
 
-    // ローカルストレージの保存データをクリア
-    localStorage.removeItem("politicians_data");
-    localStorage.removeItem("politicians_scroll");
-    localStorage.removeItem("politicians_lastDocId");
-    localStorage.removeItem("politicians_hasMore");
-    localStorage.removeItem("politicians_sort");
-    localStorage.removeItem("politicians_party");
+    // アプリケーション状態をリセット（元の実装と同様に）
+    resetAppState();
+
+    loadPoliticians(1, currentSort, party, true);
   };
 
   // Handle sort change
@@ -114,79 +182,12 @@ const AllPoliticiansList: React.FC = () => {
     setCurrentPage(1);
     // アニメーションを再度有効化
     setAnimateItems(true);
+
+    // アプリケーション状態をリセット（元の実装と同様に）
+    resetAppState();
+
     loadPoliticians(1, sort, currentParty, true);
-
-    // ローカルストレージの保存データをクリア
-    localStorage.removeItem("politicians_data");
-    localStorage.removeItem("politicians_scroll");
-    localStorage.removeItem("politicians_lastDocId");
-    localStorage.removeItem("politicians_hasMore");
-    localStorage.removeItem("politicians_sort");
-    localStorage.removeItem("politicians_party");
   };
-
-  // ブラウザバックでの状態復元用のuseEffect
-  useEffect(() => {
-    const params = getUrlParams();
-
-    // ローカルストレージから保存データを取得
-    const savedData = localStorage.getItem("politicians_data");
-    const savedScrollPos = localStorage.getItem("politicians_scroll");
-    const savedSort = localStorage.getItem("politicians_sort");
-    const savedParty = localStorage.getItem("politicians_party");
-
-    // データと設定が存在し、フィルター条件が一致する場合のみ復元
-    if (
-      savedData &&
-      savedScrollPos &&
-      savedSort === params.sort &&
-      savedParty === params.party
-    ) {
-      console.log("保存されたデータから復元します");
-      setPoliticians(JSON.parse(savedData));
-      setLastDocumentId(
-        localStorage.getItem("politicians_lastDocId") || undefined
-      );
-      setHasMore(localStorage.getItem("politicians_hasMore") === "true");
-      setAnimateItems(false); // アニメーションを無効化
-      setIsLoading(false);
-
-      // 少し遅延させてからスクロール位置を復元
-      setTimeout(() => {
-        window.scrollTo(0, parseInt(savedScrollPos, 10));
-      }, 100);
-    } else {
-      // 保存データがない、または条件が変わった場合は通常ロード
-      setAnimateItems(true);
-      setCurrentSort(params.sort);
-      setCurrentParty(params.party);
-      setCurrentPage(params.page);
-      loadPoliticians(params.page, params.sort, params.party, true);
-    }
-  }, []);
-
-  // スクロール位置とデータをローカルストレージに保存
-  useEffect(() => {
-    if (politicians.length > 0) {
-      localStorage.setItem("politicians_data", JSON.stringify(politicians));
-      localStorage.setItem("politicians_lastDocId", lastDocumentId || "");
-      localStorage.setItem("politicians_hasMore", hasMore.toString());
-      localStorage.setItem("politicians_sort", currentSort);
-      localStorage.setItem("politicians_party", currentParty);
-    }
-  }, [politicians, lastDocumentId, hasMore, currentSort, currentParty]);
-
-  // スクロール位置を保存するリスナー
-  useEffect(() => {
-    const handleScroll = () => {
-      if (politicians.length > 0) {
-        localStorage.setItem("politicians_scroll", window.scrollY.toString());
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [politicians]);
 
   // Load politicians with current filters
   const loadPoliticians = async (
@@ -215,8 +216,11 @@ const AllPoliticiansList: React.FC = () => {
         15
       );
 
+      let updatedPoliticians;
+
       if (refresh) {
         // Replace all politicians
+        updatedPoliticians = result.politicians;
         setPoliticians(result.politicians);
 
         // アニメーションを一定時間後に無効化（アニメーション実行後）
@@ -225,18 +229,28 @@ const AllPoliticiansList: React.FC = () => {
         }, 800); // アニメーションの時間より少し長めに設定
       } else {
         // Add to existing politicians (for infinite scroll)
-        setPoliticians((prev) => {
-          const existingIds = new Set(prev.map((p) => p.id));
-          const newPoliticians = result.politicians.filter(
-            (p) => !existingIds.has(p.id)
-          );
-          return [...prev, ...newPoliticians];
-        });
+        updatedPoliticians = [
+          ...politicians,
+          ...result.politicians.filter(
+            (p) => !politicians.some((existing) => existing.id === p.id)
+          ),
+        ];
+
+        setPoliticians(updatedPoliticians);
       }
 
       setLastDocumentId(result.lastDocumentId);
       setHasMore(result.hasMore);
       setCurrentPage(page);
+
+      // アプリケーション状態を更新
+      saveToAppState(
+        updatedPoliticians,
+        result.lastDocumentId,
+        result.hasMore,
+        party,
+        sort
+      );
 
       console.log(`Loaded ${result.politicians.length} politicians`);
 
@@ -271,6 +285,88 @@ const AllPoliticiansList: React.FC = () => {
     }
   };
 
+  // ブラウザバックでの状態復元用
+  useEffect(() => {
+    const params = getUrlParams();
+
+    // 現在のURL条件をログ出力
+    console.log("URLパラメータ:", params);
+
+    // アプリケーション状態をログ出力
+    console.table({
+      データ件数: APP_STATE.politicians.length,
+      スクロール位置: APP_STATE.scrollPosition,
+      ドキュメントID: APP_STATE.lastDocumentId,
+      続きあり: APP_STATE.hasMore,
+      ソート条件: APP_STATE.sort,
+      政党フィルター: APP_STATE.party,
+      URL一致:
+        APP_STATE.sort === params.sort && APP_STATE.party === params.party,
+    });
+
+    // アプリケーション状態とURLパラメータが一致する場合のみ復元
+    if (
+      APP_STATE.politicians.length > 0 &&
+      APP_STATE.sort === params.sort &&
+      APP_STATE.party === params.party
+    ) {
+      console.log("アプリケーション状態から復元します");
+      setPoliticians(APP_STATE.politicians);
+      setLastDocumentId(APP_STATE.lastDocumentId);
+      setHasMore(APP_STATE.hasMore);
+      setCurrentSort(params.sort);
+      setCurrentParty(params.party);
+      setAnimateItems(false); // アニメーションを無効化
+      setIsLoading(false);
+
+      // 少し遅延させてからスクロール位置を復元
+      setTimeout(() => {
+        window.scrollTo(0, APP_STATE.scrollPosition);
+        console.log(`スクロール位置を復元: ${APP_STATE.scrollPosition}px`);
+      }, 100);
+    } else {
+      // 保存データがない、または条件が変わった場合は通常ロード
+      console.log("通常のデータロードを実行します");
+      setAnimateItems(true);
+      setCurrentSort(params.sort);
+      setCurrentParty(params.party);
+      setCurrentPage(params.page);
+      loadPoliticians(params.page, params.sort, params.party, true);
+    }
+  }, []);
+
+  // スクロール位置の保存と無限スクロール検知
+  useEffect(() => {
+    const handleScroll = () => {
+      // スクロール位置の保存
+      if (politicians.length > 0) {
+        APP_STATE.scrollPosition = window.scrollY;
+
+        // 100px毎にログ出力（頻繁すぎるログを避けるため）
+        if (
+          Math.floor(window.scrollY / 100) !==
+          Math.floor(APP_STATE.scrollPosition / 100)
+        ) {
+          console.log(`スクロール位置: ${window.scrollY}px`);
+        }
+      }
+
+      // 無限スクロール検知
+      if (
+        window.innerHeight + document.documentElement.scrollTop + 100 >=
+          document.documentElement.offsetHeight &&
+        !isLoading &&
+        hasMore
+      ) {
+        console.log("画面下部に到達: 追加データをロードします");
+        loadMorePoliticians();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [politicians, isLoading, hasMore]);
+
   // Watch for URL changes and reload data if needed
   useEffect(() => {
     const params = getUrlParams();
@@ -280,6 +376,11 @@ const AllPoliticiansList: React.FC = () => {
 
     if (params.sort !== currentSort || params.party !== currentParty) {
       console.log("Filter parameters changed, reloading data");
+      console.table({
+        変更前: { sort: currentSort, party: currentParty },
+        変更後: { sort: params.sort, party: params.party },
+      });
+
       setCurrentSort(params.sort);
       setCurrentParty(params.party);
       setPoliticians([]);
@@ -287,37 +388,13 @@ const AllPoliticiansList: React.FC = () => {
       setHasMore(true);
       setCurrentPage(1);
       loadPoliticians(1, params.sort, params.party, true);
+
+      // アプリケーション状態をリセット
+      resetAppState();
     }
   }, [location.search]);
-
-  // Infinite scroll detection
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop + 100 >=
-          document.documentElement.offsetHeight &&
-        !isLoading &&
-        hasMore
-      ) {
-        loadMorePoliticians();
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastDocumentId, isLoading, hasMore]);
-
   return (
     <section className="space-y-4">
-      {/* <div className="flex items-center justify-between mb-2">
-        <button
-          onClick={handleBackToPoliticians}
-          className="flex items-center text-indigo-600 hover:text-indigo-800 transition"
-        >
-          <ArrowLeft size={16} className="mr-1" />
-          <span>戻る</span>
-        </button>
-      </div> */}
       <div className="flex justify-center space-x-2 mt-4">
         <PartyFilterDropdown
           currentFilter={currentParty}
@@ -328,9 +405,6 @@ const AllPoliticiansList: React.FC = () => {
           onSortChange={handleSortChange}
         />
       </div>
-
-      {/* Premium banner */}
-      {/* <PremiumBanner /> */}
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">
         <div className="p-4 border-b border-gray-100">
