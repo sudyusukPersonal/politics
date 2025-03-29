@@ -216,13 +216,23 @@ export const searchPoliticians = (keyword: string): Politician[] => {
 export const saveRecentlyViewedPolitician = (politician: {
   id: string;
   name: string;
+  position?: string; // positionフィールドを追加
+  totalCommentCount?: number;
+  party?: {
+    id: string;
+    name: string;
+    color?: string;
+  };
+  supportRate?: number;
+  opposeRate?: number;
+  totalVotes?: number;
 }) => {
   try {
     // localStorage から既存のデータを取得
     const recentlyViewedString = localStorage.getItem(
       "recentlyViewedPoliticians"
     );
-    let recentlyViewed: { id: string; name: string; timestamp: number }[] = [];
+    let recentlyViewed: any[] = [];
 
     if (recentlyViewedString) {
       recentlyViewed = JSON.parse(recentlyViewedString);
@@ -236,10 +246,25 @@ export const saveRecentlyViewedPolitician = (politician: {
       recentlyViewed.splice(existingIndex, 1);
     }
 
-    // 新しい項目を先頭に追加（タイムスタンプ付き）
+    // 政党情報の確認と修正
+    const partyInfo = politician.party || { name: "不明", id: "unknown" };
+    // 政党名からカラーを取得（既存のカラーがあればそれを使用、なければ関数から取得）
+    const partyColor = partyInfo.color || getPartyColor(partyInfo.name);
+
+    // 新しい項目を先頭に追加（拡張情報付き）
     recentlyViewed.unshift({
       id: politician.id,
       name: politician.name,
+      position: politician.position || "", // positionフィールドを保存
+      totalCommentCount: politician.totalCommentCount || 0,
+      party: {
+        id: partyInfo.id,
+        name: partyInfo.name,
+        color: partyColor, // 政党カラーを確実に設定
+      },
+      supportRate: politician.supportRate || 0,
+      opposeRate: politician.opposeRate || 0,
+      totalVotes: politician.totalVotes || 0,
       timestamp: Date.now(),
     });
 
@@ -254,12 +279,26 @@ export const saveRecentlyViewedPolitician = (politician: {
       JSON.stringify(recentlyViewed)
     );
 
-    console.log("最近見た政治家を保存しました:", politician.name);
+    console.log("最近見た政治家を拡張情報付きで保存しました:", politician.name);
   } catch (error) {
     console.error("LocalStorageへの保存に失敗しました:", error);
   }
 };
+export const getRecentlyViewedPoliticians = () => {
+  try {
+    const recentlyViewedString = localStorage.getItem(
+      "recentlyViewedPoliticians"
+    );
+    if (!recentlyViewedString) {
+      return [];
+    }
 
+    return JSON.parse(recentlyViewedString);
+  } catch (error) {
+    console.error("LocalStorageからの読み込みに失敗しました:", error);
+    return [];
+  }
+};
 /**
  * localStorageから最近見た政治家のIDリストを取得する
  * 閲覧した順（新しい順）で返される

@@ -1,7 +1,7 @@
 // src/components/home/PoliticiansTab.tsx
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, FileText, ChevronRight } from "lucide-react";
+import { Users, FileText, ChevronRight, MessageSquare } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import PoliticianCard from "../politicians/PoliticianCard";
 import PolicyCard from "../policies/PolicyCard";
@@ -9,15 +9,16 @@ import InlineAdBanner from "../ads/InlineAdBanner";
 import PremiumBanner from "../common/PremiumBanner";
 import LoadingAnimation from "../common/LoadingAnimation";
 import {
-  getRecentlyViewedPoliticianIds,
+  getRecentlyViewedPoliticians,
   getRecentlyViewedPolicyIds,
 } from "../../utils/dataUtils";
 import { fetchPolicyById } from "../../services/policyService";
+import { Politician } from "../../types";
 
 const PoliticiansTab: React.FC = () => {
   const navigate = useNavigate();
-  const { globalPoliticians, dataInitialized, showAllPoliticiansList } =
-    useData();
+  // globalPoliticiansへの依存を削除し、必要なものだけimport
+  const { dataInitialized, showAllPoliticiansList } = useData();
 
   // 統合されたローディング状態
   const [loading, setLoading] = useState(true);
@@ -27,18 +28,10 @@ const PoliticiansTab: React.FC = () => {
   // 表示用の状態 - これが重要なポイント
   const [isVisible, setIsVisible] = useState(false);
 
-  // 最近見た政治家のデータを取得
+  // 最近見た政治家のデータを取得 - ローカルストレージから直接取得
   const recentlyViewedPoliticians = useMemo(() => {
-    if (!globalPoliticians?.length) return [];
-
-    const recentIds = getRecentlyViewedPoliticianIds();
-    if (recentIds.length === 0) return [];
-
-    return recentIds
-      .map((id) => globalPoliticians.find((p) => p.id === id))
-      .filter(Boolean)
-      .slice(0, 3);
-  }, [globalPoliticians]);
+    return getRecentlyViewedPoliticians().slice(0, 3); // 最大3件を表示
+  }, []); // 依存配列を空に - ローカルストレージのみ参照するため
 
   // データ取得
   useEffect(() => {
@@ -158,16 +151,18 @@ const PoliticiansTab: React.FC = () => {
           <div>
             {/* 最近見た政治家を表示 */}
             {recentlyViewedPoliticians.length > 0 ? (
-              recentlyViewedPoliticians.map((politician, index) => {
-                if (!politician) return null; // Ensure politician is defined
-                return (
-                  <PoliticianCard
-                    key={politician.id}
-                    politician={politician}
-                    index={index}
-                  />
-                );
-              })
+              recentlyViewedPoliticians.map(
+                (politician: Politician, index: number) => {
+                  if (!politician) return null; // Ensure politician is defined
+                  return (
+                    <PoliticianCard
+                      key={politician.id}
+                      politician={politician}
+                      index={index}
+                    />
+                  );
+                }
+              )
             ) : (
               <div className="p-6 text-center">
                 <div className="text-gray-500 mb-4">

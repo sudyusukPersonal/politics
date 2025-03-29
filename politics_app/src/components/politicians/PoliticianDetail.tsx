@@ -56,10 +56,16 @@ const PoliticianDetail: React.FC = () => {
           // Update in DataContext so other components can access it
           setSelectedPolitician(politicianData);
 
-          // 最近見た政治家リストに追加
+          // 最近見た政治家リストに追加（positionフィールドを含める）
           saveRecentlyViewedPolitician({
             id: politicianData.id,
             name: politicianData.name,
+            position: politicianData.position, // positionフィールドを追加
+            totalCommentCount: politicianData.totalCommentCount,
+            party: politicianData.party,
+            supportRate: politicianData.supportRate,
+            opposeRate: politicianData.opposeRate,
+            totalVotes: politicianData.totalVotes,
           });
 
           // メインコンテンツ表示後に少し遅れてコメント表示

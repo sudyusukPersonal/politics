@@ -312,7 +312,7 @@ const convertToPolitician = async (
     name: data.affiliation || "",
     color: getPartyColor(data.affiliation || ""),
   };
-
+  //////
   // Calculate support/oppose rates
   const totalVotes = (data.supportCount || 0) + (data.opposeCount || 0);
   const supportRate =
@@ -328,21 +328,15 @@ const convertToPolitician = async (
   let imageUrl;
 
   // キャッシュキーには詳細ページかどうかの情報も含める
-  const cacheKey = isDetailPage
-    ? `detail_${politicianName}`
-    : `list_${politicianName}`;
+  const cacheKey = `detail_${politicianName}`;
 
   // Check if image URL is already cached for performance
-  if (imageUrlCache[cacheKey]) {
-    imageUrl = imageUrlCache[cacheKey];
-  } else {
+  if (isDetailPage) {
     // Firebase Storageから画像URLを取得
     try {
       const storage = getStorage();
       // 詳細ページか一覧ページかに応じて異なるパスを使用
-      const imagePath = isDetailPage
-        ? `detail_images/${politicianName}.jpg`
-        : `list_images/${politicianName}.jpg`;
+      const imagePath = `detail_images/${politicianName}.jpg`;
 
       imageUrl = await getDownloadURL(ref(storage, imagePath));
 

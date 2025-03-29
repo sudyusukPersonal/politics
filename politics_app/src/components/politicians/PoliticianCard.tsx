@@ -1,6 +1,6 @@
 // src/components/politicians/PoliticianCard.tsx
 import React from "react";
-import { Calendar, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight, MessageSquare } from "lucide-react";
 import { Politician } from "../../types";
 import { useData } from "../../context/DataContext";
 import TrendIcon from "../common/TrendIcon";
@@ -15,7 +15,7 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
   index,
 }) => {
   const { handlePoliticianSelect, getTrendIcon } = useData();
-
+  console.log("PoliticianCard", politician);
   return (
     <div
       key={politician.id}
@@ -27,7 +27,7 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
       <div className="p-4 flex items-center">
         <div className="relative flex-shrink-0">
           <img
-            src={politician.image}
+            src={`/cm_images/${encodeURIComponent(politician.name)}.jpg`}
             alt={politician.name}
             className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 transform transition hover:scale-105"
             style={{ borderColor: politician.party.color }}
@@ -92,11 +92,20 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
               ></div>
             </div>
 
-            <div className="flex items-center mt-2 text-xs text-gray-500 truncate">
-              <Calendar size={12} className="mr-1 flex-shrink-0" />
-              <span className="truncate">
-                最近の活動: {politician.recentActivity}
-              </span>
+            <div className="flex items-center mt-2">
+              <div
+                className="px-2 py-1 rounded-full text-xs flex items-center"
+                style={{
+                  backgroundColor: `${politician.party.color}15`, // 政党カラーを透過させた背景
+                  color: politician.party.color, // 政党カラーのテキスト
+                  border: `1px solid ${politician.party.color}30`, // 政党カラーを透過させた境界線
+                }}
+              >
+                <MessageSquare size={12} className="mr-1 flex-shrink-0" />
+                <span className="font-medium">
+                  {politician.totalCommentCount || 0} コメント
+                </span>
+              </div>
             </div>
           </div>
         </div>
