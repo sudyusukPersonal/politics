@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Search, X, Menu as MenuIcon } from "lucide-react";
 import { useData } from "../../context/DataContext";
-import LoginButton from "../auth/LoginButtons";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -284,9 +283,6 @@ const Header: React.FC = () => {
             )}
           </div>
           {/* User login button */}
-          <div>
-            <LoginButton />
-          </div>
         </div>
       </div>
     </header>

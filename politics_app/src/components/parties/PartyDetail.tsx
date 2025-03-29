@@ -26,6 +26,8 @@ const PartyDetail: React.FC = () => {
   const [party, setParty] = useState<Party | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // 追加: コメント表示制御のための状態
+  const [showComments, setShowComments] = useState(false);
 
   // 所属議員一覧ページへ遷移する関数
   const navigateToPartyMembers = useCallback(() => {
@@ -64,6 +66,7 @@ const PartyDetail: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
+        setShowComments(false); // データ読み込み時にコメント表示をリセット
 
         // Firestoreから政党データを取得
         const partyData = await fetchPartyById(id);
@@ -71,6 +74,11 @@ const PartyDetail: React.FC = () => {
         if (partyData) {
           setParty(partyData);
           console.log("政党データを取得しました:", partyData);
+
+          // メインコンテンツ表示後に少し遅れてコメント表示
+          setTimeout(() => {
+            setShowComments(true);
+          }, 200);
         } else {
           setError("指定された政党データが見つかりませんでした");
         }
@@ -177,6 +185,7 @@ const PartyDetail: React.FC = () => {
                         // エラー時に元のイニシャル表示に戻す
                         e.currentTarget.style.display = "none";
                       }}
+                      loading="lazy"
                     />
                   </div>
                 </div>
@@ -288,23 +297,22 @@ const PartyDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* コメントセクション - 同じReplyDataProviderコンテキスト内 */}
-          <div
-            className={styles.cards.base + " animate-fadeIn"}
-            style={{ animationDelay: "0.2s" }}
-          >
-            <div className="p-3">
-              <h3 className="font-bold text-lg mb-4 flex items-center">
-                <MessageSquare size={18} className="mr-2 text-indigo-600" />
-                評価理由
-              </h3>
-              <CommentSection
-                entityType="policy"
-                entityId={party.id}
-                totalCommentCount={party.totalCommentCount}
-              />
+          {/* コメントセクション - 条件付きで表示 */}
+          {showComments && (
+            <div className={styles.cards.base + " animate-fadeIn"}>
+              <div className="p-3">
+                <h3 className="font-bold text-lg mb-4 flex items-center">
+                  <MessageSquare size={18} className="mr-2 text-indigo-600" />
+                  評価理由
+                </h3>
+                <CommentSection
+                  entityType="policy"
+                  entityId={party.id}
+                  totalCommentCount={party.totalCommentCount}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </ReplyDataProvider>
     </section>

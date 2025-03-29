@@ -268,8 +268,20 @@ export const addVoteToPolicy = async (
   try {
     const policyRef = doc(db, "policy", policyId);
 
-    // トランザクションを使用して一貫性のある更新を保証
     await runTransaction(db, async (transaction) => {
+      // increment()を使用する更新データを準備
+      const updateData: any = {
+        totalcount: increment(1),
+      };
+
+      // 投票タイプに応じたフィールドを更新
+      if (voteType === "support") {
+        updateData.SupportRate = increment(1);
+      } else {
+        updateData.NonSupportRate = increment(1);
+      }
+
+      // supportRatingを計算するために必要な現在の値を取得
       const policyDoc = await transaction.get(policyRef);
 
       if (!policyDoc.exists()) {
@@ -278,7 +290,7 @@ export const addVoteToPolicy = async (
 
       const policyData = policyDoc.data();
 
-      // 現在の値を取得
+      // 現在の値を取得して新しい値を計算
       const currentSupportRate = policyData.SupportRate || 0;
       const currentNonSupportRate = policyData.NonSupportRate || 0;
 
@@ -289,20 +301,14 @@ export const addVoteToPolicy = async (
         voteType === "oppose"
           ? currentNonSupportRate + 1
           : currentNonSupportRate;
-      const newTotalCount = (policyData.totalcount || 0) + 1;
 
-      // 新しい支持率を計算 (総票数に対する支持票の割合)
-      const newSupportRating = Math.round(
+      // 新しい支持率を計算して更新データに追加
+      updateData.supportRating = Math.round(
         (newSupportRate / (newSupportRate + newNonSupportRate)) * 100
       );
 
-      // ドキュメントを更新
-      transaction.update(policyRef, {
-        SupportRate: newSupportRate,
-        NonSupportRate: newNonSupportRate,
-        totalcount: newTotalCount,
-        supportRating: newSupportRating,
-      });
+      // トランザクション内で更新を実行
+      transaction.update(policyRef, updateData);
     });
 
     console.log(`政策 ${policyId} に ${voteType} 票を追加しました`);

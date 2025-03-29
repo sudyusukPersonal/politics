@@ -19,17 +19,20 @@ import { CommentSection } from "../comments/OptimizedCommentSystem";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { Politician } from "../../types";
 import { fetchPoliticianById } from "../../services/politicianService";
-import { saveRecentlyViewedPolitician } from "../../utils/dataUtils"; // この行を追加
+import { saveRecentlyViewedPolitician } from "../../utils/dataUtils";
+import { ReplyDataProvider } from "../../context/ReplyDataContext";
 
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { voteType, showReasonForm, setSelectedPolitician } = useData();
+  const { setSelectedPolitician } = useData();
 
   // Local state for politician data
   const [politician, setPolitician] = useState<Politician | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // シンプルな表示制御のための状態
+  const [showComments, setShowComments] = useState(false);
 
   // Fetch politician data from Firebase when component mounts or ID changes
   useEffect(() => {
@@ -43,21 +46,26 @@ const PoliticianDetail: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
+        setShowComments(false); // データ読み込み時にコメント表示をリセット
 
         // Fetch politician data from Firebase
         const politicianData = await fetchPoliticianById(id);
-        console.log(politicianData);
 
         if (politicianData) {
           setPolitician(politicianData);
           // Update in DataContext so other components can access it
           setSelectedPolitician(politicianData);
 
-          // 最近見た政治家リストに追加（この部分を追加）
+          // 最近見た政治家リストに追加
           saveRecentlyViewedPolitician({
             id: politicianData.id,
             name: politicianData.name,
           });
+
+          // メインコンテンツ表示後に少し遅れてコメント表示
+          setTimeout(() => {
+            setShowComments(true);
+          }, 200);
         } else {
           setError("指定された政治家データが見つかりませんでした");
         }
@@ -129,93 +137,97 @@ const PoliticianDetail: React.FC = () => {
   }
 
   return (
-    <section className="space-y-4">
-      <div className={styles.cards.base + " animate-fadeIn"}>
-        <div className="p-3">
-          {/* Politician header with image and basic info */}
-          <div className="flex flex-col sm:flex-row sm:items-start">
-            <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
-              <div
-                className="absolute inset-0 rounded-full blur-sm opacity-30"
-                style={{ backgroundColor: politician.party.color }}
-              ></div>
-              <img
-                src={politician.image}
-                alt={politician.name}
-                className="w-20 h-20 relative rounded-full object-cover border-2 z-10"
-                style={{ borderColor: politician.party.color }}
-              />
-            </div>
-            <div className="sm:ml-6 text-center sm:text-left">
-              <div className="flex flex-col sm:flex-row sm:items-center">
-                <h2 className="text-xl font-bold">{politician.name}</h2>
-                <div className="mt-1 sm:mt-0 sm:ml-3">
-                  <TrendIcon trend={politician.trending} />
+    <ReplyDataProvider>
+      <section className="space-y-4">
+        <div className={styles.cards.base + " animate-fadeIn"}>
+          <div className="p-3">
+            {/* Politician header with image and basic info */}
+            <div className="flex flex-col sm:flex-row sm:items-start">
+              <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
+                <div
+                  className="absolute inset-0 rounded-full blur-sm opacity-30"
+                  style={{ backgroundColor: politician.party.color }}
+                ></div>
+                <img
+                  src={politician.image}
+                  alt={politician.name}
+                  className="w-20 h-20 relative rounded-full object-cover border-2 z-10"
+                  style={{ borderColor: politician.party.color }}
+                  loading="lazy"
+                />
+              </div>
+              <div className="sm:ml-6 text-center sm:text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <h2 className="text-xl font-bold">{politician.name}</h2>
+                  <div className="mt-1 sm:mt-0 sm:ml-3">
+                    <TrendIcon trend={politician.trending} />
+                  </div>
+                </div>
+                <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 mt-1">
+                  <span>{politician.position}</span>
+                  {politician.region && (
+                    <>
+                      <span className="mx-2">•</span>
+                      <span className="truncate">{politician.region}</span>
+                    </>
+                  )}
+                  {politician.furigana && (
+                    <>
+                      <span className="mx-2">•</span>
+                      <span className="text-gray-400">
+                        {politician.furigana}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {/* Party badge/button */}
+                <div
+                  className="mt-2 px-3 py-1 rounded-full text-white text-xs inline-flex items-center cursor-pointer"
+                  style={{ backgroundColor: politician.party.color }}
+                  onClick={handlePartyClick}
+                >
+                  <Building size={12} className="mr-1" />
+                  {politician.party.name}
                 </div>
               </div>
-              <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 mt-1">
-                <span>{politician.position}</span>
-                {politician.region && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <span className="truncate">{politician.region}</span>
-                  </>
-                )}
-                {politician.furigana && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <span className="text-gray-400">{politician.furigana}</span>
-                  </>
-                )}
-              </div>
-              {/* Party badge/button */}
-              <div
-                className="mt-2 px-3 py-1 rounded-full text-white text-xs inline-flex items-center cursor-pointer"
-                style={{ backgroundColor: politician.party.color }}
-                onClick={handlePartyClick}
-              >
-                <Building size={12} className="mr-1" />
-                {politician.party.name}
-              </div>
+            </div>
+
+            {/* Entity Ratings Section */}
+            <EntityRatingsSection
+              supportRate={politician.supportRate}
+              opposeRate={politician.opposeRate}
+              totalVotes={politician.totalVotes}
+              activity={politician.activity}
+              recentActivity={politician.recentActivity}
+            />
+
+            {/* Vote buttons or vote form */}
+            <UnifiedVoteComponent
+              entityType="politician"
+              entityId={politician.id}
+            />
+          </div>
+        </div>
+
+        {/* Comments section - シンプルな条件表示だけ追加 */}
+        {showComments && (
+          <div className={styles.cards.base + " animate-fadeIn"}>
+            <div className="p-3">
+              <h3 className="font-bold text-lg mb-4 flex items-center">
+                <MessageSquare size={18} className="mr-2 text-indigo-600" />
+                評価理由
+              </h3>
+
+              <CommentSection
+                entityType="policy"
+                entityId={politician.id}
+                totalCommentCount={politician.totalCommentCount}
+              />
             </div>
           </div>
-
-          {/* Entity Ratings Section */}
-          <EntityRatingsSection
-            supportRate={politician.supportRate}
-            opposeRate={politician.opposeRate}
-            totalVotes={politician.totalVotes}
-            activity={politician.activity}
-            recentActivity={politician.recentActivity}
-          />
-
-          {/* Vote buttons or vote form */}
-          <UnifiedVoteComponent
-            entityType="politician"
-            entityId={politician.id}
-          />
-        </div>
-      </div>
-
-      {/* Comments section */}
-      <div
-        className={styles.cards.base + " animate-fadeIn"}
-        style={{ animationDelay: "0.2s" }}
-      >
-        <div className="p-3">
-          <h3 className="font-bold text-lg mb-4 flex items-center">
-            <MessageSquare size={18} className="mr-2 text-indigo-600" />
-            評価理由
-          </h3>
-
-          <CommentSection
-            entityType="politician"
-            entityId={politician.id}
-            totalCommentCount={politician.totalCommentCount}
-          />
-        </div>
-      </div>
-    </section>
+        )}
+      </section>
+    </ReplyDataProvider>
   );
 };
 

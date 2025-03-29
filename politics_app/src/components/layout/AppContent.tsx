@@ -1,43 +1,58 @@
 // politics_app/src/components/layout/AppContent.tsx
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./Header";
-import MobileMenu from "./MobileMenu";
-import PoliticianDetail from "../politicians/PoliticianDetail";
-import PartyDetail from "../parties/PartyDetail";
-import AllPoliticiansList from "../politicians/AllPoliticiansList";
-import HomeScreen from "../home/HomeScreen";
-import PolicyDiscussionPage from "../policies/PolicyDetail";
-import PolicyListingPage from "../policies/PolicyListingPage";
-import PrivacyPolicyPage from "../privacy/PrivacyPolicyPage";
+import LoadingAnimation from "../common/LoadingAnimation";
+
+// コンポーネントを遅延読み込み（レイジーロード）
+const MobileMenu = lazy(() => import("./MobileMenu"));
+const PoliticianDetail = lazy(() => import("../politicians/PoliticianDetail"));
+const PartyDetail = lazy(() => import("../parties/PartyDetail"));
+const AllPoliticiansList = lazy(
+  () => import("../politicians/AllPoliticiansList")
+);
+const HomeScreen = lazy(() => import("../home/HomeScreen"));
+const PolicyDiscussionPage = lazy(() => import("../policies/PolicyDetail"));
+const PolicyListingPage = lazy(() => import("../policies/PolicyListingPage"));
+const PrivacyPolicyPage = lazy(() => import("../privacy/PrivacyPolicyPage"));
+
+// Suspenseのフォールバック用ローディングコンポーネント
+const PageLoadingFallback = () => (
+  <div className="flex items-center justify-center py-12">
+    <LoadingAnimation type="pulse" message="ページを読み込んでいます..." />
+  </div>
+);
 
 const AppContent: React.FC = () => {
   return (
     <div className="flex flex-col w-full min-h-screen font-sans bg-slate-50">
-      {/* Mobile menu overlay */}
-      <MobileMenu />
-
-      {/* Header */}
+      {/* ヘッダーはレイジーロードしない（常に表示されるため） */}
       <Header />
 
-      {/* Main content */}
+      {/* モバイルメニューは別途Suspenseでラップ（表示・非表示が切り替わるため） */}
+      <Suspense fallback={null}>
+        <MobileMenu />
+      </Suspense>
+
+      {/* メインコンテンツ */}
       <main className="flex-1 pb-16 sm:p-4 px-0 container mx-auto max-w-7xl">
         <div className="mx-auto sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full">
-          <Routes>
-            <Route path="*" element={<Navigate to="/" replace />} />
-
-            <Route path="/" element={<HomeScreen />} />
-            <Route path="/politicians" element={<AllPoliticiansList />} />
-            <Route path="/politicians/:id" element={<PoliticianDetail />} />
-            <Route
-              path="/parties"
-              element={<HomeScreen initialTab="parties" />}
-            />
-            <Route path="/parties/:id" element={<PartyDetail />} />
-            <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
-            <Route path="/policy" element={<PolicyListingPage />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-          </Routes>
+          <Suspense fallback={<PageLoadingFallback />}>
+            <Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/" element={<HomeScreen />} />
+              <Route path="/politicians" element={<AllPoliticiansList />} />
+              <Route path="/politicians/:id" element={<PoliticianDetail />} />
+              <Route
+                path="/parties"
+                element={<HomeScreen initialTab="parties" />}
+              />
+              <Route path="/parties/:id" element={<PartyDetail />} />
+              <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
+              <Route path="/policy" element={<PolicyListingPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            </Routes>
+          </Suspense>
         </div>
       </main>
 
@@ -90,26 +105,26 @@ const AppContent: React.FC = () => {
         }
 
         @keyframes slide-in-left {
-    0% {
-      transform: translateX(-100%);
-      opacity: 0.5;
-    }
-    100% {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-  
-  @keyframes slide-out-left {
-    0% {
-      transform: translateX(0);
-      opacity: 1;
-    }
-    100% {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-  }
+          0% {
+            transform: translateX(-100%);
+            opacity: 0.5;
+          }
+          100% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slide-out-left {
+          0% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+        }
       `}</style>
     </div>
   );

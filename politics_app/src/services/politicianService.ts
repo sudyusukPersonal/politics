@@ -14,6 +14,7 @@ import {
   orderBy,
   startAfter,
   OrderByDirection,
+  runTransaction,
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage"; // Import Firebase Storage
 import { db } from "../config/firebaseConfig";
@@ -94,7 +95,6 @@ export const getPoliticianImageUrl = async (
 };
 
 // Record a vote for a politician (support or oppose)
-// 政治家への投票を記録する（支持または不支持）
 export const addVoteToPolitician = async (
   politicianId: string,
   voteType: "support" | "oppose"
@@ -102,30 +102,46 @@ export const addVoteToPolitician = async (
   try {
     const politicianRef = doc(db, "politicians", politicianId);
 
-    // まず現在のデータを取得
-    const docSnap = await getDoc(politicianRef);
+    // トランザクションを使用
+    await runTransaction(db, async (transaction) => {
+      // increment()を使用してカウンターを更新する更新オブジェクトを準備
+      const updateData: any = {
+        totalVotes: increment(1),
+      };
 
-    if (!docSnap.exists()) {
-      throw new Error(`政治家 ${politicianId} が見つかりません`);
-    }
+      // 投票タイプに応じたフィールドを更新
+      if (voteType === "support") {
+        updateData.supportCount = increment(1);
+      } else {
+        updateData.opposeCount = increment(1);
+      }
 
-    const data = docSnap.data();
-    // 現在の値を取得
-    const supportCount = data.supportCount || 0;
-    const opposeCount = data.opposeCount || 0;
+      // supportRateを計算するために必要な現在の値を取得
+      const politicianDoc = await transaction.get(politicianRef);
 
-    // 新しい値を計算
-    const newSupport = voteType === "support" ? supportCount + 1 : supportCount;
-    const newOppose = voteType === "oppose" ? opposeCount + 1 : opposeCount;
-    const totalVotes = newSupport + newOppose;
-    const supportRate = Math.round((newSupport / totalVotes) * 100);
+      if (!politicianDoc.exists()) {
+        throw new Error(`政治家 ${politicianId} が見つかりません`);
+      }
 
-    // ドキュメントを更新
-    await updateDoc(politicianRef, {
-      supportCount: newSupport,
-      opposeCount: newOppose,
-      totalVotes: totalVotes,
-      supportRate: supportRate,
+      const data = politicianDoc.data();
+      // 現在の値を取得して新しい値を計算
+      const currentSupportCount = data.supportCount || 0;
+      const currentOpposeCount = data.opposeCount || 0;
+
+      // 新しい値を計算
+      const newSupportCount =
+        voteType === "support" ? currentSupportCount + 1 : currentSupportCount;
+      const newOpposeCount =
+        voteType === "oppose" ? currentOpposeCount + 1 : currentOpposeCount;
+      const newTotalVotes = newSupportCount + newOpposeCount;
+
+      // 支持率を計算して更新データに追加
+      updateData.supportRate = Math.round(
+        (newSupportCount / newTotalVotes) * 100
+      );
+
+      // トランザクション内で更新を実行
+      transaction.update(politicianRef, updateData);
     });
 
     console.log(`Added ${voteType} vote to politician ${politicianId}`);
