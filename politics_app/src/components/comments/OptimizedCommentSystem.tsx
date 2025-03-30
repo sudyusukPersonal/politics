@@ -132,6 +132,7 @@ const getReplyReference = (reply: any) => {
 
 // ===== メインコメントセクションコンポーネント =====
 // src/components/comments/OptimizedCommentSystem.tsx の一部
+/////
 export const CommentSection: React.FC<{
   entityId?: string;
   entityType?: "politician" | "policy" | "party";
@@ -424,34 +425,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             : STYLES.container.comment(highlighted, type)
         }
       >
-        {/* 返信参照ヘッダー - リプライの場合のみ */}
-        {isReply && replyTo && (
-          <div className="flex items-center mb-2 text-xs text-gray-500">
-            <CornerDownRight size={12} className="mr-1" />
-            <span className="font-medium text-gray-600">
-              @{replyTo.reply_to_username}
-            </span>
-            <span className="ml-1">への返信</span>
-          </div>
-        )}
-
-        {/* コメント本文 */}
-        <p
-          className={`text-gray-700 ${
-            isReply ? "text-sm" : ""
-          } whitespace-pre-wrap`}
-        >
-          {comment.text}
-        </p>
-
-        {/* メタデータ＆アクション */}
-        <div className="flex justify-between mt-2 items-center">
-          <div className="flex items-center text-xs text-gray-500">
+        {/* 一段目: 投稿者名と投稿時間 + アクションボタン */}
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+          <div className="flex items-center">
             <span className="font-medium">{user.name}</span>
             <span className="mx-2">•</span>
             <span>{formatDate(comment.createdAt)}</span>
           </div>
 
+          {/* アクションボタンを1段目に移動 */}
           <div className="flex items-center space-x-3">
             <button
               onClick={handleLike}
@@ -468,9 +450,22 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           </div>
         </div>
 
+        {/* コメント本文 - リプライ情報を内部に組み込む */}
+        <div className="text-gray-700">
+          {isReply && replyTo && (
+            <span className="inline-flex items-center mr-1 text-xs text-gray-600">
+              <CornerDownRight size={12} className="mr-0.5" />
+              <span className="font-medium">@{replyTo.reply_to_username}</span>
+              {/* →をスペースに変更 */}
+              <span className="mx-1"> </span>
+            </span>
+          )}
+          <span className={isReply ? "text-sm" : ""}>{comment.text}</span>
+        </div>
+
         {/* 返信トグル - 非リプライかつ返信がある場合のみ */}
         {!isReply && comment.repliesCount > 0 && (
-          <div className="mt-3 pt-2 border-t border-gray-200">
+          <div className="mt-2 pt-1 border-t border-gray-200">
             <button className={STYLES.button.toggle} onClick={toggleReplies}>
               <MessageSquare size={14} className="mr-1" />
               <span>{comment.repliesCount} 返信</span>
@@ -483,8 +478,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           </div>
         )}
       </div>
-
-      {/* 返信フォーム - 表示/非表示を条件で制御 */}
+      {/* 返信フォーム ///////////- 表示/非表示を条件で制御 */}
       {isReplyFormVisible && (
         <ReplyForm
           comment={isReply ? (parentComment as Comment) : comment}
@@ -492,7 +486,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           onClose={closeReplyForm}
         />
       )}
-
       {/* 返信一覧 - 展開時のみ表示 */}
       {!isReply && isRepliesExpanded && comment.replies?.length > 0 && (
         <div className={STYLES.container.replyList}>
