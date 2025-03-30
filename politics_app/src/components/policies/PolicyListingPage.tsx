@@ -8,7 +8,6 @@ import {
   ChevronRight,
   ThumbsUp,
   ThumbsDown,
-  Clock,
   ArrowUp,
   ArrowDown,
   AlertCircle,
@@ -22,8 +21,7 @@ import { fetchPoliciesWithFilterAndSort } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { navigateToPolicy } from "../../utils/navigationUtils";
 
-// アプリケーション側でデータを保持するための単一のグローバル変数
-// Reactのレンダリングサイクルの外に保持するため、リロードされるまで維持される
+// Global app state
 const APP_STATE = {
   policies: [] as Policy[],
   scrollPosition: 0,
@@ -35,102 +33,80 @@ const APP_STATE = {
   searchQuery: "",
 };
 
-// Style constants
+// Combined styles
 const STYLES = {
-  headerGradient:
-    "relative bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white overflow-hidden",
-  headerOverlay:
-    "absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-400 via-transparent to-transparent opacity-20",
-  searchInput: (
-    searchFired: any
-  ) => `w-full pl-10 pr-10 py-2 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20 
-    focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white 
-    placeholder-white placeholder-opacity-70 backdrop-blur-sm md:w-[300px] lg:w-[350px] xl:w-[400px]
-    ${searchFired ? "search-input-flash" : ""}`,
-  searchIcon: (searchFired: any) =>
-    `text-white ${searchFired ? "search-icon-effect" : "opacity-70"}`,
-  searchButton: (searchFired: any) =>
-    searchFired ? "search-button-effect" : "",
-  categoryButton: (
-    isActive: any
+  header: {
+    gradient:
+      "relative bg-gradient-to-r from-gray-900 via-indigo-900 to-gray-900 text-white overflow-hidden",
+    overlay:
+      "absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-400 via-transparent to-transparent opacity-20",
+  },
+  search: (fired: boolean) => ({
+    input: `w-full pl-10 pr-10 py-2 bg-white bg-opacity-10 rounded-lg border border-white border-opacity-20 
+      focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-opacity-20 text-white 
+      placeholder-white placeholder-opacity-70 backdrop-blur-sm md:w-[300px] lg:w-[350px] xl:w-[400px]
+      ${fired ? "search-input-flash" : ""}`,
+    icon: `text-white ${fired ? "search-icon-effect" : "opacity-70"}`,
+    button: fired ? "search-button-effect" : "",
+  }),
+  category: (
+    active: boolean
   ) => `relative px-4 py-3 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 
     ${
-      isActive
+      active
         ? "text-white shadow-lg"
         : "bg-white text-gray-700 hover:bg-gray-100 shadow-sm"
     }`,
-  sortButton: (
-    isActive: any
+  sort: (
+    active: boolean
   ) => `w-full text-left px-4 py-2 text-sm flex items-center
     ${
-      isActive
+      active
         ? "bg-indigo-50 text-indigo-600 font-medium"
         : "text-gray-700 hover:bg-indigo-50"
     }`,
-  filterMenu:
+  filter:
     "absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg z-10 border border-indigo-100",
-  policyCard: (animateItems: any, index: number) =>
-    animateItems
-      ? {
-          animation: "fadeIn 0.3s ease-out forwards",
-          animationDelay: `${index * 0.05}s`,
-          opacity: 0,
-        }
-      : {},
-  policyCardBase:
-    "bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer",
-  loadingWave: (i: number) => ({
+  card: {
+    base: "bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer",
+    animation: (animate: boolean, index: number) =>
+      animate
+        ? {
+            animation: "fadeIn 0.3s ease-out forwards",
+            animationDelay: `${index * 0.05}s`,
+            opacity: 0,
+          }
+        : {},
+  },
+  wave: (i: number) => ({
     animation: `waveAnimation 0.8s ease-in-out ${i * 0.08}s infinite alternate`,
     opacity: 0.7 + i * 0.05,
   }),
 };
 
-// Animation styles
+// Animation keyframes
 const ANIMATIONS = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes bounce-slow {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-2px); }
-  }
-
-  .animate-bounce-slow {
-    animation: bounce-slow 2s ease-in-out infinite;
-  }
-  
-  .search-icon-effect {
-    animation: searchIconGlow 0.6s ease-out;
-  }
-  
-  @keyframes searchIconGlow {
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+  .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
+  .search-icon-effect { animation: searchIconGlow 0.6s ease-out; }
+  @keyframes searchIconGlow { 
     0% { opacity: 0.7; transform: scale(1); }
     30% { opacity: 1; transform: scale(1.3); filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8)); }
     100% { opacity: 0.7; transform: scale(1); }
   }
-  
-  .search-input-flash {
-    animation: inputFlash 0.6s ease-out;
-  }
-  
+  .search-input-flash { animation: inputFlash 0.6s ease-out; }
   @keyframes inputFlash {
     0% { background-color: rgba(255, 255, 255, 0.1); }
     30% { background-color: rgba(255, 255, 255, 0.25); }
     100% { background-color: rgba(255, 255, 255, 0.1); }
   }
-  
-  .search-button-effect {
-    animation: buttonAction 0.6s ease-out;
-  }
-  
+  .search-button-effect { animation: buttonAction 0.6s ease-out; }
   @keyframes buttonAction {
     0% { transform: translateX(0); }
     30% { transform: translateX(3px); }
     60% { transform: translateX(0); }
   }
-  
   @keyframes waveAnimation {
     0% { height: 6px; transform: translateY(10px); }
     50% { height: 24px; transform: translateY(0); }
@@ -142,9 +118,8 @@ const PolicyListingPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // URL パラメータ管理
+  // URL parameter management
   const getUrlParams = () => {
     const searchParams = new URLSearchParams(location.search);
     return {
@@ -154,17 +129,14 @@ const PolicyListingPage = () => {
     };
   };
 
-  const updateUrlParams = (
-    updates: { [s: string]: unknown } | ArrayLike<unknown>
-  ) => {
+  const updateUrlParams = (updates: Record<string, string>) => {
     const params = new URLSearchParams(location.search);
     Object.entries(updates).forEach(([key, value]) => {
-      if (value === "all" && key !== "sort") {
-        params.delete(key);
-      } else {
-        params.set(key, value as string);
-      }
+      value === "all" && key !== "sort"
+        ? params.delete(key)
+        : params.set(key, value);
     });
+
     navigate(
       {
         pathname: location.pathname,
@@ -174,65 +146,55 @@ const PolicyListingPage = () => {
     );
   };
 
-  // 状態管理（グループ化して状態変数の数を削減）
-  const [filterState, setFilterState] = useState({
-    activeCategory: getUrlParams().category,
-    activeParty: getUrlParams().party,
-    sortMethod: getUrlParams().sort,
+  // Combined state
+  const [state, setState] = useState({
+    // Filter state
+    filters: {
+      category: getUrlParams().category,
+      party: getUrlParams().party,
+      sort: getUrlParams().sort,
+    },
+    // Search state
+    search: {
+      query: "",
+      tempQuery: "",
+      fired: false,
+    },
+    // UI state
+    ui: {
+      showFilterMenu: false,
+      animateItems: true,
+    },
+    // Data state
+    data: {
+      policies: [] as Policy[],
+      lastDocId: undefined as string | undefined,
+      hasMore: true,
+    },
+    // Loading state
+    loading: {
+      isLoading: true,
+      isLoadingMore: false,
+      error: null as string | null,
+    },
+    // Master data
+    master: {
+      categories: [
+        {
+          id: "all",
+          name: "すべて",
+          color: "#6366F1",
+          icon: <Activity size={14} />,
+        },
+      ],
+      parties: [{ id: "all", name: "すべての政党", color: "#6366F1" }],
+    },
   });
 
-  const [searchState, setSearchState] = useState({
-    tempSearchQuery: "",
-    searchQuery: "",
-    searchFired: false,
-  });
+  // Destructure state for convenience
+  const { filters, search, ui, data, loading, master } = state;
 
-  const [uiState, setUiState] = useState({
-    showFilterMenu: false,
-    showPartyFilter: false,
-    animateItems: true,
-  });
-
-  const [policyData, setPolicyData] = useState({
-    policies: [] as Policy[],
-    lastDocumentId: undefined as string | undefined,
-    hasMore: true,
-  });
-
-  const [loadingState, setLoadingState] = useState({
-    isLoading: true,
-    isLoadingMore: false,
-    error: null as string | null,
-  });
-
-  // マスターデータ
-  const [masterData, setMasterData] = useState({
-    categories: [
-      {
-        id: "all",
-        name: "すべて",
-        color: "#6366F1",
-        icon: <Activity size={14} />,
-      },
-    ],
-    parties: [
-      {
-        id: "all",
-        name: "すべての政党",
-        color: "#6366F1",
-      },
-    ],
-  });
-
-  // 状態の分割代入
-  const { activeCategory, activeParty, sortMethod } = filterState;
-  const { tempSearchQuery, searchQuery, searchFired } = searchState;
-  const { showFilterMenu, animateItems } = uiState;
-  const { policies, lastDocumentId, hasMore } = policyData;
-  const { isLoading, isLoadingMore, error } = loadingState;
-  const { categories, parties } = masterData;
-
-  // アプリケーション状態にデータを保存
+  // App state management
   const saveToAppState = (
     policies: Policy[],
     lastDocId: string | undefined,
@@ -240,70 +202,34 @@ const PolicyListingPage = () => {
     category: string,
     party: string,
     sort: string,
-    search: string
+    query: string
   ) => {
-    APP_STATE.policies = policies;
-    APP_STATE.lastDocumentId = lastDocId;
-    APP_STATE.hasMore = hasMoreData;
-    APP_STATE.scrollPosition = window.scrollY;
-    APP_STATE.category = category;
-    APP_STATE.party = party;
-    APP_STATE.sort = sort;
-    APP_STATE.searchQuery = search;
-
-    // APP_STATEの状態をログ出力
-    console.table({
-      データ件数: APP_STATE.policies.length,
-      スクロール位置: APP_STATE.scrollPosition,
-      ドキュメントID: APP_STATE.lastDocumentId,
-      続きあり: APP_STATE.hasMore,
-      カテゴリー: APP_STATE.category,
-      政党フィルター: APP_STATE.party,
-      ソート条件: APP_STATE.sort,
-      検索クエリ: APP_STATE.searchQuery,
+    Object.assign(APP_STATE, {
+      policies,
+      lastDocumentId: lastDocId,
+      hasMore: hasMoreData,
+      scrollPosition: window.scrollY,
+      category,
+      party,
+      sort,
+      searchQuery: query,
     });
-
-    // 政策データのサンプルをログ出力
-    if (APP_STATE.policies.length > 0) {
-      console.log("政策データサンプル:");
-      console.table(
-        APP_STATE.policies.slice(0, 3).map((p) => ({
-          id: p.id,
-          title: p.title,
-          category: p.category,
-          supportRate: p.supportRate,
-        }))
-      );
-    }
   };
 
-  // アプリケーション状態のリセット
   const resetAppState = () => {
-    console.log("APP_STATEをリセットします");
-
-    APP_STATE.policies = [];
-    APP_STATE.lastDocumentId = undefined;
-    APP_STATE.hasMore = true;
-    APP_STATE.scrollPosition = 0;
-    APP_STATE.category = "";
-    APP_STATE.party = "";
-    APP_STATE.sort = "";
-    APP_STATE.searchQuery = "";
-
-    // リセット後の状態をログ出力
-    console.table({
-      データ件数: APP_STATE.policies.length,
-      スクロール位置: APP_STATE.scrollPosition,
-      ドキュメントID: APP_STATE.lastDocumentId,
-      続きあり: APP_STATE.hasMore,
-      カテゴリー: APP_STATE.category,
-      政党フィルター: APP_STATE.party,
-      ソート条件: APP_STATE.sort,
-      検索クエリ: APP_STATE.searchQuery,
+    Object.assign(APP_STATE, {
+      policies: [],
+      lastDocumentId: undefined,
+      hasMore: true,
+      scrollPosition: 0,
+      category: "",
+      party: "",
+      sort: "",
+      searchQuery: "",
     });
   };
 
-  // 政策データ読み込み関数（統合）
+  // Data loading function
   const loadPolicies = async (
     category: string,
     party: string,
@@ -312,26 +238,18 @@ const PolicyListingPage = () => {
     refresh: boolean = false
   ) => {
     try {
-      // ローディング状態の管理（簡略化）
-      setLoadingState((prev) => ({
+      setState((prev) => ({
         ...prev,
-        isLoading: refresh ? true : prev.isLoading,
-        isLoadingMore: !refresh ? true : prev.isLoadingMore,
-        error: null,
+        loading: {
+          ...prev.loading,
+          isLoading: refresh ? true : prev.loading.isLoading,
+          isLoadingMore: !refresh ? true : prev.loading.isLoadingMore,
+          error: null,
+        },
+        ui: { ...prev.ui, animateItems: refresh },
       }));
 
-      setUiState((prev) => ({ ...prev, animateItems: refresh }));
-
-      // 最後のドキュメントID設定
-      const docId = refresh ? undefined : lastDocumentId;
-
-      console.log(
-        `政策データ読み込み - カテゴリ:${category}, 政党:${party}, ソート:${sort}, 検索:${
-          searchTerm || "なし"
-        }, 続きから:${docId ? "あり" : "なし"}`
-      );
-
-      // サーバーサイドでフィルターとソートを適用して取得
+      const docId = refresh ? undefined : data.lastDocId;
       const result = await fetchPoliciesWithFilterAndSort(
         category,
         party,
@@ -341,46 +259,44 @@ const PolicyListingPage = () => {
         10
       );
 
-      console.log(
-        `Firestore取得: ${
-          result.policies.length
-        }件の政策ドキュメント取得 (カテゴリ:${category}, 政党:${party}, ソート:${sort}, 検索:${
-          searchTerm || "なし"
-        }, 続きから:${docId ? "あり" : "なし"})`
-      );
+      const updatedPolicies = refresh
+        ? result.policies
+        : [
+            ...data.policies,
+            ...result.policies.filter(
+              (p) => !data.policies.some((existing) => existing.id === p.id)
+            ),
+          ];
 
-      // データの更新
-      let updatedPolicies: Policy[];
+      setState((prev) => ({
+        ...prev,
+        data: {
+          policies: updatedPolicies,
+          lastDocId: result.lastDocumentId,
+          hasMore: result.hasMore,
+        },
+        loading: {
+          ...prev.loading,
+          isLoading: refresh ? false : prev.loading.isLoading,
+          isLoadingMore: !refresh ? false : prev.loading.isLoadingMore,
+        },
+        ui: {
+          ...prev.ui,
+          animateItems: refresh ? prev.ui.animateItems : false,
+        },
+      }));
 
       if (refresh) {
-        updatedPolicies = result.policies;
-        setPolicyData((prev) => ({
-          ...prev,
-          policies: result.policies,
-          lastDocumentId: result.lastDocumentId,
-          hasMore: result.hasMore,
-        }));
-
-        // アニメーション状態をリセット
-        setTimeout(() => {
-          setUiState((prev) => ({ ...prev, animateItems: false }));
-        }, 800);
-      } else {
-        const existingIds = new Set(policies.map((p) => p.id));
-        const newPolicies = result.policies.filter(
-          (p) => !existingIds.has(p.id)
+        setTimeout(
+          () =>
+            setState((prev) => ({
+              ...prev,
+              ui: { ...prev.ui, animateItems: false },
+            })),
+          800
         );
-        updatedPolicies = [...policies, ...newPolicies];
-
-        setPolicyData((prev) => ({
-          ...prev,
-          policies: updatedPolicies,
-          lastDocumentId: result.lastDocumentId,
-          hasMore: result.hasMore,
-        }));
       }
 
-      // アプリケーション状態を更新
       saveToAppState(
         updatedPolicies,
         result.lastDocumentId,
@@ -391,37 +307,28 @@ const PolicyListingPage = () => {
         searchTerm
       );
     } catch (error) {
-      console.error("政策データ読み込みエラー:", error);
-      setLoadingState((prev) => ({
+      setState((prev) => ({
         ...prev,
-        error: "政策データの読み込みに失敗しました。もう一度お試しください。",
-      }));
-
-      if (refresh) {
-        setPolicyData((prev) => ({ ...prev, policies: [] }));
-      }
-    } finally {
-      // ローディング状態の解除
-      setLoadingState((prev) => ({
-        ...prev,
-        isLoading: refresh ? false : prev.isLoading,
-        isLoadingMore: !refresh ? false : prev.isLoadingMore,
+        loading: {
+          ...prev.loading,
+          isLoading: refresh ? false : prev.loading.isLoading,
+          isLoadingMore: !refresh ? false : prev.loading.isLoadingMore,
+          error: "政策データの読み込みに失敗しました。もう一度お試しください。",
+        },
+        data: {
+          ...prev.data,
+          policies: refresh ? [] : prev.data.policies,
+        },
       }));
     }
   };
 
-  // カテゴリとパーティのマスターデータを読み込む（簡略化）
+  // Load categories and parties
   const loadCategoriesAndParties = async () => {
     try {
-      setLoadingState((prev) => ({ ...prev, isLoading: true }));
-
-      // カテゴリデータを取得
       const allCategories = await fetchAllCategories();
-      console.log(
-        `Firestore取得: ${allCategories.length}件のカテゴリドキュメント取得`
-      );
 
-      // カテゴリアイコンと色のマッピング
+      // Category icon and color mappings
       const categoryIconsAndColors: Record<
         string,
         { icon: JSX.Element; color: string }
@@ -438,7 +345,6 @@ const PolicyListingPage = () => {
         地方創生: { icon: <Building size={14} />, color: "#10B981" },
       };
 
-      // カテゴリデータを整形
       const formattedCategories = [
         {
           id: "all",
@@ -456,7 +362,7 @@ const PolicyListingPage = () => {
         })),
       ];
 
-      // 政党データ（サンプル）
+      // Party data
       const partyData = [
         { id: "all", name: "すべての政党", color: "#6366F1" },
         { id: "自由民主党", name: "自由民主党", color: "#555555" },
@@ -470,332 +376,266 @@ const PolicyListingPage = () => {
         { id: "参政党", name: "参政党", color: "#FF4500" },
       ];
 
-      setMasterData({
-        categories: formattedCategories,
-        parties: partyData,
-      });
-    } catch (error) {
-      console.error("カテゴリ・政党データ取得エラー:", error);
-      setLoadingState((prev) => ({
+      setState((prev) => ({
         ...prev,
-        error: "カテゴリデータの取得中にエラーが発生しました。",
+        master: { categories: formattedCategories, parties: partyData },
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        loading: {
+          ...prev.loading,
+          error: "カテゴリデータの取得中にエラーが発生しました。",
+        },
       }));
     }
   };
 
-  // イベントハンドラ（汎用化）
-  const handleSearchChange = (e: { target: { value: any } }) => {
-    setSearchState((prev) => ({ ...prev, tempSearchQuery: e.target.value }));
+  // Event handlers
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setState((prev) => ({
+      ...prev,
+      search: { ...prev.search, tempQuery: e.target.value },
+    }));
   };
 
-  const handleSearchSubmit = (e: { preventDefault: () => void }) => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 検索クエリが変更された場合はアプリケーション状態をリセット
-    if (tempSearchQuery !== searchQuery) {
-      resetAppState();
-    }
+    if (search.tempQuery !== search.query) resetAppState();
 
-    setSearchState((prev) => ({
+    setState((prev) => ({
       ...prev,
-      searchQuery: prev.tempSearchQuery,
-      searchFired: true,
-    }));
-
-    setPolicyData((prev) => ({
-      ...prev,
-      policies: [],
-      lastDocumentId: undefined,
-      hasMore: true,
+      search: { ...prev.search, query: prev.search.tempQuery, fired: true },
+      data: { policies: [], lastDocId: undefined, hasMore: true },
     }));
 
     loadPolicies(
-      activeCategory,
-      activeParty,
-      sortMethod,
-      tempSearchQuery,
+      filters.category,
+      filters.party,
+      filters.sort,
+      search.tempQuery,
       true
     );
 
-    setTimeout(() => {
-      setSearchState((prev) => ({ ...prev, searchFired: false }));
-    }, 600);
+    setTimeout(
+      () =>
+        setState((prev) => ({
+          ...prev,
+          search: { ...prev.search, fired: false },
+        })),
+      600
+    );
 
-    if (searchInputRef.current) {
-      searchInputRef.current.blur();
-    }
+    searchInputRef.current?.blur();
   };
 
-  // フィルター変更ハンドラを統合
+  // Filter change handler
   const handleFilterChange = (
     type: "sort" | "category" | "party",
     value: string
   ) => {
-    // フィルター状態更新マッピング
-    const stateUpdates = {
-      sort: { sortMethod: value },
-      category: { activeCategory: value },
-      party: { activeParty: value },
-    };
+    setState((prev) => ({
+      ...prev,
+      filters: { ...prev.filters, [type]: value },
+      ui: {
+        ...prev.ui,
+        showFilterMenu: type === "category" ? prev.ui.showFilterMenu : false,
+      },
+      data: { policies: [], lastDocId: undefined, hasMore: true },
+    }));
 
-    // フィルター状態を更新
-    setFilterState((prev) => ({ ...prev, ...stateUpdates[type] }));
-
-    // ドロップダウンを閉じる（ソートと政党変更時）
-    if (type !== "category") {
-      setUiState((prev) => ({ ...prev, showFilterMenu: false }));
-    }
-
-    // URL更新
     updateUrlParams({ [type]: value });
-
-    // データをリセットして再取得
-    setPolicyData({
-      policies: [],
-      lastDocumentId: undefined,
-      hasMore: true,
-    });
-
-    // アプリケーション状態をリセット
     resetAppState();
 
-    // フィルター条件で新しいデータを読み込み
     loadPolicies(
-      type === "category" ? value : activeCategory,
-      type === "party" ? value : activeParty,
-      type === "sort" ? value : sortMethod,
-      searchQuery,
+      type === "category" ? value : filters.category,
+      type === "party" ? value : filters.party,
+      type === "sort" ? value : filters.sort,
+      search.query,
       true
     );
   };
 
-  // 政策カードクリック時の処理
-  const handlePolicyClick = (policyId: string) => {
-    navigateToPolicy(navigate, policyId);
-  };
-
-  // 無限スクロールのための追加読み込み
+  // Load more policies
   const loadMorePolicies = () => {
-    if (!isLoading && !isLoadingMore && hasMore && lastDocumentId) {
-      setLoadingState((prev) => ({ ...prev, isLoadingMore: true }));
-      setTimeout(() => {
-        loadPolicies(
-          activeCategory,
-          activeParty,
-          sortMethod,
-          searchQuery,
-          false
-        );
-      }, 800);
+    if (
+      !loading.isLoading &&
+      !loading.isLoadingMore &&
+      data.hasMore &&
+      data.lastDocId
+    ) {
+      setState((prev) => ({
+        ...prev,
+        loading: { ...prev.loading, isLoadingMore: true },
+      }));
+      setTimeout(
+        () =>
+          loadPolicies(
+            filters.category,
+            filters.party,
+            filters.sort,
+            search.query,
+            false
+          ),
+        800
+      );
     }
   };
 
-  // ヘルパー関数
-  const getTrendingIcon = (trend: string) => {
-    if (trend === "up") {
-      return <TrendingUp size={16} className="text-green-500" />;
-    }
-    return (
+  // Helper functions
+  const getTrendingIcon = (trend: string) =>
+    trend === "up" ? (
+      <TrendingUp size={16} className="text-green-500" />
+    ) : (
       <TrendingUp size={16} className="text-red-500 transform rotate-180" />
     );
-  };
 
-  const getCategoryById = (id: string) => {
-    return categories.find((cat) => cat.id === id) || categories[0];
-  };
+  const getCategoryById = (id: string) =>
+    master.categories.find((cat) => cat.id === id) || master.categories[0];
 
-  const getPartyById = (id: string) => {
-    return parties.find((party) => party.id === id) || parties[0];
-  };
+  const getPartyById = (id: string) =>
+    master.parties.find((party) => party.id === id) || master.parties[0];
 
-  // 現在のアクティブデータ
-  const activeTab = getCategoryById(activeCategory);
-  const selectedParty = getPartyById(activeParty);
+  // Active entities
+  const activeTab = getCategoryById(filters.category);
+  const selectedParty = getPartyById(filters.party);
 
-  // 初期ロード
+  // Initial load
   useEffect(() => {
-    // マスターデータとポリシーデータを並行ロード
     loadCategoriesAndParties();
-
     const params = getUrlParams();
 
-    // URL条件をログ出力
-    console.log("URLパラメータ:", params);
-
-    // アプリケーション状態をログ出力
-    console.table({
-      データ件数: APP_STATE.policies.length,
-      スクロール位置: APP_STATE.scrollPosition,
-      ドキュメントID: APP_STATE.lastDocumentId,
-      続きあり: APP_STATE.hasMore,
-      カテゴリー: APP_STATE.category,
-      政党フィルター: APP_STATE.party,
-      ソート条件: APP_STATE.sort,
-      検索クエリ: APP_STATE.searchQuery,
-      URL一致:
-        APP_STATE.category === params.category &&
-        APP_STATE.party === params.party &&
-        APP_STATE.sort === params.sort,
-    });
-
-    // アプリケーション状態とURLパラメータが一致する場合のみ復元
+    // Restore from app state if possible
     if (
       APP_STATE.policies.length > 0 &&
       APP_STATE.category === params.category &&
       APP_STATE.party === params.party &&
       APP_STATE.sort === params.sort
     ) {
-      console.log("アプリケーション状態から復元します");
-
-      setFilterState({
-        activeCategory: params.category,
-        activeParty: params.party,
-        sortMethod: params.sort,
-      });
-
-      setPolicyData({
-        policies: APP_STATE.policies,
-        lastDocumentId: APP_STATE.lastDocumentId,
-        hasMore: APP_STATE.hasMore,
-      });
-
-      setSearchState((prev) => ({
+      setState((prev) => ({
         ...prev,
-        searchQuery: APP_STATE.searchQuery,
-        tempSearchQuery: APP_STATE.searchQuery,
+        filters: {
+          category: params.category,
+          party: params.party,
+          sort: params.sort,
+        },
+        data: {
+          policies: APP_STATE.policies,
+          lastDocId: APP_STATE.lastDocumentId,
+          hasMore: APP_STATE.hasMore,
+        },
+        search: {
+          query: APP_STATE.searchQuery,
+          tempQuery: APP_STATE.searchQuery,
+          fired: false,
+        },
+        ui: { ...prev.ui, animateItems: false },
+        loading: { ...prev.loading, isLoading: false },
       }));
 
-      setUiState((prev) => ({ ...prev, animateItems: false }));
-      setLoadingState((prev) => ({ ...prev, isLoading: false }));
-
-      // 少し遅延させてからスクロール位置を復元
-      setTimeout(() => {
-        window.scrollTo(0, APP_STATE.scrollPosition);
-        console.log(`スクロール位置を復元: ${APP_STATE.scrollPosition}px`);
-      }, 100);
+      setTimeout(() => window.scrollTo(0, APP_STATE.scrollPosition), 100);
     } else {
-      console.log("通常のデータロードを実行します");
-      setFilterState({
-        activeCategory: params.category,
-        activeParty: params.party,
-        sortMethod: params.sort,
-      });
+      setState((prev) => ({
+        ...prev,
+        filters: {
+          category: params.category,
+          party: params.party,
+          sort: params.sort,
+        },
+      }));
 
       loadPolicies(params.category, params.party, params.sort, "", true);
     }
   }, []);
 
-  // URL変更時の処理
+  // URL change handler
   useEffect(() => {
     const params = getUrlParams();
 
     if (
-      params.category !== activeCategory ||
-      params.party !== activeParty ||
-      params.sort !== sortMethod
+      params.category !== filters.category ||
+      params.party !== filters.party ||
+      params.sort !== filters.sort
     ) {
-      console.log("URL パラメータ変更を検出しました");
-      console.table({
-        変更前: {
-          category: activeCategory,
-          party: activeParty,
-          sort: sortMethod,
-        },
-        変更後: {
+      setState((prev) => ({
+        ...prev,
+        filters: {
           category: params.category,
           party: params.party,
           sort: params.sort,
         },
-      });
+        data: { policies: [], lastDocId: undefined, hasMore: true },
+      }));
 
-      setFilterState({
-        activeCategory: params.category,
-        activeParty: params.party,
-        sortMethod: params.sort,
-      });
-
-      setPolicyData({
-        policies: [],
-        lastDocumentId: undefined,
-        hasMore: true,
-      });
-
-      // アプリケーション状態をリセット
       resetAppState();
-
       loadPolicies(
         params.category,
         params.party,
         params.sort,
-        searchQuery,
+        search.query,
         true
       );
     }
   }, [location.search]);
 
-  // スクロール位置の保存と無限スクロール検知
+  // Scroll and infinite loading handler
   useEffect(() => {
     const handleScroll = () => {
-      // スクロール位置の保存
-      if (policies.length > 0) {
-        APP_STATE.scrollPosition = window.scrollY;
+      if (data.policies.length > 0) APP_STATE.scrollPosition = window.scrollY;
 
-        // 100px毎にログ出力（頻繁すぎるログを避けるため）
-        if (
-          Math.floor(window.scrollY / 100) !==
-          Math.floor(APP_STATE.scrollPosition / 100)
-        ) {
-          console.log(`スクロール位置: ${window.scrollY}px`);
-        }
-      }
-
-      // 無限スクロール検出
       if (
         window.innerHeight + document.documentElement.scrollTop + 100 >=
           document.documentElement.offsetHeight &&
-        !isLoading &&
-        !isLoadingMore &&
-        hasMore &&
-        lastDocumentId
+        !loading.isLoading &&
+        !loading.isLoadingMore &&
+        data.hasMore &&
+        data.lastDocId
       ) {
-        console.log("画面下部に到達: 追加データをロードします");
         loadMorePolicies();
       }
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [policies, isLoading, isLoadingMore, hasMore, lastDocumentId]);
+  }, [
+    data.policies,
+    loading.isLoading,
+    loading.isLoadingMore,
+    data.hasMore,
+    data.lastDocId,
+  ]);
 
-  // メニュー外クリック検知
+  // Handle outside click for filter menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showFilterMenu) {
+      if (ui.showFilterMenu) {
         const target = event.target as Node;
         const filterMenu = document.getElementById("filter-menu-container");
         if (filterMenu && !filterMenu.contains(target)) {
-          setUiState((prev) => ({ ...prev, showFilterMenu: false }));
+          setState((prev) => ({
+            ...prev,
+            ui: { ...prev.ui, showFilterMenu: false },
+          }));
         }
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showFilterMenu]);
+  }, [ui.showFilterMenu]);
 
-  // レンダリングヘルパー関数
+  // Component rendering
   const renderCategoryTabs = () => (
     <div className="mb-8 overflow-x-auto">
       <div className="flex space-x-3 pb-2">
-        {categories.map((category) => {
-          const isActive = activeCategory === category.id;
+        {master.categories.map((category) => {
+          const isActive = filters.category === category.id;
           return (
             <button
               key={category.id}
-              className={STYLES.categoryButton(isActive)}
-              style={{
-                backgroundColor: isActive ? category.color : "",
-              }}
+              className={STYLES.category(isActive)}
+              style={{ backgroundColor: isActive ? category.color : "" }}
               onClick={() => handleFilterChange("category", category.id)}
             >
               <div className="flex items-center">
@@ -821,9 +661,9 @@ const PolicyListingPage = () => {
       <button
         className="flex items-center bg-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all border border-gray-200"
         onClick={() =>
-          setUiState((prev) => ({
+          setState((prev) => ({
             ...prev,
-            showFilterMenu: !prev.showFilterMenu,
+            ui: { ...prev.ui, showFilterMenu: !prev.ui.showFilterMenu },
           }))
         }
       >
@@ -831,13 +671,12 @@ const PolicyListingPage = () => {
         <span>並び替え</span>
       </button>
 
-      {showFilterMenu && (
-        <div className={STYLES.filterMenu}>
+      {ui.showFilterMenu && (
+        <div className={STYLES.filter}>
           <div className="py-1 border-b border-gray-100">
             <div className="px-4 py-1.5 text-xs font-semibold text-gray-500">
               並び替え
             </div>
-
             {[
               {
                 id: "supportDesc",
@@ -852,7 +691,7 @@ const PolicyListingPage = () => {
             ].map((option) => (
               <button
                 key={option.id}
-                className={STYLES.sortButton(sortMethod === option.id)}
+                className={STYLES.sort(filters.sort === option.id)}
                 onClick={() => handleFilterChange("sort", option.id)}
               >
                 {option.icon}
@@ -860,12 +699,11 @@ const PolicyListingPage = () => {
               </button>
             ))}
           </div>
-
           <div className="py-1">
             <div className="px-4 py-1.5 text-xs font-semibold text-gray-500">
               政党で絞り込み
             </div>
-            {parties.map((party) => (
+            {master.parties.map((party) => (
               <button
                 key={party.id}
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center"
@@ -875,10 +713,12 @@ const PolicyListingPage = () => {
                   className="w-3 h-3 rounded-full mr-3"
                   style={{ backgroundColor: party.color }}
                 ></div>
-                <span className={activeParty === party.id ? "font-medium" : ""}>
+                <span
+                  className={filters.party === party.id ? "font-medium" : ""}
+                >
                   {party.name}
                 </span>
-                {activeParty === party.id && (
+                {filters.party === party.id && (
                   <span className="ml-auto text-indigo-600">✓</span>
                 )}
               </button>
@@ -889,113 +729,105 @@ const PolicyListingPage = () => {
     </div>
   );
 
-  const renderPolicyCard = (policy: Policy, index: number) => {
-    const cardStyle = {
-      borderLeft: `4px solid ${policy.proposingParty.color}`,
-      ...STYLES.policyCard(animateItems, index),
-    };
+  const renderPolicyCard = (policy: Policy, index: number) => (
+    <div
+      key={policy.id}
+      className={STYLES.card.base}
+      style={{
+        borderLeft: `4px solid ${policy.proposingParty.color}`,
+        ...STYLES.card.animation(ui.animateItems, index),
+      }}
+      onClick={() => navigateToPolicy(navigate, policy.id)}
+    >
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-2">
+          <div
+            className="text-xs font-medium px-2.5 py-1 rounded-full"
+            style={{
+              backgroundColor: `${policy.proposingParty.color}15`,
+              color: policy.proposingParty.color,
+            }}
+          >
+            {policy.proposingParty.name}
+          </div>
+          {getTrendingIcon(policy.trending)}
+        </div>
 
-    return (
-      <div
-        key={policy.id}
-        className={STYLES.policyCardBase}
-        style={cardStyle}
-        onClick={() => handlePolicyClick(policy.id)}
-      >
-        <div className="p-4">
-          {/* ヘッダー部分 */}
-          <div className="flex justify-between items-start mb-2">
+        {/* Title and description */}
+        <h3 className="font-bold text-lg mb-2 text-gray-800">{policy.title}</h3>
+        <p className="text-gray-600 text-sm mb-4">{policy.description}</p>
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {policy.affectedFields.map((field, i) => {
+            const fieldCategory = getCategoryById(field);
+            return (
+              <span
+                key={i}
+                className="text-xs px-2.5 py-1 rounded-full text-white"
+                style={{ backgroundColor: fieldCategory.color }}
+              >
+                {field}
+              </span>
+            );
+          })}
+          <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 flex items-center">
+            <MessageSquare size={12} className="mr-1 flex-shrink-0" />
+            {policy.totalCommentCount}件のコメント
+          </span>
+        </div>
+
+        {/* Support rate bar */}
+        <div className="mt-4">
+          <div className="flex justify-between items-center text-sm mb-2">
+            <div className="flex items-center">
+              <ThumbsUp
+                size={14}
+                className="text-green-500 mr-1.5 animate-bounce-slow"
+              />
+              <span className="font-medium text-green-600">
+                {policy.supportRate}%
+              </span>
+            </div>
+            <div className="flex items-center">
+              <ThumbsDown
+                size={14}
+                className="text-red-500 mr-1.5 animate-bounce-slow"
+              />
+              <span className="font-medium text-red-600">
+                {policy.opposeRate}%
+              </span>
+            </div>
+          </div>
+          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
             <div
-              className="text-xs font-medium px-2.5 py-1 rounded-full"
+              className="h-full rounded-l-full"
               style={{
-                backgroundColor: `${policy.proposingParty.color}15`,
-                color: policy.proposingParty.color,
+                width: `${policy.supportRate}%`,
+                backgroundColor: "#10B981",
               }}
-            >
-              {policy.proposingParty.name}
-            </div>
-            {getTrendingIcon(policy.trending)}
-          </div>
-
-          {/* タイトルと説明 */}
-          <h3 className="font-bold text-lg mb-2 text-gray-800">
-            {policy.title}
-          </h3>
-          <p className="text-gray-600 text-sm mb-4">{policy.description}</p>
-
-          {/* タグセクション */}
-          <div className="flex flex-wrap gap-2 mb-3">
-            {policy.affectedFields.map((field, i) => {
-              const fieldCategory = getCategoryById(field);
-              return (
-                <span
-                  key={i}
-                  className="text-xs px-2.5 py-1 rounded-full text-white"
-                  style={{ backgroundColor: fieldCategory.color }}
-                >
-                  {field}
-                </span>
-              );
-            })}
-            <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 flex items-center">
-              <MessageSquare size={12} className="mr-1 flex-shrink-0" />
-              {policy.totalCommentCount}件のコメント
-            </span>
-          </div>
-
-          {/* 支持率バー */}
-          <div className="mt-4">
-            <div className="flex justify-between items-center text-sm mb-2">
-              <div className="flex items-center">
-                <ThumbsUp
-                  size={14}
-                  className="text-green-500 mr-1.5 animate-bounce-slow"
-                />
-                <span className="font-medium text-green-600">
-                  {policy.supportRate}%
-                </span>
-              </div>
-              <div className="flex items-center">
-                <ThumbsDown
-                  size={14}
-                  className="text-red-500 mr-1.5 animate-bounce-slow"
-                />
-                <span className="font-medium text-red-600">
-                  {policy.opposeRate}%
-                </span>
-              </div>
-            </div>
-
-            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
-              <div
-                className="h-full rounded-l-full"
-                style={{
-                  width: `${policy.supportRate}%`,
-                  backgroundColor: "#10B981",
-                }}
-              ></div>
-              <div
-                className="h-full rounded-r-full"
-                style={{
-                  width: `${policy.opposeRate}%`,
-                  backgroundColor: "#EF4444",
-                }}
-              ></div>
-            </div>
+            ></div>
+            <div
+              className="h-full rounded-r-full"
+              style={{
+                width: `${policy.opposeRate}%`,
+                backgroundColor: "#EF4444",
+              }}
+            ></div>
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
 
-  // 読み込み中の表示
+  // UI states
   const renderLoadingState = () => (
     <div className="flex justify-center items-center py-12">
       <LoadingAnimation type="dots" message="政策データを読み込み中..." />
     </div>
   );
 
-  // エラー表示
   const renderErrorState = () => (
     <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
       <div className="flex">
@@ -1003,13 +835,12 @@ const PolicyListingPage = () => {
           <AlertCircle size={20} className="text-red-500" />
         </div>
         <div className="ml-3">
-          <p className="text-sm">{error}</p>
+          <p className="text-sm">{loading.error}</p>
         </div>
       </div>
     </div>
   );
 
-  // データ空表示
   const renderEmptyState = () => (
     <div className="bg-white rounded-lg shadow-sm p-8 text-center">
       <AlertCircle size={40} className="mx-auto mb-4 text-gray-400" />
@@ -1024,7 +855,6 @@ const PolicyListingPage = () => {
     </div>
   );
 
-  // 追加読み込み表示
   const renderLoadingMore = () => (
     <div className="flex flex-col items-center justify-center py-6 overflow-hidden">
       <div className="relative flex">
@@ -1033,7 +863,7 @@ const PolicyListingPage = () => {
             <div
               key={i}
               className="w-2 h-6 rounded-full bg-indigo-500"
-              style={STYLES.loadingWave(i)}
+              style={STYLES.wave(i)}
             ></div>
           ))}
         </div>
@@ -1046,10 +876,10 @@ const PolicyListingPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ヘッダー部分 */}
-      <div className={STYLES.headerGradient}>
+      {/* Header */}
+      <div className={STYLES.header.gradient}>
         <div className="absolute inset-0">
-          <div className={STYLES.headerOverlay}></div>
+          <div className={STYLES.header.overlay}></div>
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400 via-transparent to-transparent opacity-20"></div>
         </div>
 
@@ -1071,18 +901,18 @@ const PolicyListingPage = () => {
             className="relative w-full md:w-auto md:max-w-md"
           >
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className={STYLES.searchIcon(searchFired)} />
+              <Search size={18} className={STYLES.search(search.fired).icon} />
             </div>
             <input
               ref={searchInputRef}
               type="text"
               placeholder={
-                activeParty === "all"
+                filters.party === "all"
                   ? "全ての政策を検索..."
                   : `${selectedParty.name}の政策を検索...`
               }
-              className={STYLES.searchInput(searchFired)}
-              value={tempSearchQuery}
+              className={STYLES.search(search.fired).input}
+              value={search.tempQuery}
               onChange={handleSearchChange}
             />
             <button
@@ -1092,19 +922,19 @@ const PolicyListingPage = () => {
             >
               <ChevronRight
                 size={18}
-                className={STYLES.searchButton(searchFired)}
+                className={STYLES.search(search.fired).button}
               />
             </button>
           </form>
         </div>
       </div>
 
-      {/* メインコンテンツ */}
+      {/* Main content */}
       <div className="container mx-auto px-4 py-8">
-        {/* カテゴリタブ */}
+        {/* Category tabs */}
         {renderCategoryTabs()}
 
-        {/* ヘッダー部分 */}
+        {/* Header */}
         <div className="relative mb-8">
           <div
             className="absolute left-0 top-0 h-full w-2 rounded-full"
@@ -1120,48 +950,51 @@ const PolicyListingPage = () => {
                     backgroundImage: `linear-gradient(to right, ${activeTab.color}, ${activeTab.color}99)`,
                   }}
                 >
-                  {activeParty === "all" ? activeTab.name : selectedParty.name}
+                  {filters.party === "all"
+                    ? activeTab.name
+                    : selectedParty.name}
                 </span>
                 <span>政策一覧</span>
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                {policies.length}件の
-                {activeTab.name !== "すべて" ? `${activeTab.name}` : ""}政策
-                {isLoading && " (読み込み中...)"}
+                {activeTab.name !== "すべて" ? `${activeTab.name}` : "全ての"}
+                政策
+                {loading.isLoading && " (読み込み中...)"}
               </p>
             </div>
 
-            {/* フィルターメニュー */}
+            {/* Filter menu */}
             {renderFilterMenu()}
           </div>
         </div>
 
-        {/* ローディング状態 */}
-        {isLoading && policies.length === 0 && renderLoadingState()}
+        {/* Content states */}
+        {loading.isLoading &&
+          data.policies.length === 0 &&
+          renderLoadingState()}
+        {loading.error && renderErrorState()}
+        {!loading.isLoading &&
+          data.policies.length === 0 &&
+          !loading.error &&
+          renderEmptyState()}
 
-        {/* エラー状態 */}
-        {error && renderErrorState()}
-
-        {/* データなし状態 */}
-        {!isLoading && policies.length === 0 && !error && renderEmptyState()}
-
-        {/* 政策カードリスト */}
+        {/* Policy cards */}
         <div className="space-y-4">
-          {policies.map((policy, index) => renderPolicyCard(policy, index))}
-
-          {/* 追加ローディング */}
-          {isLoadingMore && renderLoadingMore()}
-
-          {/* 全データ表示完了メッセージ */}
-          {!isLoadingMore && !hasMore && policies.length > 0 && (
-            <div className="text-center py-4 text-gray-500 text-sm">
-              すべての政策を表示しました
-            </div>
+          {data.policies.map((policy, index) =>
+            renderPolicyCard(policy, index)
           )}
+          {loading.isLoadingMore && renderLoadingMore()}
+          {!loading.isLoadingMore &&
+            !data.hasMore &&
+            data.policies.length > 0 && (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                すべての政策を表示しました
+              </div>
+            )}
         </div>
       </div>
 
-      {/* トップへ戻るボタン */}
+      {/* Back to top button */}
       <div className="fixed bottom-6 right-6">
         <button
           className="w-12 h-12 bg-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-indigo-700 transition-colors"
@@ -1172,7 +1005,7 @@ const PolicyListingPage = () => {
         </button>
       </div>
 
-      {/* アニメーションスタイル */}
+      {/* Animations */}
       <style>{ANIMATIONS}</style>
     </div>
   );
