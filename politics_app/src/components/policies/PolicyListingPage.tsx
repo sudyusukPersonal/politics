@@ -755,7 +755,14 @@ const PolicyListingPage = () => {
         </div>
 
         {/* Title and description */}
-        <h3 className="font-bold text-lg mb-2 text-gray-800">{policy.title}</h3>
+        <div className="flex items-start mb-2">
+          <img
+            src={`cm_parly_images/${policy.proposingParty.name}.jpg`}
+            alt={`${policy.proposingParty.name} icon`}
+            className="w-6 h-6 mr-2 mt-1 rounded-full object-cover flex-shrink-0"
+          />
+          <h3 className="font-bold text-lg text-gray-800">{policy.title}</h3>
+        </div>
         <p className="text-gray-600 text-sm mb-4">{policy.description}</p>
 
         {/* Tags */}
