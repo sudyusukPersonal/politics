@@ -10,6 +10,7 @@ import {
   Timestamp,
   arrayUnion,
   increment,
+  runTransaction,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { Comment, Reply } from "../types";
@@ -78,81 +79,95 @@ export const addReplyToComment = async (
   newReply: any
 ): Promise<Reply> => {
   try {
-    // Reference to the specific comment document
-    const commentRef = doc(db, "comments", commentId);
+    // トランザクションを使用
+    return await runTransaction(db, async (transaction) => {
+      // Reference to the specific comment document
+      const commentRef = doc(db, "comments", commentId);
 
-    // Get the current comment data to check existing replies
-    const commentSnap = await getDoc(commentRef);
-    if (!commentSnap.exists()) {
-      throw new Error("コメントが見つかりません");
-    }
+      // Get the current comment data to check existing replies
+      const commentSnap = await transaction.get(commentRef);
+      if (!commentSnap.exists()) {
+        throw new Error("コメントが見つかりません");
+      }
 
-    const commentData = commentSnap.data();
+      const commentData = commentSnap.data();
 
-    // 匿名ユーザーの場合のみ、返信数+1を名前に付与
-    let replyUserName = newReply.userName;
-    if (replyUserName === "匿名ユーザー") {
-      const currentReplies = commentData.replies || [];
-      const replyCount = currentReplies.length + 1;
-      replyUserName = `匿名${replyCount}`;
-    }
+      // 匿名ユーザーの場合のみ、返信数+1を名前に付与
+      let replyUserName = newReply.userName;
+      if (replyUserName === "匿名ユーザー") {
+        const currentReplies = commentData.replies || [];
+        const replyCount = currentReplies.length + 1;
+        replyUserName = `匿名${replyCount}`;
+      }
 
-    // Format the reply object to match Firestore structure
-    const replyToAdd = {
-      id: `reply_${Date.now()}`, // 一意のIDを生成
-      text: newReply.text,
-      user_id: newReply.userID,
-      user_name: replyUserName, // 修正したユーザー名を使用（返信だけ番号付き）
-      created_at: Timestamp.now(),
-      likes: 0,
-      reply_to: newReply.replyTo
-        ? {
-            reply_id: newReply.replyTo.replyID,
-            reply_to_user_id: newReply.replyTo.replyToUserID,
-            reply_to_username: newReply.replyTo.replyToUserName,
-          }
-        : null,
-    };
+      // Format the reply object to match Firestore structure
+      const replyToAdd = {
+        id: `reply_${Date.now()}`, // 一意のIDを生成
+        text: newReply.text,
+        user_id: newReply.userID,
+        user_name: replyUserName, // 修正したユーザー名を使用（返信だけ番号付き）
+        created_at: Timestamp.now(),
+        likes: 0,
+        reply_to: newReply.replyTo
+          ? {
+              reply_id: newReply.replyTo.replyID,
+              reply_to_user_id: newReply.replyTo.replyToUserID,
+              reply_to_username: newReply.replyTo.replyToUserName,
+            }
+          : null,
+      };
 
-    // Update the comment document by adding the new reply to the replies array
-    await updateDoc(commentRef, {
-      replies: arrayUnion(replyToAdd),
-      // Update the reply count
-      repliesCount: (commentData.replies?.length || 0) + 1,
+      // Update the comment document by adding the new reply to the replies array
+      transaction.update(commentRef, {
+        replies: arrayUnion(replyToAdd),
+        // Update the reply count
+        repliesCount: (commentData.replies?.length || 0) + 1,
+      });
+
+      // エンティティタイプに応じてコメント数をインクリメント
+      // トランザクション内では外部への非同期呼び出しができないため、
+      // 実行後のデータと必要な情報を返します
+      const entityData = {
+        entityType: commentData.entity_type,
+        politicianId: commentData.politician_id,
+      };
+
+      // Convert the reply to the format expected by the client
+      const clientReply: Reply = {
+        id: replyToAdd.id,
+        text: replyToAdd.text,
+        userID: replyToAdd.user_id,
+        userName: replyToAdd.user_name, // 番号付きの名前を返す
+        createdAt: convertTimestamp(replyToAdd.created_at),
+        likes: replyToAdd.likes,
+        reply_to: replyToAdd.reply_to || undefined,
+        // Also include client-side format for compatibility
+        replyTo: replyToAdd.reply_to
+          ? {
+              replyID: replyToAdd.reply_to.reply_id,
+              replyToUserID: replyToAdd.reply_to.reply_to_user_id,
+              replyToUserName: replyToAdd.reply_to.reply_to_username,
+            }
+          : undefined,
+      };
+
+      // Return the reply and entity data for post-transaction processing
+      return { clientReply, entityData };
+    }).then(async ({ clientReply, entityData }) => {
+      // エンティティタイプに応じてコメント数をインクリメント
+      if (entityData.entityType === "policy") {
+        await incrementPolicyCommentCount(entityData.politicianId);
+      } else if (entityData.entityType === "party") {
+        await incrementPartyCommentCount(entityData.politicianId);
+      } else if (entityData.entityType === "politician") {
+        await incrementPoliticianCommentCount(entityData.politicianId);
+      }
+
+      console.log("返信が正常に追加されました", clientReply);
+
+      // Return the reply for UI update
+      return clientReply;
     });
-
-    // エンティティタイプに応じてコメント数をインクリメント
-    if (commentData.entity_type === "policy") {
-      await incrementPolicyCommentCount(commentData.politician_id);
-    } else if (commentData.entity_type === "party") {
-      await incrementPartyCommentCount(commentData.politician_id);
-    } else if (commentData.entity_type === "politician") {
-      await incrementPoliticianCommentCount(commentData.politician_id);
-    }
-
-    console.log("返信が正常に追加されました", replyToAdd);
-
-    // Convert the reply to the format expected by the client
-    const clientReply: Reply = {
-      id: replyToAdd.id,
-      text: replyToAdd.text,
-      userID: replyToAdd.user_id,
-      userName: replyToAdd.user_name, // 番号付きの名前を返す
-      createdAt: convertTimestamp(replyToAdd.created_at),
-      likes: replyToAdd.likes,
-      reply_to: replyToAdd.reply_to || undefined,
-      // Also include client-side format for compatibility
-      replyTo: replyToAdd.reply_to
-        ? {
-            replyID: replyToAdd.reply_to.reply_id,
-            replyToUserID: replyToAdd.reply_to.reply_to_user_id,
-            replyToUserName: replyToAdd.reply_to.reply_to_username,
-          }
-        : undefined,
-    };
-
-    // Return the reply for UI update
-    return clientReply;
   } catch (error) {
     console.error("返信の追加中にエラーが発生しました:", error);
     throw error;
