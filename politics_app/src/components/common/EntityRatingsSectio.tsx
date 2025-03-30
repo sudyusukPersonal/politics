@@ -31,7 +31,7 @@ const EntityRatingsSection: React.FC<EntityRatingsSectionProps> = ({
   return (
     <div className="mt-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-        <h3 className="font-bold text-gray-700 mb-1 sm:mb-0">市民評価</h3>
+        <h3 className="font-bold text-gray-700 mb-1 sm:mb-0">国民評価</h3>
         <span className="text-sm text-gray-500">
           総投票数: {totalVotes.toLocaleString()}
         </span>
