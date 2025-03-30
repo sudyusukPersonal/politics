@@ -222,15 +222,32 @@ const PolicyDiscussionPage = () => {
                 </h1>
 
                 <div className="flex flex-wrap items-center text-sm mb-4 relative z-10">
-                  {/* タイトル下の政党名をクリック可能に変更 */}
-                  <span
-                    className="bg-white bg-opacity-20 backdrop-blur-md px-2 py-1 rounded-md mr-2 mb-2 cursor-pointer hover:bg-opacity-30 transition-all duration-200 active:transform active:scale-95"
-                    onClick={() =>
-                      handlePartyClick(policy.politicalParties[0].partyName)
-                    }
-                  >
-                    {policy.politicalParties[0].partyName}
-                  </span>
+                  <div className="flex items-center mr-2 mb-2">
+                    <img
+                      src={`${window.location.origin}/cm_parly_images/${
+                        policy.politicalParties[0]?.partyName || ""
+                      }.jpg`}
+                      alt={`${
+                        policy.politicalParties[0]?.partyName || "政党"
+                      } アイコン`}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-md mr-2 cursor-pointer hover:opacity-80 transition-opacity active:transform active:scale-95"
+                      onClick={() =>
+                        handlePartyClick(policy.politicalParties[0].partyName)
+                      }
+                      onError={(e) => {
+                        console.log("画像読み込みエラー:", e);
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                    <span
+                      className="bg-white bg-opacity-20 backdrop-blur-md px-2 py-1 rounded-md cursor-pointer hover:bg-opacity-30 transition-all duration-200 active:transform active:scale-95"
+                      onClick={() =>
+                        handlePartyClick(policy.politicalParties[0].partyName)
+                      }
+                    >
+                      {policy.politicalParties[0].partyName}
+                    </span>
+                  </div>
                 </div>
 
                 <p className="mb-6 relative z-10 text-sm sm:text-base leading-relaxed bg-white bg-opacity-20 backdrop-blur-md p-3 rounded-lg text-white font-normal">
