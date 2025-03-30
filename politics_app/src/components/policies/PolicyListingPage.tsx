@@ -22,6 +22,19 @@ import { fetchPoliciesWithFilterAndSort } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { navigateToPolicy } from "../../utils/navigationUtils";
 
+// アプリケーション側でデータを保持するための単一のグローバル変数
+// Reactのレンダリングサイクルの外に保持するため、リロードされるまで維持される
+const APP_STATE = {
+  policies: [] as Policy[],
+  scrollPosition: 0,
+  lastDocumentId: undefined as string | undefined,
+  hasMore: true,
+  category: "",
+  party: "",
+  sort: "",
+  searchQuery: "",
+};
+
 // Style constants
 const STYLES = {
   headerGradient:
@@ -219,6 +232,77 @@ const PolicyListingPage = () => {
   const { isLoading, isLoadingMore, error } = loadingState;
   const { categories, parties } = masterData;
 
+  // アプリケーション状態にデータを保存
+  const saveToAppState = (
+    policies: Policy[],
+    lastDocId: string | undefined,
+    hasMoreData: boolean,
+    category: string,
+    party: string,
+    sort: string,
+    search: string
+  ) => {
+    APP_STATE.policies = policies;
+    APP_STATE.lastDocumentId = lastDocId;
+    APP_STATE.hasMore = hasMoreData;
+    APP_STATE.scrollPosition = window.scrollY;
+    APP_STATE.category = category;
+    APP_STATE.party = party;
+    APP_STATE.sort = sort;
+    APP_STATE.searchQuery = search;
+
+    // APP_STATEの状態をログ出力
+    console.table({
+      データ件数: APP_STATE.policies.length,
+      スクロール位置: APP_STATE.scrollPosition,
+      ドキュメントID: APP_STATE.lastDocumentId,
+      続きあり: APP_STATE.hasMore,
+      カテゴリー: APP_STATE.category,
+      政党フィルター: APP_STATE.party,
+      ソート条件: APP_STATE.sort,
+      検索クエリ: APP_STATE.searchQuery,
+    });
+
+    // 政策データのサンプルをログ出力
+    if (APP_STATE.policies.length > 0) {
+      console.log("政策データサンプル:");
+      console.table(
+        APP_STATE.policies.slice(0, 3).map((p) => ({
+          id: p.id,
+          title: p.title,
+          category: p.category,
+          supportRate: p.supportRate,
+        }))
+      );
+    }
+  };
+
+  // アプリケーション状態のリセット
+  const resetAppState = () => {
+    console.log("APP_STATEをリセットします");
+
+    APP_STATE.policies = [];
+    APP_STATE.lastDocumentId = undefined;
+    APP_STATE.hasMore = true;
+    APP_STATE.scrollPosition = 0;
+    APP_STATE.category = "";
+    APP_STATE.party = "";
+    APP_STATE.sort = "";
+    APP_STATE.searchQuery = "";
+
+    // リセット後の状態をログ出力
+    console.table({
+      データ件数: APP_STATE.policies.length,
+      スクロール位置: APP_STATE.scrollPosition,
+      ドキュメントID: APP_STATE.lastDocumentId,
+      続きあり: APP_STATE.hasMore,
+      カテゴリー: APP_STATE.category,
+      政党フィルター: APP_STATE.party,
+      ソート条件: APP_STATE.sort,
+      検索クエリ: APP_STATE.searchQuery,
+    });
+  };
+
   // 政策データ読み込み関数（統合）
   const loadPolicies = async (
     category: string,
@@ -241,6 +325,12 @@ const PolicyListingPage = () => {
       // 最後のドキュメントID設定
       const docId = refresh ? undefined : lastDocumentId;
 
+      console.log(
+        `政策データ読み込み - カテゴリ:${category}, 政党:${party}, ソート:${sort}, 検索:${
+          searchTerm || "なし"
+        }, 続きから:${docId ? "あり" : "なし"}`
+      );
+
       // サーバーサイドでフィルターとソートを適用して取得
       const result = await fetchPoliciesWithFilterAndSort(
         category,
@@ -259,8 +349,11 @@ const PolicyListingPage = () => {
         }, 続きから:${docId ? "あり" : "なし"})`
       );
 
-      // データの更新（条件分岐を簡略化）
+      // データの更新
+      let updatedPolicies: Policy[];
+
       if (refresh) {
+        updatedPolicies = result.policies;
         setPolicyData((prev) => ({
           ...prev,
           policies: result.policies,
@@ -273,19 +366,30 @@ const PolicyListingPage = () => {
           setUiState((prev) => ({ ...prev, animateItems: false }));
         }, 800);
       } else {
-        setPolicyData((prev) => {
-          const existingIds = new Set(prev.policies.map((p) => p.id));
-          const newPolicies = result.policies.filter(
-            (p) => !existingIds.has(p.id)
-          );
-          return {
-            ...prev,
-            policies: [...prev.policies, ...newPolicies],
-            lastDocumentId: result.lastDocumentId,
-            hasMore: result.hasMore,
-          };
-        });
+        const existingIds = new Set(policies.map((p) => p.id));
+        const newPolicies = result.policies.filter(
+          (p) => !existingIds.has(p.id)
+        );
+        updatedPolicies = [...policies, ...newPolicies];
+
+        setPolicyData((prev) => ({
+          ...prev,
+          policies: updatedPolicies,
+          lastDocumentId: result.lastDocumentId,
+          hasMore: result.hasMore,
+        }));
       }
+
+      // アプリケーション状態を更新
+      saveToAppState(
+        updatedPolicies,
+        result.lastDocumentId,
+        result.hasMore,
+        category,
+        party,
+        sort,
+        searchTerm
+      );
     } catch (error) {
       console.error("政策データ読み込みエラー:", error);
       setLoadingState((prev) => ({
@@ -387,6 +491,11 @@ const PolicyListingPage = () => {
   const handleSearchSubmit = (e: { preventDefault: () => void }) => {
     e.preventDefault();
 
+    // 検索クエリが変更された場合はアプリケーション状態をリセット
+    if (tempSearchQuery !== searchQuery) {
+      resetAppState();
+    }
+
     setSearchState((prev) => ({
       ...prev,
       searchQuery: prev.tempSearchQuery,
@@ -447,6 +556,9 @@ const PolicyListingPage = () => {
       hasMore: true,
     });
 
+    // アプリケーション状態をリセット
+    resetAppState();
+
     // フィルター条件で新しいデータを読み込み
     loadPolicies(
       type === "category" ? value : activeCategory,
@@ -506,13 +618,71 @@ const PolicyListingPage = () => {
     loadCategoriesAndParties();
 
     const params = getUrlParams();
-    setFilterState({
-      activeCategory: params.category,
-      activeParty: params.party,
-      sortMethod: params.sort,
+
+    // URL条件をログ出力
+    console.log("URLパラメータ:", params);
+
+    // アプリケーション状態をログ出力
+    console.table({
+      データ件数: APP_STATE.policies.length,
+      スクロール位置: APP_STATE.scrollPosition,
+      ドキュメントID: APP_STATE.lastDocumentId,
+      続きあり: APP_STATE.hasMore,
+      カテゴリー: APP_STATE.category,
+      政党フィルター: APP_STATE.party,
+      ソート条件: APP_STATE.sort,
+      検索クエリ: APP_STATE.searchQuery,
+      URL一致:
+        APP_STATE.category === params.category &&
+        APP_STATE.party === params.party &&
+        APP_STATE.sort === params.sort,
     });
 
-    loadPolicies(params.category, params.party, params.sort, "", true);
+    // アプリケーション状態とURLパラメータが一致する場合のみ復元
+    if (
+      APP_STATE.policies.length > 0 &&
+      APP_STATE.category === params.category &&
+      APP_STATE.party === params.party &&
+      APP_STATE.sort === params.sort
+    ) {
+      console.log("アプリケーション状態から復元します");
+
+      setFilterState({
+        activeCategory: params.category,
+        activeParty: params.party,
+        sortMethod: params.sort,
+      });
+
+      setPolicyData({
+        policies: APP_STATE.policies,
+        lastDocumentId: APP_STATE.lastDocumentId,
+        hasMore: APP_STATE.hasMore,
+      });
+
+      setSearchState((prev) => ({
+        ...prev,
+        searchQuery: APP_STATE.searchQuery,
+        tempSearchQuery: APP_STATE.searchQuery,
+      }));
+
+      setUiState((prev) => ({ ...prev, animateItems: false }));
+      setLoadingState((prev) => ({ ...prev, isLoading: false }));
+
+      // 少し遅延させてからスクロール位置を復元
+      setTimeout(() => {
+        window.scrollTo(0, APP_STATE.scrollPosition);
+        console.log(`スクロール位置を復元: ${APP_STATE.scrollPosition}px`);
+      }, 100);
+    } else {
+      console.log("通常のデータロードを実行します");
+      setFilterState({
+        activeCategory: params.category,
+        activeParty: params.party,
+        sortMethod: params.sort,
+      });
+
+      loadPolicies(params.category, params.party, params.sort, "", true);
+    }
   }, []);
 
   // URL変更時の処理
@@ -524,6 +694,20 @@ const PolicyListingPage = () => {
       params.party !== activeParty ||
       params.sort !== sortMethod
     ) {
+      console.log("URL パラメータ変更を検出しました");
+      console.table({
+        変更前: {
+          category: activeCategory,
+          party: activeParty,
+          sort: sortMethod,
+        },
+        変更後: {
+          category: params.category,
+          party: params.party,
+          sort: params.sort,
+        },
+      });
+
       setFilterState({
         activeCategory: params.category,
         activeParty: params.party,
@@ -536,6 +720,9 @@ const PolicyListingPage = () => {
         hasMore: true,
       });
 
+      // アプリケーション状態をリセット
+      resetAppState();
+
       loadPolicies(
         params.category,
         params.party,
@@ -545,6 +732,40 @@ const PolicyListingPage = () => {
       );
     }
   }, [location.search]);
+
+  // スクロール位置の保存と無限スクロール検知
+  useEffect(() => {
+    const handleScroll = () => {
+      // スクロール位置の保存
+      if (policies.length > 0) {
+        APP_STATE.scrollPosition = window.scrollY;
+
+        // 100px毎にログ出力（頻繁すぎるログを避けるため）
+        if (
+          Math.floor(window.scrollY / 100) !==
+          Math.floor(APP_STATE.scrollPosition / 100)
+        ) {
+          console.log(`スクロール位置: ${window.scrollY}px`);
+        }
+      }
+
+      // 無限スクロール検出
+      if (
+        window.innerHeight + document.documentElement.scrollTop + 100 >=
+          document.documentElement.offsetHeight &&
+        !isLoading &&
+        !isLoadingMore &&
+        hasMore &&
+        lastDocumentId
+      ) {
+        console.log("画面下部に到達: 追加データをロードします");
+        loadMorePolicies();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [policies, isLoading, isLoadingMore, hasMore, lastDocumentId]);
 
   // メニュー外クリック検知
   useEffect(() => {
@@ -561,34 +782,6 @@ const PolicyListingPage = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showFilterMenu]);
-
-  // 無限スクロール検出
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop + 100 >=
-          document.documentElement.offsetHeight &&
-        !isLoading &&
-        !isLoadingMore &&
-        hasMore &&
-        lastDocumentId
-      ) {
-        loadMorePolicies();
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    lastDocumentId,
-    activeCategory,
-    activeParty,
-    sortMethod,
-    searchQuery,
-  ]);
 
   // レンダリングヘルパー関数
   const renderCategoryTabs = () => (
@@ -932,8 +1125,8 @@ const PolicyListingPage = () => {
                 <span>政策一覧</span>
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                {policies.length}件の政策が見つかりました
-                {!hasMore && policies.length > 0 && " (全件表示中)"}
+                {policies.length}件の
+                {activeTab.name !== "すべて" ? `${activeTab.name}` : ""}政策
                 {isLoading && " (読み込み中...)"}
               </p>
             </div>
