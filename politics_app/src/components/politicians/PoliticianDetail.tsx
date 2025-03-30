@@ -220,7 +220,6 @@ const PoliticianDetail: React.FC = () => {
           <div className={styles.cards.base + " animate-fadeIn"}>
             <div className="p-3">
               <h3 className="font-bold text-lg mb-4 flex items-center">
-                <MessageSquare size={18} className="mr-2 text-indigo-600" />
                 評価理由
               </h3>
 
