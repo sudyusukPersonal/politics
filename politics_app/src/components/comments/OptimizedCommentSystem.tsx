@@ -40,16 +40,16 @@ const formatDate = (date: string | Date) =>
 const STYLES = {
   // アニメーションCSS
   css: `
-    @keyframes highlight-pulse {
-      0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
-      70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
-    }
-    .comment-highlight {
-      animation: highlight-pulse 2s 1;
-      scroll-margin-top: 80px;
-    }
-  `,
+      @keyframes highlight-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+      }
+      .comment-highlight {
+        animation: highlight-pulse 2s 1;
+        scroll-margin-top: 80px;
+      }
+    `,
   // ボタンスタイル
   button: {
     like: (isLiked: boolean) =>
@@ -63,11 +63,11 @@ const STYLES = {
     sort: (
       isActive: boolean
     ) => `w-full text-left px-4 py-2 text-sm flex items-center transition-colors
-        ${
-          isActive
-            ? "bg-indigo-50 text-indigo-600 font-medium"
-            : "text-gray-700 hover:bg-gray-50"
-        }`,
+          ${
+            isActive
+              ? "bg-indigo-50 text-indigo-600 font-medium"
+              : "text-gray-700 hover:bg-gray-50"
+          }`,
   },
   // コンテナスタイル
   container: {
@@ -226,8 +226,8 @@ export const CommentSection: React.FC<{
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
               className="flex items-center px-3 mt-4 py-1.5 text-sm rounded-full shadow-sm 
-              bg-white border border-gray-200 text-gray-700 hover:bg-gray-50
-              transition-all duration-300 ease-in-out"
+                bg-white border border-gray-200 text-gray-700 hover:bg-gray-50
+                transition-all duration-300 ease-in-out"
             >
               <Filter size={14} className="mr-2 text-gray-500" />
               <span>{getSortLabel(sortType)}</span>
@@ -436,7 +436,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         )}
 
         {/* コメント本文 */}
-        <p className={`text-gray-700 ${isReply ? "text-sm" : ""}`}>
+        <p
+          className={`text-gray-700 ${
+            isReply ? "text-sm" : ""
+          } whitespace-pre-wrap`}
+        >
           {comment.text}
         </p>
 
@@ -523,6 +527,14 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { addReply, updateLocalReplies } = useReplyData();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 入力欄に自動フォーカス
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
 
   // 送信処理関数
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -538,9 +550,9 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      // 返信データ構築
+      // 改行をそのまま保存するため、テキストを加工せずに送信
       const newReply = {
-        text: replyText,
+        text: replyText, // 改行を含むテキストをそのまま保存
         userID: MOCK_USER.uid,
         userName: MOCK_USER.displayName,
         replyTo: replyingTo
@@ -597,34 +609,43 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
         )}
 
         {/* 入力フィールド */}
-        <div className="flex items-center">
-          <input
-            type="text"
-            value={replyText}
-            onChange={(e) => {
-              setReplyText(e.target.value);
-              if (error) setError(null);
-            }}
-            placeholder="返信を入力..."
-            className={`flex-1 border ${
-              error
-                ? "border-red-300 focus:ring-red-500"
-                : "border-gray-300 focus:ring-indigo-500"
-            } rounded-l-lg p-2 text-sm focus:outline-none focus:ring-2`}
-            disabled={isSubmitting}
-            maxLength={300}
-          />
-          <button
-            type="submit"
-            disabled={isSubmitting || !replyText.trim()}
-            className={`bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-r-lg text-sm transition ${
-              isSubmitting || !replyText.trim()
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
-          >
-            <Send size={16} />
-          </button>
+        <div className="relative border border-gray-800 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-black focus-within:border-transparent transition-all duration-200">
+          <div className="flex items-center bg-gray-50 focus-within:bg-white">
+            <textarea
+              ref={textareaRef}
+              value={replyText}
+              onChange={(e) => {
+                setReplyText(e.target.value);
+                if (error) setError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (replyText.trim()) {
+                    handleSubmit(
+                      e as unknown as React.FormEvent<HTMLFormElement>
+                    );
+                  }
+                }
+                // Shift+Enterは通常の改行動作を許可(デフォルト)
+              }}
+              placeholder="返信を入力..."
+              className="flex-1 bg-transparent border-none p-2.5 text-sm outline-none resize-none h-[40px] overflow-hidden"
+              disabled={isSubmitting}
+              maxLength={300}
+            />
+            <button
+              type="submit"
+              disabled={isSubmitting || !replyText.trim()}
+              className={`flex items-center justify-center bg-transparent text-black hover:text-gray-700 px-3 h-auto text-sm transition mr-1 ${
+                isSubmitting || !replyText.trim()
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
+            >
+              <Send size={16} />
+            </button>
+          </div>
         </div>
 
         {/* 文字数カウントとキャンセルボタン */}
@@ -643,3 +664,4 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
     </div>
   );
 };
+/////
