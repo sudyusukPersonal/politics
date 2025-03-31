@@ -390,6 +390,8 @@ const PolicyDiscussionPage = () => {
               </div>
 
               {/* Party positions - with dynamic party colors */}
+
+              {/* Party positions - with dynamic party colors */}
               <div className="px-3 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
                   <Building
@@ -400,86 +402,102 @@ const PolicyDiscussionPage = () => {
                   政党の立場
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {policy.politicalParties.map((party: any, index: number) => {
-                    // 対抗政党の色を決定（ここではシンプルに赤系統を使用）
-                    const opposingColor =
-                      index === 0
-                        ? colorStyles
-                        : getPartyColorStyles("#EF4444"); // 反対派は赤系統で固定
+                {/* Filter valid political parties first */}
+                {(() => {
+                  const validParties = policy.politicalParties.filter(
+                    (party: any) => party && party.partyName && party.claims
+                  );
 
-                    return (
-                      <div
-                        key={index}
-                        className="rounded-xl p-4 border shadow-sm hover:shadow-md transition-shadow"
-                        style={{
-                          background:
-                            index === 0
-                              ? `linear-gradient(to bottom right, ${colorStyles.lightBg}, ${colorStyles.mediumBg})`
-                              : `linear-gradient(to bottom right, #FEE2E2, #FECACA)`,
-                          borderColor:
-                            index === 0 ? colorStyles.borderColor : "#FECACA",
-                        }}
-                      >
-                        <div className="flex items-center">
+                  // Determine grid column layout based on number of valid parties
+                  const gridCols =
+                    validParties.length > 1
+                      ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                      : "grid grid-cols-1 gap-4";
+
+                  return (
+                    <div className={gridCols}>
+                      {validParties.map((party: any, index: number) => {
+                        // 提案政党は最初のもの、それ以外は対立政党
+                        const isProposingParty = index === 0;
+
+                        // 色の設定
+                        const partyStyle = isProposingParty
+                          ? colorStyles
+                          : getPartyColorStyles("#EF4444"); // 反対派は赤系統で固定
+
+                        return (
                           <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-xl text-white shadow-sm mr-3"
+                            key={index}
+                            className="rounded-xl p-4 border shadow-sm hover:shadow-md transition-shadow"
                             style={{
-                              background:
-                                index === 0
-                                  ? `linear-gradient(to right, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`
-                                  : "linear-gradient(to right, #EF4444, #B91C1C)",
+                              background: isProposingParty
+                                ? `linear-gradient(to bottom right, ${colorStyles.lightBg}, ${colorStyles.mediumBg})`
+                                : `linear-gradient(to bottom right, #FEE2E2, #FECACA)`,
+                              borderColor: isProposingParty
+                                ? colorStyles.borderColor
+                                : "#FECACA",
                             }}
                           >
-                            {index === 0 ? "🌱" : "⚙️"}
-                          </div>
-                          <div>
-                            <h4
-                              className="font-semibold"
-                              style={{
-                                color:
-                                  index === 0
-                                    ? colorStyles.mainColor
-                                    : "#B91C1C",
-                              }}
-                            >
-                              {index === 0 ? "提案政党: " : "対立政党: "}
-                              {/* 政党名をクリック可能に変更 */}
-                              <span
-                                className="cursor-pointer underline decoration-dotted hover:decoration-solid transition-all"
-                                onClick={() =>
-                                  handlePartyClick(party.partyName)
-                                }
-                              >
-                                {party.partyName}
-                              </span>
-                            </h4>
-                            <div
-                              className="h-1 w-16 rounded-full mt-1"
-                              style={{
-                                background:
-                                  index === 0
+                            <div className="flex items-center">
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-xl text-white shadow-sm mr-3"
+                                style={{
+                                  background: isProposingParty
                                     ? `linear-gradient(to right, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`
                                     : "linear-gradient(to right, #EF4444, #B91C1C)",
+                                }}
+                              >
+                                {isProposingParty ? "🌱" : "⚙️"}
+                              </div>
+                              <div>
+                                <h4
+                                  className="font-semibold"
+                                  style={{
+                                    color: isProposingParty
+                                      ? colorStyles.mainColor
+                                      : "#B91C1C",
+                                  }}
+                                >
+                                  {isProposingParty
+                                    ? "提案政党: "
+                                    : "対立政党: "}
+                                  {/* 政党名をクリック可能に変更 */}
+                                  <span
+                                    className="cursor-pointer underline decoration-dotted hover:decoration-solid transition-all"
+                                    onClick={() =>
+                                      handlePartyClick(party.partyName)
+                                    }
+                                  >
+                                    {party.partyName}
+                                  </span>
+                                </h4>
+                                <div
+                                  className="h-1 w-16 rounded-full mt-1"
+                                  style={{
+                                    background: isProposingParty
+                                      ? `linear-gradient(to right, ${colorStyles.mainColor}, ${colorStyles.mainColor}99)`
+                                      : "linear-gradient(to right, #EF4444, #B91C1C)",
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                            <p
+                              className="mt-3 text-sm text-gray-600 italic border-l-2 pl-3 ml-2"
+                              style={{
+                                borderColor: isProposingParty
+                                  ? colorStyles.mainColor
+                                  : "#EF4444",
                               }}
-                            ></div>
+                            >
+                              "{party.claims}"
+                            </p>
                           </div>
-                        </div>
-                        <p
-                          className="mt-3 text-sm text-gray-600 italic border-l-2 pl-3 ml-2"
-                          style={{
-                            borderColor:
-                              index === 0 ? colorStyles.mainColor : "#EF4444",
-                          }}
-                        >
-                          "{party.claims}"
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
-
               {/* ReplyDataProviderをこのレベルに配置する */}
               <ReplyDataProvider>
                 {/* 評価セクション (共通コンポーネントに置き換え) */}
