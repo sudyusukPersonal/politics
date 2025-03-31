@@ -353,7 +353,7 @@ const convertToPolitician = async (
       imageUrl = data.imageUrl || "/api/placeholder/80/80";
     }
   }
-
+  console.log("trend", data.trend);
   return {
     id,
     name: data.name || "",
@@ -367,7 +367,7 @@ const convertToPolitician = async (
     totalVotes: data.totalVotes || totalVotes || 0,
     activity: data.activity || Math.floor(Math.random() * 40) + 50, // Random activity score
     image: imageUrl, // Firebase Storageから取得した画像URLを使用
-    trending: data.trending || (Math.random() > 0.5 ? "up" : "down"), // Random trend if not provided
+    trending: data.trend || (Math.random() > 0.5 ? "up" : "down"), // Random trend if not provided
     recentActivity: data.recentActivity || "最近の活動情報",
     totalCommentCount: data.totalCommentCount || 0, // ここを追加
   };

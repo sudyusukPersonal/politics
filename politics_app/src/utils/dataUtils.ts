@@ -226,6 +226,7 @@ export const saveRecentlyViewedPolitician = (politician: {
   supportRate?: number;
   opposeRate?: number;
   totalVotes?: number;
+  trending?: string;
 }) => {
   try {
     // localStorage から既存のデータを取得
@@ -265,6 +266,7 @@ export const saveRecentlyViewedPolitician = (politician: {
       supportRate: politician.supportRate || 0,
       opposeRate: politician.opposeRate || 0,
       totalVotes: politician.totalVotes || 0,
+      trending: politician.trending || "none",
       timestamp: Date.now(),
     });
 
