@@ -751,7 +751,10 @@ const PolicyListingPage = () => {
           >
             {policy.proposingParty.name}
           </div>
-          {getTrendingIcon(policy.trending)}
+
+          {/* {getTrendingIcon(policy.trending)} 
+          ここにトレンドアイコンを入れるiconを入れる予定
+          */}
         </div>
 
         {/* Title and description */}

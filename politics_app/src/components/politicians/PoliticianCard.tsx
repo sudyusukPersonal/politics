@@ -44,7 +44,7 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
             <h3 className="font-bold text-sm sm:text-base truncate">
               {politician.name}
             </h3>
-            {getTrendIcon(politician.trending)}
+            <TrendIcon trend={politician.trending} />
           </div>
 
           <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-1">
