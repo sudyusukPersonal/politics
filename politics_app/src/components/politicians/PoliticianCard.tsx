@@ -14,7 +14,7 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
   politician,
   index,
 }) => {
-  const { handlePoliticianSelect, getTrendIcon } = useData();
+  const { handlePoliticianSelect } = useData();
   return (
     <div
       key={politician.id}

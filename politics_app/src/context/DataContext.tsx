@@ -11,7 +11,6 @@ import React, {
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Politician, Party } from "../types";
-import { TrendingUp, Activity } from "lucide-react";
 import { processPoliticiansData } from "../utils/dataUtils";
 import { fetchPoliticianById } from "../services/politicianService";
 import {
@@ -60,23 +59,7 @@ const SORT_LABELS = {
   activityAsc: "活動指数（低い順）",
 };
 
-// Move trend icon function outside component to avoid recreation on each render
-const getTrendIcon = (trend: string): JSX.Element => {
-  if (trend === "up") {
-    return (
-      <div className="inline-flex items-center text-green-500">
-        <TrendingUp size={14} className="flex-shrink-0" />
-        <span className="ml-1 text-xs whitespace-nowrap">上昇中</span>
-      </div>
-    );
-  }
-  return (
-    <div className="inline-flex items-center text-red-500">
-      <Activity size={14} className="flex-shrink-0" />
-      <span className="ml-1 text-xs whitespace-nowrap">下降中</span>
-    </div>
-  );
-};
+// Move trend icon function outside component to avoid recreation on each rende
 
 // Context type definition
 interface DataContextType {
@@ -148,7 +131,6 @@ interface DataContextType {
   countAllReplies: (replies: any[]) => number;
   getSortedPoliticians: (politicianList: Politician[]) => Politician[];
   getPoliticiansByParty: (partyId: string) => Politician[];
-  getTrendIcon: (trend: string) => JSX.Element;
   getSortLabel: (method: string) => string;
   searchPoliticians: (term: string) => Politician[];
   clearPoliticiansCache: () => void;
@@ -594,7 +576,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
         countAllReplies,
         getSortedPoliticians,
         getPoliticiansByParty,
-        getTrendIcon,
         getSortLabel,
         searchPoliticians,
 

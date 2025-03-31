@@ -483,14 +483,6 @@ const PolicyListingPage = () => {
     }
   };
 
-  // Helper functions
-  const getTrendingIcon = (trend: string) =>
-    trend === "up" ? (
-      <TrendingUp size={16} className="text-green-500" />
-    ) : (
-      <TrendingUp size={16} className="text-red-500 transform rotate-180" />
-    );
-
   const getCategoryById = (id: string) =>
     master.categories.find((cat) => cat.id === id) || master.categories[0];
 
