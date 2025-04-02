@@ -21,6 +21,7 @@ import { getPartyColor } from "./politicianService";
 // 政策データの型定義
 export interface Policy {
   totalCommentCount: number;
+  name: string;
   id: string;
   title: string;
   description: string;
@@ -48,8 +49,8 @@ export interface Policy {
 // Firestoreのデータを型に合わせて変換する関数
 const convertToPolicyObject = (id: string, data: any): Policy => {
   // 支持率と不支持率の計算
-  const supportRate = data.SupportRate || 50; // デフォルト値として50%を設定
-  const opposeRate = data.NonSupportRate || 50;
+  const supportRate = data.SupportRate || 0; // デフォルト値として50%を設定
+  const opposeRate = data.NonSupportRate || 0;
   const totalVotes = supportRate + opposeRate;
 
   // SupportRateとNonSupportRateから正規化した割合を計算
@@ -60,6 +61,7 @@ const convertToPolicyObject = (id: string, data: any): Policy => {
 
   // コメント数（実際のデータにない場合はランダムな値を生成）
 
+  ///↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓政治家と同じくトレンドを実装する////////
   // トレンドの決定（実際のデータにない場合はランダムに設定）
   const trendOptions: Array<"up" | "down" | "none"> = ["up", "down", "none"];
   const trending =
@@ -80,8 +82,8 @@ const convertToPolicyObject = (id: string, data: any): Policy => {
   const proposingParty =
     politicalParties.length > 0
       ? {
-          name: politicalParties[0].partyName,
-          color: getPartyColor(politicalParties[0].partyName),
+          name: data.name,
+          color: getPartyColor(data.name),
         }
       : {
           name: "不明",
@@ -90,6 +92,7 @@ const convertToPolicyObject = (id: string, data: any): Policy => {
 
   return {
     id,
+    name: data.name || "政党名が見つかりません",
     title: data.Title || "不明なタイトル",
     description: data.Description || "説明なし",
     category: data.AffectedFields?.[0] || "その他", // 最初のカテゴリを主カテゴリとする
@@ -190,6 +193,7 @@ export const fetchPolicyById = async (
   try {
     const policyRef = doc(db, "policy", policyId);
     const policySnap = await getDoc(policyRef);
+    console.log("Fetched Policy:", policySnap.data());
 
     if (policySnap.exists()) {
       return convertToPolicyObject(policyId, policySnap.data());
