@@ -2,6 +2,7 @@
 import React from "react";
 import { FileText, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getPartyColor } from "../../utils/dataUtils";
 
 interface PolicyCardProps {
   policy: any;
@@ -24,15 +25,13 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy, index }) => {
           <div
             className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white overflow-hidden"
             style={{
-              backgroundColor: policy.proposingParty?.color || "#4F46E5",
+              backgroundColor: getPartyColor(policy.name) || "#4F46E5",
             }}
           >
             {/* 政党画像を直接参照 */}
             <img
-              src={`/cm_parly_images/${encodeURIComponent(
-                policy.proposingParty?.name
-              )}.jpg`}
-              alt={policy.proposingParty?.name}
+              src={`/cm_parly_images/${encodeURIComponent(policy.name)}.jpg`}
+              alt={policy.name}
               className="w-full h-full object-cover"
             />
           </div>
@@ -46,11 +45,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy, index }) => {
           </div>
 
           <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-1">
-            {policy.proposingParty && (
-              <>
-                <span className="truncate">{policy.proposingParty.name}</span>
-              </>
-            )}
+            <span className="truncate">{policy.name}</span>
           </div>
 
           <div className="mt-2">
