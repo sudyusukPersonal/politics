@@ -27,7 +27,7 @@ import {
   commonAnimations,
   styles,
 } from "../../utils/styleUtils";
-import { saveRecentlyViewedPolicy } from "../../utils/dataUtils";
+import { getPartyColor, saveRecentlyViewedPolicy } from "../../utils/dataUtils";
 import { useData } from "../../context/DataContext";
 import { navigateToParty } from "../../utils/navigationUtils";
 
@@ -176,7 +176,7 @@ const PolicyDiscussionPage = () => {
   }
 
   // 政党カラーに基づくスタイル設定を取得
-  const partyColor = policy.proposingParty.color;
+  const partyColor = getPartyColor(policy.name);
   const colorStyles = getPartyColorStyles(partyColor);
 
   return (
@@ -185,7 +185,7 @@ const PolicyDiscussionPage = () => {
       <main className="flex-1 pb-16 sm:p-4 p-0 container mx-auto max-w-7xl">
         <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl">
           <section className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
+            {/* <div className="flex items-center justify-between mb-2">
               <button
                 className={`flex items-center text-[${colorStyles.mainColor}] hover:text-[${colorStyles.textColor}] transition`}
                 onClick={handleBackToList}
@@ -194,7 +194,6 @@ const PolicyDiscussionPage = () => {
                 <span>政策一覧に戻る</span>
               </button>
 
-              {/* Right-side actions */}
               <div className="flex items-center space-x-2">
                 <button className="p-2 rounded-full text-gray-600 hover:bg-gray-100 transition">
                   <Share2 size={18} />
@@ -203,7 +202,7 @@ const PolicyDiscussionPage = () => {
                   <Bookmark size={18} />
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* Policy Card - Main Visual Focus */}
             <div className="bg-white shadow-lg overflow-hidden animate-fadeIn lg:rounded-2xl">
@@ -225,15 +224,11 @@ const PolicyDiscussionPage = () => {
                   <div className="flex items-center mr-2 mb-2">
                     <img
                       src={`${window.location.origin}/cm_parly_images/${
-                        policy.politicalParties[0]?.partyName || ""
+                        policy.name || ""
                       }.jpg`}
-                      alt={`${
-                        policy.politicalParties[0]?.partyName || "政党"
-                      } アイコン`}
+                      alt={`${policy.name || "政党"} アイコン`}
                       className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-md mr-2 cursor-pointer hover:opacity-80 transition-opacity active:transform active:scale-95"
-                      onClick={() =>
-                        handlePartyClick(policy.politicalParties[0].partyName)
-                      }
+                      onClick={() => handlePartyClick(policy.name)}
                       onError={(e) => {
                         console.log("画像読み込みエラー:", e);
                         e.currentTarget.style.display = "none";
@@ -241,11 +236,9 @@ const PolicyDiscussionPage = () => {
                     />
                     <span
                       className="bg-white bg-opacity-20 backdrop-blur-md px-2 py-1 rounded-md cursor-pointer hover:bg-opacity-30 transition-all duration-200 active:transform active:scale-95"
-                      onClick={() =>
-                        handlePartyClick(policy.politicalParties[0].partyName)
-                      }
+                      onClick={() => handlePartyClick(policy.name)}
                     >
-                      {policy.politicalParties[0].partyName}
+                      {policy.name}
                     </span>
                   </div>
                 </div>
@@ -391,8 +384,8 @@ const PolicyDiscussionPage = () => {
 
               {/* Party positions - with dynamic party colors */}
 
-              {/* Party positions - with dynamic party colors */}
-              <div className="px-3 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+              {/* 各政党ごとの主張　　主張の値がある場合だけ登録 */}
+              {/* <div className="px-3 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center">
                   <Building
                     size={18}
@@ -402,7 +395,6 @@ const PolicyDiscussionPage = () => {
                   政党の立場
                 </h3>
 
-                {/* Filter valid political parties first */}
                 {(() => {
                   const validParties = policy.politicalParties.filter(
                     (party: any) => party && party.partyName && party.claims
@@ -461,7 +453,6 @@ const PolicyDiscussionPage = () => {
                                   {isProposingParty
                                     ? "提案政党: "
                                     : "対立政党: "}
-                                  {/* 政党名をクリック可能に変更 */}
                                   <span
                                     className="cursor-pointer underline decoration-dotted hover:decoration-solid transition-all"
                                     onClick={() =>
@@ -497,7 +488,7 @@ const PolicyDiscussionPage = () => {
                     </div>
                   );
                 })()}
-              </div>
+              </div> */}
               {/* ReplyDataProviderをこのレベルに配置する */}
               <ReplyDataProvider>
                 {/* 評価セクション (共通コンポーネントに置き換え) */}

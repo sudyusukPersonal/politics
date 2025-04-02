@@ -20,6 +20,7 @@ import { fetchAllCategories, Policy } from "../../services/policyService";
 import { fetchPoliciesWithFilterAndSort } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { navigateToPolicy } from "../../utils/navigationUtils";
+import { getPartyColor } from "../../utils/dataUtils";
 
 // Global app state
 const APP_STATE = {
@@ -258,7 +259,7 @@ const PolicyListingPage = () => {
         docId,
         10
       );
-
+      console.log("Policies loaded:", result.policies);
       const updatedPolicies = refresh
         ? result.policies
         : [
@@ -720,13 +721,13 @@ const PolicyListingPage = () => {
       )}
     </div>
   );
-
+  //proposingParty
   const renderPolicyCard = (policy: Policy, index: number) => (
     <div
       key={policy.id}
       className={STYLES.card.base}
       style={{
-        borderLeft: `4px solid ${policy.proposingParty.color}`,
+        borderLeft: `4px solid ${getPartyColor(policy.name)}`,
         ...STYLES.card.animation(ui.animateItems, index),
       }}
       onClick={() => navigateToPolicy(navigate, policy.id)}
@@ -737,11 +738,11 @@ const PolicyListingPage = () => {
           <div
             className="text-xs font-medium px-2.5 py-1 rounded-full"
             style={{
-              backgroundColor: `${policy.proposingParty.color}15`,
-              color: policy.proposingParty.color,
+              backgroundColor: `${getPartyColor(policy.name)}15`,
+              color: getPartyColor(policy.name),
             }}
           >
-            {policy.proposingParty.name}
+            {policy.name}
           </div>
 
           {/* {getTrendingIcon(policy.trending)} 
@@ -752,8 +753,8 @@ const PolicyListingPage = () => {
         {/* Title and description */}
         <div className="flex items-start mb-2">
           <img
-            src={`cm_parly_images/${policy.proposingParty.name}.jpg`}
-            alt={`${policy.proposingParty.name} icon`}
+            src={`cm_parly_images/${policy.name}.jpg`}
+            alt={`${policy.name} icon`}
             className="w-6 h-6 mr-2 mt-1 rounded-full object-cover flex-shrink-0"
           />
           <h3 className="font-bold text-lg text-gray-800">{policy.title}</h3>
