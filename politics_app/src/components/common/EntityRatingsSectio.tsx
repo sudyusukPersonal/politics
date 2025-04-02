@@ -89,31 +89,6 @@ const EntityRatingsSection: React.FC<EntityRatingsSectionProps> = ({
       </div>
 
       {/* Optional metrics (activity, recent activity, etc.) */}
-      {(activity || recentActivity || customMetrics) && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500">
-          {recentActivity && (
-            <span className="flex items-center mb-1 sm:mb-0">
-              <Eye size={12} className="mr-1" />
-              最近の活動: {recentActivity}
-            </span>
-          )}
-
-          {activity && (
-            <span className="flex items-center">
-              <Activity size={12} className="mr-1" />
-              活動指数: {activity}
-            </span>
-          )}
-
-          {customMetrics &&
-            customMetrics.map((metric, index) => (
-              <span key={index} className="flex items-center mb-1 sm:mb-0">
-                {metric.icon}
-                {metric.label}: {metric.value}
-              </span>
-            ))}
-        </div>
-      )}
     </div>
   );
 };

@@ -460,7 +460,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               <span className="mx-1"> </span>
             </span>
           )}
-          <span className={isReply ? "text-sm" : ""}>{comment.text}</span>
+          <span className={`${isReply ? "text-sm" : ""} whitespace-pre-wrap`}>
+            {comment.text}
+          </span>
         </div>
 
         {/* 返信トグル - 非リプライかつ返信がある場合のみ */}
@@ -522,6 +524,16 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
   const { addReply, updateLocalReplies } = useReplyData();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const autoResizeTextarea = () => {
+    if (textareaRef.current) {
+      // 一度高さをリセット
+      textareaRef.current.style.height = "auto";
+      // スクロール高さに合わせて高さを設定（最小40px）
+      const newHeight = Math.max(40, textareaRef.current.scrollHeight);
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  };
+
   // 入力欄に自動フォーカス
   useEffect(() => {
     if (textareaRef.current) {
@@ -543,9 +555,11 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      // 改行をそのまま保存するため、テキストを加工せずに送信
+      // 文末の改行とスペースを削除
+      const processedText = replyText.trimEnd();
+
       const newReply = {
-        text: replyText, // 改行を含むテキストをそのまま保存
+        text: processedText, // 改行を含むテキストをそのまま保存
         userID: MOCK_USER.uid,
         userName: MOCK_USER.displayName,
         replyTo: replyingTo
@@ -610,20 +624,11 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
               onChange={(e) => {
                 setReplyText(e.target.value);
                 if (error) setError(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (replyText.trim()) {
-                    handleSubmit(
-                      e as unknown as React.FormEvent<HTMLFormElement>
-                    );
-                  }
-                }
-                // Shift+Enterは通常の改行動作を許可(デフォルト)
+                // 次のフレームで高さを調整（テキスト変更後に実行するため）
+                setTimeout(() => autoResizeTextarea(), 0);
               }}
               placeholder="返信を入力..."
-              className="flex-1 bg-transparent border-none p-2.5 text-sm outline-none resize-none h-[40px] overflow-hidden"
+              className="flex-1 bg-transparent border-none p-2.5 text-sm outline-none resize-none min-h-[40px] max-h-[200px] overflow-auto"
               disabled={isSubmitting}
               maxLength={300}
             />
