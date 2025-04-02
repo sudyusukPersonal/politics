@@ -381,7 +381,6 @@ const PolicyDiscussionPage = () => {
               </div>
               {/* Party positions - with dynamic party colors */}
               {/* 各政党ごとの主張　　主張の値がある場合だけ登録 */}
-              {/* Party positions - with dynamic party colors - only show if politicalParties exists and has items */}
               {policy.politicalParties &&
                 policy.politicalParties.length > 0 && (
                   <div className="px-3 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
