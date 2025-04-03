@@ -42,3 +42,12 @@ export const getVoteFromLocalStorage = (
 export const hasVoted = (entityId: string): boolean => {
   return getVoteFromLocalStorage(entityId) !== null;
 };
+
+export const removeVoteFromLocalStorage = (entityId: string): void => {
+  try {
+    localStorage.removeItem(entityId);
+    console.log(`投票が削除されました: ${entityId}`);
+  } catch (error) {
+    console.error("投票情報の削除に失敗しました:", error);
+  }
+};

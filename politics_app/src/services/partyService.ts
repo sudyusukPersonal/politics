@@ -9,7 +9,8 @@ import {
   getDoc,
   Firestore,
   updateDoc,
-  increment, // increment関数を追加
+  increment,
+  runTransaction, // increment関数を追加
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { Party } from "../types";
@@ -25,20 +26,51 @@ export const addVoteToParty = async (
   try {
     const partyRef = doc(db, "parties", partyId);
 
-    // 投票タイプに応じてフィールドを更新
-    if (voteType === "support") {
-      await updateDoc(partyRef, {
-        supportCount: increment(1),
-      });
-    } else {
-      await updateDoc(partyRef, {
-        oppositionCount: increment(1),
-      });
-    }
+    // トランザクションを使用
+    await runTransaction(db, async (transaction) => {
+      // increment()を使用してカウンターを更新する更新オブジェクトを準備
+      const updateData: any = {
+        totalVotes: increment(1),
+      };
 
-    console.log(`政党 ${partyId} に ${voteType} 票を追加しました`);
+      // 投票タイプに応じたフィールドを更新
+      if (voteType === "support") {
+        updateData.supportCount = increment(1);
+      } else {
+        updateData.oppositionCount = increment(1);
+      }
+
+      // supportRateを計算するために必要な現在の値を取得
+      const partyDoc = await transaction.get(partyRef);
+
+      if (!partyDoc.exists()) {
+        throw new Error(`政治家 ${partyId} が見つかりません`);
+      }
+
+      const data = partyDoc.data();
+      // 現在の値を取得して新しい値を計算
+      const currentSupportCount = data.supportCount || 0;
+      const currentOpposeCount = data.oppositionCount || 0;
+
+      // 新しい値を計算
+      const newSupportCount =
+        voteType === "support" ? currentSupportCount + 1 : currentSupportCount;
+      const newOpposeCount =
+        voteType === "oppose" ? currentOpposeCount + 1 : currentOpposeCount;
+      const newTotalVotes = newSupportCount + newOpposeCount;
+
+      // 支持率を計算して更新データに追加
+      updateData.supportRate = Math.round(
+        (newSupportCount / newTotalVotes) * 100
+      );
+
+      // トランザクション内で更新を実行
+      transaction.update(partyRef, updateData);
+    });
+
+    console.log(`Added ${voteType} vote to politician ${partyRef}`);
   } catch (error) {
-    console.error(`政党への ${voteType} 投票追加エラー:`, error);
+    console.error(`Error adding ${voteType} vote:`, error);
     throw error;
   }
 };

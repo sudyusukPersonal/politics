@@ -2,10 +2,15 @@
 import React, { useState, useEffect } from "react";
 import { ThumbsUp, ThumbsDown, Send } from "lucide-react";
 import { useReplyData } from "../../context/ReplyDataContext";
-import { addEntityVote, createUIComment } from "../../services/voteService";
+import {
+  addEntityVote,
+  createUIComment,
+  removeEntityVote,
+} from "../../services/voteService";
 import {
   saveVoteToLocalStorage,
   getVoteFromLocalStorage,
+  removeVoteFromLocalStorage,
 } from "../../utils/voteStorage";
 import { addNewComment } from "../../services/commentService";
 
@@ -60,6 +65,44 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
     // 親コンポーネントのコールバックを呼び出す
     if (onVoteComplete) {
       onVoteComplete();
+    }
+  };
+
+  // 評価取り消し処理
+  const handleVoteCancel = async () => {
+    if (!entityId || !previousVote) {
+      console.error("取り消すべき投票情報がありません");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      // 投票を削除するAPIを呼び出す
+      const result = await removeEntityVote(entityId, entityType, previousVote);
+
+      if (result) {
+        // ローカルストレージから投票情報を削除
+        removeVoteFromLocalStorage(entityId);
+
+        // コンポーネントの状態を更新
+        setPreviousVote(null);
+
+        console.log(
+          `${entityType}ID ${entityId} への ${previousVote} 投票を取り消しました`
+        );
+
+        // 親コンポーネントのコールバックがある場合は呼び出す
+        if (onVoteComplete) {
+          onVoteComplete();
+        }
+      }
+    } catch (error) {
+      console.error("評価の取り消しに失敗しました:", error);
+      setSubmitError("評価の取り消しに失敗しました。もう一度お試しください。");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -206,23 +249,36 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
               : "bg-red-50 border border-red-200"
           }`}
         >
-          <h3 className="font-medium mb-3 flex items-center">
-            {previousVote === "support" ? (
-              <>
-                <ThumbsUp size={16} className="text-green-500 mr-2" />
-                <span className="text-green-700">
-                  あなたはこの{getEntityTypeName()}を支持しました
-                </span>
-              </>
-            ) : (
-              <>
-                <ThumbsDown size={16} className="text-red-500 mr-2" />
-                <span className="text-red-700">
-                  あなたはこの{getEntityTypeName()}を支持しませんでした
-                </span>
-              </>
-            )}
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium flex items-center">
+              {previousVote === "support" ? (
+                <>
+                  <ThumbsUp size={16} className="text-green-500 mr-2" />
+                  <span className="text-green-700">
+                    この{getEntityTypeName()}を支持
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ThumbsDown size={16} className="text-red-500 mr-2" />
+                  <span className="text-red-700">
+                    この{getEntityTypeName()}を不支持
+                  </span>
+                </>
+              )}
+            </h3>
+
+            <span
+              onClick={handleVoteCancel}
+              className={`ml-2 px-3 py-1 rounded-full text-sm font-medium flex items-center cursor-pointer transition-colors mr-1 ${
+                previousVote === "support"
+                  ? "bg-green-200 text-green-700 hover:bg-green-300"
+                  : "bg-red-200 text-red-700 hover:bg-red-300"
+              }`}
+            >
+              評価を取消す
+            </span>
+          </div>
 
           <form onSubmit={handleAdditionalCommentSubmit}>
             {/* エラーメッセージ表示 */}
@@ -255,48 +311,50 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
               <div className="text-left text-xs text-gray-500 ml-2">
                 {additionalComment.length}/500文字
               </div>
-              <button
-                type="submit"
-                className={`py-2 px-4 rounded-lg text-white font-medium transition transform active:scale-95 flex items-center justify-center ${
-                  isSubmitting ? "opacity-70 cursor-not-allowed" : ""
-                } ${
-                  previousVote === "support"
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-red-500 hover:bg-red-600"
-                }`}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    送信中...
-                  </>
-                ) : (
-                  <>
-                    <Send size={16} className="mr-2" />
-                    コメントを送信
-                  </>
-                )}
-              </button>
+              <div className="flex justify-end items-center space-x-2">
+                <button
+                  type="submit"
+                  className={`py-2 px-4 rounded-lg text-white font-medium transition transform active:scale-95 flex items-center justify-center ${
+                    isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+                  } ${
+                    previousVote === "support"
+                      ? "bg-green-500 hover:bg-green-600"
+                      : "bg-red-500 hover:bg-red-600"
+                  }`}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      送信中...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} className="mr-2" />
+                      コメントを送信
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         </div>
