@@ -46,6 +46,25 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy, index }) => {
 
           <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-1">
             <span className="truncate">{policy.name}</span>
+            {policy.totalVotes === 0 && (
+              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium animate-pulse flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-1"
+                >
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z"></path>
+                </svg>
+                投票する
+              </span>
+            )}
           </div>
 
           <div className="mt-2">

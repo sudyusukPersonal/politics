@@ -340,8 +340,8 @@ const PolicyListingPage = () => {
         社会保障: { icon: <Users size={14} />, color: "#8B5CF6" },
         安全保障: { icon: <AlertCircle size={14} />, color: "#EF4444" },
         外交: { icon: <Users size={14} />, color: "#3B82F6" },
-        労働: { icon: <Activity size={14} />, color: "#EC4899" },
-        健康: { icon: <Users size={14} />, color: "#14B8A6" },
+        人権: { icon: <Activity size={14} />, color: "#EC4899" },
+        医療: { icon: <Users size={14} />, color: "#14B8A6" },
         科学技術: { icon: <Activity size={14} />, color: "#3B82F6" },
         地方創生: { icon: <Building size={14} />, color: "#10B981" },
       };
@@ -735,21 +735,39 @@ const PolicyListingPage = () => {
       <div className="p-4">
         {/* Header */}
         <div className="flex justify-between items-start mb-2">
-          <div
-            className="text-xs font-medium px-2.5 py-1 rounded-full"
-            style={{
-              backgroundColor: `${getPartyColor(policy.name)}15`,
-              color: getPartyColor(policy.name),
-            }}
-          >
-            {policy.name}
+          <div className="flex items-center">
+            <div
+              className="text-xs font-medium px-2.5 py-1 rounded-full"
+              style={{
+                backgroundColor: `${getPartyColor(policy.name)}15`,
+                color: getPartyColor(policy.name),
+              }}
+            >
+              {policy.name}
+            </div>
+            {policy.totalVotes === 0 && (
+              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium animate-pulse flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-1"
+                >
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z"></path>
+                </svg>
+                投票する
+              </span>
+            )}
           </div>
 
-          {/* {getTrendingIcon(policy.trending)} 
-          ここにトレンドアイコンを入れるiconを入れる予定
-          */}
+          {/* {getTrendingIcon(policy.trending)} ここにトレンドアイコンを入れるiconを入れる予定*/}
         </div>
-
         {/* Title and description */}
         <div className="flex items-start mb-2">
           <img

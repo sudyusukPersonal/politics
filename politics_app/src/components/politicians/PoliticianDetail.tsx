@@ -21,6 +21,7 @@ import { Politician } from "../../types";
 import { fetchPoliticianById } from "../../services/politicianService";
 import { saveRecentlyViewedPolitician } from "../../utils/dataUtils";
 import { ReplyDataProvider } from "../../context/ReplyDataContext";
+import { getVoteFromLocalStorage } from "../../utils/voteStorage";
 
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -56,6 +57,8 @@ const PoliticianDetail: React.FC = () => {
           // Update in DataContext so other components can access it
           setSelectedPolitician(politicianData);
           console.log("Selected politician:", politicianData);
+          const voteType = getVoteFromLocalStorage(politicianData.id);
+          console.log(`政治家ID ${politicianData.id} の投票タイプ:`, voteType);
           // 最近見た政治家リストに追加（positionフィールドを含める）
           saveRecentlyViewedPolitician({
             id: politicianData.id,
@@ -147,7 +150,10 @@ const PoliticianDetail: React.FC = () => {
     <ReplyDataProvider>
       <section className="space-y-4">
         <div className={styles.cards.base + " animate-fadeIn"}>
-          <div className="p-3">
+          <div
+            className="p-5 border-b border-gray-100"
+            style={{ backgroundColor: `${politician.party.color}10` }}
+          >
             {/* Politician header with image and basic info */}
             <div className="flex flex-col sm:flex-row sm:items-start">
               <div className="relative mx-auto sm:mx-0 mb-4 sm:mb-0">
