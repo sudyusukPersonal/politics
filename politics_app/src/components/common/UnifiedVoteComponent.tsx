@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useReplyData } from "../../context/ReplyDataContext";
 import { addEntityVote, createUIComment } from "../../services/voteService";
+import { saveVoteToLocalStorage } from "../../utils/voteStorage";
 
 interface UnifiedVoteComponentProps {
   entityId: string;
@@ -96,6 +97,7 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
 
         // ローカルUIのコメント一覧に新しいコメントを追加
         updateLocalComments(newComment, true);
+        saveVoteToLocalStorage(entityId, voteType);
       }
 
       // フォームをリセット

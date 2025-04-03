@@ -34,26 +34,26 @@ export const getPartyColor = (affiliation: string): string => {
   }
 };
 
-const getPartyID = (affiliation: string): string => {
+export const getPartyID = (affiliation: string): string => {
   switch (affiliation) {
     case "自由民主党":
-      return "mJV3F03DLgaLLeBzfCdG"; // 青
+      return "pZJ4UiwBC5DsYGiQKjIO"; // 青
     case "立憲民主党":
-      return "lMixB0EYLpBHl0uQlo16"; // 赤
+      return "BoxdMFpJBC6bTGYJ9zCA"; // 赤
     case "公明党":
-      return "neEopBo0RyDA2yBBszOp"; // 紫
+      return "L5jBD6a2BSBJIMCMx7hF"; // 紫
     case "日本維新の会":
-      return "R4ZedESxj6ZRqfB4Ak4z"; // オレンジ
+      return "z13CDRj4DASfG7VOMt29"; // オレンジ
     case "国民民主党":
-      return "YY0BG8CCjpeBaATG9KvF"; // 水色
+      return "hs4jWlLgLgulQiKRTJDr"; // 水色
     case "日本共産党":
-      return "Mn7qK9AvCbZNtMaQY8Wz"; // 赤
+      return "8HaVrxHMjnYnWzQTabYZ"; // 赤
     case "れいわ新選組":
-      return "yFV5XVFt5GCdzA0LU5c0"; // 緑
+      return "HQh3QrLCkpshhlMItGkp"; // 緑
     case "社民党":
-      return "ufc1i9eAFULfldtQ04DQ"; // 青緑
+      return "GThYfAHQTQjWsiyX9w9I"; // 青緑
     case "参政党":
-      return "E9BuFD9eUKNMpCBDCSDM"; // 黄色
+      return "F4PhicYTj6U6YcFiNyYB"; // 黄色
     default:
       return "#808080"; // グレー
   }

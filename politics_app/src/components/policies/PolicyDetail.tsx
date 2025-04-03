@@ -30,6 +30,7 @@ import {
 import { getPartyColor, saveRecentlyViewedPolicy } from "../../utils/dataUtils";
 import { useData } from "../../context/DataContext";
 import { navigateToParty } from "../../utils/navigationUtils";
+import { getVoteFromLocalStorage } from "../../utils/voteStorage";
 
 const PolicyDiscussionPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,15 +44,15 @@ const PolicyDiscussionPage = () => {
   const [showReasonForm, setShowReasonForm] = useState(false);
 
   const PARTY_ID_MAP = [
-    { id: "mJV3F03DLgaLLeBzfCdG", name: "自由民主党", color: "#555555" },
-    { id: "lMixB0EYLpBHl0uQlo16", name: "立憲民主党", color: "#4361EE" },
-    { id: "neEopBo0RyDA2yBBszOp", name: "公明党", color: "#7209B7" },
-    { id: "R4ZedESxj6ZRqfB4Ak4z", name: "日本維新の会", color: "#228B22" },
-    { id: "YY0BG8CCjpeBaATG9KvF", name: "国民民主党", color: "#000080" },
-    { id: "Mn7qK9AvCbZNtMaQY8Wz", name: "日本共産党", color: "#E63946" },
-    { id: "yFV5XVFt5GCdzA0LU5c0", name: "れいわ新選組", color: "#F72585" },
-    { id: "ufc1i9eAFULfldtQ04DQ", name: "社民党", color: "#118AB2" },
-    { id: "E9BuFD9eUKNMpCBDCSDM", name: "参政党", color: "#FF4500" },
+    { id: "pZJ4UiwBC5DsYGiQKjIO", name: "自由民主党", color: "#555555" },
+    { id: "BoxdMFpJBC6bTGYJ9zCA", name: "立憲民主党", color: "#4361EE" },
+    { id: "L5jBD6a2BSBJIMCMx7hF", name: "公明党", color: "#7209B7" },
+    { id: "z13CDRj4DASfG7VOMt29", name: "日本維新の会", color: "#228B22" },
+    { id: "hs4jWlLgLgulQiKRTJDr", name: "国民民主党", color: "#000080" },
+    { id: "8HaVrxHMjnYnWzQTabYZ", name: "日本共産党", color: "#E63946" },
+    { id: "HQh3QrLCkpshhlMItGkp", name: "れいわ新選組", color: "#F72585" },
+    { id: "GThYfAHQTQjWsiyX9w9I", name: "社民党", color: "#118AB2" },
+    { id: "F4PhicYTj6U6YcFiNyYB", name: "参政党", color: "#FF4500" },
   ];
 
   // 政党名クリック時のハンドラー
@@ -88,6 +89,8 @@ const PolicyDiscussionPage = () => {
         if (policyData) {
           setPolicy(policyData);
           console.log("政策データを取得しました:", policyData);
+          const voteType = getVoteFromLocalStorage(policyData.id);
+          console.log(`政策ID ${id} の投票タイプ:`, voteType);
 
           // 最近見た政策として保存
           saveRecentlyViewedPolicy({
@@ -401,7 +404,7 @@ const PolicyDiscussionPage = () => {
                       // Determine grid column layout based on number of valid parties
                       const gridCols =
                         validParties.length > 1
-                          ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                          ? "grid grid-cols-1 md:grid-cols-2 gap-2"
                           : "grid grid-cols-1 gap-4";
 
                       return (

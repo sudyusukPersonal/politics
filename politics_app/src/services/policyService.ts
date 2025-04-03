@@ -51,7 +51,7 @@ const convertToPolicyObject = (id: string, data: any): Policy => {
   // 支持率と不支持率の計算
   const supportRate = data.SupportRate || 0; // デフォルト値として50%を設定
   const opposeRate = data.NonSupportRate || 0;
-  const totalVotes = supportRate + opposeRate;
+  const totalVotes = data.totalcount;
 
   // SupportRateとNonSupportRateから正規化した割合を計算
   const normalizedSupportRate =
