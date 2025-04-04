@@ -6,14 +6,7 @@ import { useData } from "../../context/DataContext";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const {
-    isScrolled,
-    activeTab,
-    setActiveTab,
-    setMobileMenuOpen,
-    globalPoliticians,
-  } = useData();
+  const { isScrolled, setMobileMenuOpen, globalPoliticians } = useData();
 
   // 検索機能の状態管理
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -22,19 +15,12 @@ const Header: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
 
   // モバイル向けの状態管理
-  const [hideBackButton, setHideBackButton] = useState(false);
   // タイトル表示制御用の状態を追加
   const [hideTitleCompletely, setHideTitleCompletely] = useState(false);
 
   // refs for handling outside clicks
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const isPoliticianDetail =
-    location.pathname.includes("/politicians/") &&
-    location.pathname !== "/politicians";
-  const isPartyDetail =
-    location.pathname.includes("/parties/") && location.pathname !== "/parties";
 
   // 検索入力の処理
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +66,6 @@ const Header: React.FC = () => {
     // タイトルと戻るボタンはトランジション完了後に表示する
     // hideTitleCompletelyはすぐには変更せず、トランジション完了後に変更
     setTimeout(() => {
-      setHideBackButton(false);
       setHideTitleCompletely(false);
     }, 300); // 300msはsearch barのtransition durationと同じ値
   };
@@ -89,7 +74,6 @@ const Header: React.FC = () => {
   const expandSearchBar = () => {
     // モバイルの場合、「戻るボタン」とタイトルを即時非表示
     if (isMobile) {
-      setHideBackButton(true);
       setHideTitleCompletely(true);
     }
 

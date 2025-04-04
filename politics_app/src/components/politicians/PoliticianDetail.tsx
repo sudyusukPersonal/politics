@@ -10,7 +10,6 @@ import {
   Eye,
   MessageSquare,
 } from "lucide-react";
-import { useData } from "../../context/DataContext";
 import TrendIcon from "../common/TrendIcon";
 import EntityRatingsSection from "../common/EntityRatingsSectio";
 import { styles } from "../../utils/styleUtils";
@@ -26,7 +25,6 @@ import { getVoteFromLocalStorage } from "../../utils/voteStorage";
 const PoliticianDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { setSelectedPolitician } = useData();
 
   // Local state for politician data
   const [politician, setPolitician] = useState<Politician | null>(null);
@@ -55,7 +53,6 @@ const PoliticianDetail: React.FC = () => {
         if (politicianData) {
           setPolitician(politicianData);
           // Update in DataContext so other components can access it
-          setSelectedPolitician(politicianData);
           console.log("Selected politician:", politicianData);
           const voteType = getVoteFromLocalStorage(politicianData.id);
           console.log(`政治家ID ${politicianData.id} の投票タイプ:`, voteType);
@@ -92,7 +89,7 @@ const PoliticianDetail: React.FC = () => {
     loadPolitician();
     // Scroll to top when loading a new politician
     window.scrollTo(0, 0);
-  }, [id, setSelectedPolitician]);
+  }, [id]);
 
   // 政党詳細ページへの移動
   const handlePartyClick = () => {

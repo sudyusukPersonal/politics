@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Politician } from "../../types";
-import { useData } from "../../context/DataContext";
 import PoliticianCard from "./PoliticianCard";
 import SortDropdown from "../common/SortDropdown";
 import PartyFilterDropdown from "../common/PartyFilterDropdown";
@@ -24,8 +23,6 @@ const APP_STATE = {
 };
 
 const AllPoliticiansList: React.FC = () => {
-  const { handleBackToPoliticians } = useData();
-
   // Router hooks
   const navigate = useNavigate();
   const location = useLocation();

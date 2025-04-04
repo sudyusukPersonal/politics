@@ -1,6 +1,4 @@
-// politics_app/src/components/home/HomeScreen.tsx
-import React, { useEffect } from "react";
-import { useData } from "../../context/DataContext";
+import React, { useState, useEffect } from "react";
 import PoliticiansTab from "./PoliticiansTab";
 import PartiesTab from "./PartiesTab";
 
@@ -9,17 +7,14 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ initialTab }) => {
-  const { activeTab, setActiveTab } = useData();
+  const [activeTab, setActiveTab] = useState("politicians");
 
   useEffect(() => {
     // If initialTab is provided, use it, otherwise default to "politicians"
     if (initialTab) {
       setActiveTab(initialTab);
-    } else {
-      // This ensures that without an explicit initialTab, we default to politicians
-      setActiveTab("politicians");
     }
-  }, [initialTab, setActiveTab]);
+  }, [initialTab]);
 
   return (
     <>
