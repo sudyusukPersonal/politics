@@ -339,22 +339,21 @@ export const fetchPoliciesWithFilterAndSort = async (
     let q;
 
     // ソートのフィールドと方向を定義
-    let orderByField = "SupportRate";
+    let orderByField = "supportRating";
     let orderDirection: OrderByDirection = "desc";
 
     switch (sortMethod) {
       case "supportDesc":
-        orderByField = "SupportRate";
+        orderByField = "supportRating";
         orderDirection = "desc";
         break;
       case "supportAsc":
-        orderByField = "SupportRate";
+        orderByField = "supportRating";
         orderDirection = "asc";
         break;
-      case "opposeDesc":
-        orderByField = "NonSupportRate";
+      default:
+        orderByField = "supportRating";
         orderDirection = "desc";
-        break;
     }
 
     // フィルタリングと検索の処理
