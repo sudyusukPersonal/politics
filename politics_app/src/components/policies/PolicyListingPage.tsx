@@ -21,6 +21,7 @@ import { fetchPoliciesWithFilterAndSort } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { navigateToPolicy } from "../../utils/navigationUtils";
 import { getPartyColor } from "../../utils/dataUtils";
+import { hasVoted } from "../../utils/voteStorage";
 
 // Global app state
 const APP_STATE = {
@@ -745,7 +746,7 @@ const PolicyListingPage = () => {
             >
               {policy.name}
             </div>
-            {policy.totalVotes === 0 && (
+            {!hasVoted(policy.id) && (
               <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium animate-pulse flex items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

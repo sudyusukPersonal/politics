@@ -4,6 +4,7 @@ import { Calendar, ChevronRight, MessageSquare } from "lucide-react";
 import { Politician } from "../../types";
 import { useData } from "../../context/DataContext";
 import TrendIcon from "../common/TrendIcon";
+import { hasVoted } from "../../utils/voteStorage"; // 投票済みかどうかを確認する関数をインポート
 
 interface PoliticianCardProps {
   politician: Politician;
@@ -45,7 +46,7 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
               <h3 className="font-bold text-sm sm:text-base truncate">
                 {politician.name}
               </h3>
-              {politician.totalVotes === 0 && (
+              {!hasVoted(politician.id) && (
                 <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium animate-pulse flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
