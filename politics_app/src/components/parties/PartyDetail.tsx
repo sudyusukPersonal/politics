@@ -153,16 +153,6 @@ const PartyDetail: React.FC = () => {
   }
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between mb-2">
-        <button
-          onClick={handleBackToParties}
-          className="flex items-center text-indigo-600 hover:text-indigo-800 transition"
-        >
-          <ArrowLeft size={16} className="mr-1" />
-          <span>政党一覧に戻る</span>
-        </button>
-      </div>
-
       {/* ルートレベルでReplyDataProviderをラップ */}
       <ReplyDataProvider>
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 animate-fadeIn">

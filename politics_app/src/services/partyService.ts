@@ -112,19 +112,14 @@ export const fetchAllParties = async (): Promise<Party[]> => {
     // 取得したデータを処理
     const parties = partiesSnapshot.docs.map((doc) => {
       const data = doc.data();
-      const totalVotes = (data.supportCount || 0) + (data.oppositionCount || 0);
-      const supportRate =
-        totalVotes > 0
-          ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
-          : 50; // Default to 50% if no votes
 
       return {
         id: doc.id,
         name: data.name,
         color: getPartyColor(data.name),
-        supportRate: supportRate,
-        opposeRate: 100 - supportRate,
-        totalVotes: totalVotes || 0,
+        supportRate: data.supportRate || 50,
+        opposeRate: 100 - data.supportRate || 50,
+        totalVotes: data.totalVotes || 0,
         members: parseInt(data.politicians_count) || 0,
         keyPolicies: data.majorPolicies || [],
         description: data.overview || "",
@@ -167,21 +162,14 @@ export const fetchPartyById = async (
     // ドキュメントデータを取得
     const data = partySnap.data();
 
-    // 支持率と投票数の計算
-    const totalVotes = (data.supportCount || 0) + (data.oppositionCount || 0);
-    const supportRate =
-      totalVotes > 0
-        ? Math.round(((data.supportCount || 0) / totalVotes) * 100)
-        : 50;
-
     // 政党オブジェクトを構築して返す
     return {
       id: partyId,
       name: data.name,
       color: getPartyColor(data.name),
-      supportRate: supportRate,
-      opposeRate: 100 - supportRate,
-      totalVotes: totalVotes || 0,
+      supportRate: data.supportRate || 50,
+      opposeRate: 100 - data.supportRate || 50,
+      totalVotes: data.totalVotes || 0,
       members: parseInt(data.politicians_count) || 0,
       keyPolicies: data.majorPolicies || [],
       description: data.overview || "",
