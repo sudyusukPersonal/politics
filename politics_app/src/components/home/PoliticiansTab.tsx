@@ -154,7 +154,6 @@ const PoliticiansTab: React.FC = () => {
               recentlyViewedPoliticians.map(
                 (politician: Politician, index: number) => {
                   if (!politician) return null; // Ensure politician is defined
-                  console.log("Politician:", politician); // Debug log
                   return (
                     <PoliticianCard
                       key={politician.id}

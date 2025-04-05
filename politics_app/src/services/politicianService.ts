@@ -408,6 +408,10 @@ export const fetchPoliticiansWithFilterAndSort = async (
         orderByField = "totalVotes";
         orderDirection = "desc";
         break;
+      case "commentCountDesc":
+        orderByField = "totalCommentCount";
+        orderDirection = "desc";
+        break;
       default:
         orderByField = "supportRate";
         orderDirection = "desc";

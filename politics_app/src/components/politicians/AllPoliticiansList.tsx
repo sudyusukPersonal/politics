@@ -123,6 +123,8 @@ const AllPoliticiansList: React.FC = () => {
           return "全議員・支持率順（低い順）";
         case "totalVotesDesc":
           return "全議員・投票数順";
+        case "commentCountDesc":
+          return "全議員・コメント数順";
         default:
           return "全議員一覧";
       }
@@ -134,6 +136,8 @@ const AllPoliticiansList: React.FC = () => {
           return `${currentParty}・支持率順（低い順）`;
         case "totalVotesDesc":
           return `${currentParty}・投票数順`;
+        case "commentCountDesc":
+          return `${currentParty}・コメント数順`;
         default:
           return `${currentParty}所属議員一覧`;
       }

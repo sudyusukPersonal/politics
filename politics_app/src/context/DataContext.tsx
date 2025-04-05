@@ -23,6 +23,8 @@ import {
 const SORT_METHODS = {
   supportDesc: (a: Politician, b: Politician) => b.supportRate - a.supportRate,
   supportAsc: (a: Politician, b: Politician) => a.supportRate - b.supportRate,
+  commentCountDesc: (a: Politician, b: Politician) =>
+    (b.totalCommentCount || 0) - (a.totalCommentCount || 0),
 };
 
 // Context type definition

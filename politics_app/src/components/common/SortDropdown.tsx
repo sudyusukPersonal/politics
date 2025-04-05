@@ -23,6 +23,8 @@ const SortDropdown: React.FC<SortDropdownProps> = ({
         return "支持率（低い順）";
       case "totalVotesDesc":
         return "投票数（多い順）";
+      case "commentCountDesc":
+        return "コメント数（多い順）";
       default:
         return "並び順";
     }
@@ -65,7 +67,12 @@ const SortDropdown: React.FC<SortDropdownProps> = ({
           className="absolute top-full right-0 mt-1 w-44 bg-white rounded-md shadow-lg z-20 py-1 border border-gray-200
           overflow-hidden"
         >
-          {["supportDesc", "supportAsc", "totalVotesDesc"].map((sort) => (
+          {[
+            "supportDesc",
+            "supportAsc",
+            "totalVotesDesc",
+            "commentCountDesc",
+          ].map((sort) => (
             <button
               key={sort}
               onClick={() => {
