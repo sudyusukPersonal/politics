@@ -3,6 +3,7 @@ import React from "react";
 import { FileText, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getPartyColor } from "../../utils/dataUtils";
+import { hasVoted } from "../../utils/voteStorage";
 
 interface PolicyCardProps {
   policy: any;
@@ -46,7 +47,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ policy, index }) => {
 
           <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-1">
             <span className="truncate">{policy.name}</span>
-            {policy.totalVotes === 0 && (
+            {!hasVoted(policy.id) && (
               <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium animate-pulse flex items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
