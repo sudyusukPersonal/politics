@@ -904,20 +904,24 @@ const PolicyListingPage = () => {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400 via-transparent to-transparent opacity-20"></div>
         </div>
 
-        <div className="container mx-auto px-4 py-8 relative z-10 flex flex-col md:flex-row items-center justify-between">
+        <div className="container mx-auto px-4 py-4 relative z-10 flex flex-col md:flex-row items-center justify-between">
           <div className="mb-4 md:mb-0 text-center md:text-left">
-            <h1 className="text-2xl font-bold mb-1 inline-flex items-center">
+            <h3 className="text-base font-bold mb-1 inline-flex items-center">
               <div className="mr-2 p-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded">
-                <AlertCircle size={18} className="text-white" />
+                <AlertCircle size={14} className="text-white" />
               </div>
-              政策提案データベース
-            </h1>
+              政策について
+            </h3>
             <p className="text-sm md:text-base opacity-80">
-              最新政策の動向把握と意見表明プラットフォーム
+              政策は中立を期す為、各政党の公式HPに掲載されている情報を解析しAIが要約しています。
             </p>
+            {/* <p className="text-sm md:text-base">
+              各政党様は自党の政策を編集、追加出来ます。
+            </p>
+            <button>詳しくはこちら</button> */}
           </div>
-
-          <form
+        </div>
+        {/* <form
             onSubmit={handleSearchSubmit}
             className="relative w-full md:w-auto md:max-w-md"
           >
@@ -946,8 +950,7 @@ const PolicyListingPage = () => {
                 className={STYLES.search(search.fired).button}
               />
             </button>
-          </form>
-        </div>
+          </form> */}
       </div>
 
       {/* Main content */}

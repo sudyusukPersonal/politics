@@ -41,9 +41,30 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
 
         <div className="ml-3 sm:ml-4 flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm sm:text-base truncate">
-              {politician.name}
-            </h3>
+            <div className="flex items-center">
+              <h3 className="font-bold text-sm sm:text-base truncate">
+                {politician.name}
+              </h3>
+              {politician.totalVotes === 0 && (
+                <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium animate-pulse flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-1"
+                  >
+                    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z"></path>
+                  </svg>
+                  投票する
+                </span>
+              )}
+            </div>
             <TrendIcon trend={politician.trending} />
           </div>
 

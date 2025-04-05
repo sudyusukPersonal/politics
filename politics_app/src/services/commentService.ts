@@ -11,6 +11,9 @@ import {
   arrayUnion,
   increment,
   runTransaction,
+  orderBy,
+  startAfter,
+  limit,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { Comment, Reply } from "../types";
@@ -24,12 +27,117 @@ const convertTimestamp = (timestamp: Timestamp): Date =>
 
 // Fetch comments for a specific politician
 export const fetchCommentsByPoliticianId = async (
-  politicianId: string
-): Promise<Comment[]> => {
+  politicianId: string,
+  startAfterId?: string | null,
+  limitSize: number = 5,
+  sortType: "latest" | "replies" | "support" | "oppose" = "latest"
+): Promise<{
+  fetchedComments: Comment[];
+  lastDocId: string | null;
+  hasMore: boolean;
+}> => {
   try {
     // Create a query to fetch comments for the specific politician
     const commentsRef = collection(db, "comments");
-    const q = query(commentsRef, where("politician_id", "==", politicianId));
+    let q;
+
+    // 基本的なフィルター - 指定した政治家のコメントのみを取得
+    const baseFilters = [where("politician_id", "==", politicianId)];
+
+    // ソートタイプに基づいてクエリを構築
+    switch (sortType) {
+      case "latest":
+        // 新しい順（デフォルト）
+        q = query(
+          commentsRef,
+          ...baseFilters,
+          orderBy("created_at", "desc"),
+          limit(limitSize)
+        );
+        break;
+
+      case "replies":
+        // 返信の多い順
+        q = query(
+          commentsRef,
+          ...baseFilters,
+          orderBy("repliesCount", "desc"),
+          orderBy("created_at", "desc"), // 同じ返信数の場合は新しい順
+          limit(limitSize)
+        );
+        break;
+
+      case "support":
+        // 支持コメント + 新しい順
+        q = query(
+          commentsRef,
+          ...baseFilters,
+          where("type", "==", "support"),
+          orderBy("created_at", "desc"),
+          limit(limitSize)
+        );
+        break;
+
+      case "oppose":
+        // 不支持コメント + 新しい順
+        q = query(
+          commentsRef,
+          ...baseFilters,
+          where("type", "==", "oppose"),
+          orderBy("created_at", "desc"),
+          limit(limitSize)
+        );
+        break;
+
+      default:
+        // デフォルトは新しい順
+        q = query(
+          commentsRef,
+          ...baseFilters,
+          orderBy("created_at", "desc"),
+          limit(limitSize)
+        );
+    }
+
+    // If startAfterId is provided, get that document and use it as a starting point
+    if (startAfterId) {
+      const startAfterDoc = await getDoc(doc(db, "comments", startAfterId));
+      if (startAfterDoc.exists()) {
+        // 基本フィルタとソートの条件を維持したまま、startAfterを追加
+        let orderByFields;
+
+        switch (sortType) {
+          case "replies":
+            orderByFields = [
+              orderBy("repliesCount", "desc"),
+              orderBy("created_at", "desc"),
+            ];
+            break;
+          case "support":
+          case "oppose":
+            orderByFields = [orderBy("created_at", "desc")];
+            break;
+          default:
+            orderByFields = [orderBy("created_at", "desc")];
+        }
+
+        // ソートタイプに応じたフィルターを適用
+        const whereConditions = [...baseFilters];
+        if (sortType === "support") {
+          whereConditions.push(where("type", "==", "support"));
+        } else if (sortType === "oppose") {
+          whereConditions.push(where("type", "==", "oppose"));
+        }
+
+        q = query(
+          commentsRef,
+          ...whereConditions,
+          ...orderByFields,
+          startAfter(startAfterDoc),
+          limit(limitSize)
+        );
+      }
+    }
 
     // Execute the query
     const querySnapshot = await getDocs(q);
@@ -51,13 +159,23 @@ export const fetchCommentsByPoliticianId = async (
       type: doc.data().type,
     }));
 
-    return comments;
+    // Determine if there are more comments to load
+    const hasMore = comments.length === limitSize;
+
+    // Get the last document ID for pagination
+    const lastDocId =
+      comments.length > 0 ? comments[comments.length - 1].id : null;
+
+    return {
+      fetchedComments: comments,
+      lastDocId,
+      hasMore,
+    };
   } catch (error) {
     console.error("コメントの取得中にエラーが発生しました:", error);
     throw error;
   }
 };
-
 // Fetch a specific comment by ID
 export const fetchCommentById = async (commentId: string): Promise<void> => {
   try {

@@ -1,4 +1,4 @@
-// src/context/ReplyDataContext.tsx
+// src/context/ReplyDataContext.tsx・・
 import React, {
   createContext,
   useState,
@@ -22,9 +22,16 @@ interface ReplyDataContextType {
   isLoadingComments: boolean;
   commentError: string | null;
   newCommentId: string | null;
+  hasMoreComments: boolean;
+  isLoadingMoreComments: boolean;
 
   // Methods
-  fetchCommentsByPolitician: (politicianId: string) => Promise<void>;
+  fetchCommentsByPolitician: (
+    politicianId: string,
+    startAfterId?: string | null,
+    limitSize?: number,
+    sortType?: "latest" | "replies" | "support" | "oppose"
+  ) => Promise<void>;
   addReply: (commentId: string, replyData: any) => Promise<Reply>;
   refreshComments: (politicianId: string) => Promise<void>;
   // Method to update local comments state
@@ -37,6 +44,10 @@ interface ReplyDataContextType {
   // いいね関連のメソッド
   likeComment: (commentId: string, replyId?: string) => Promise<void>;
   hasUserLikedComment: (commentId: string, replyId?: string) => boolean;
+  // 無限スクロール用のメソッド
+  loadMoreComments: (
+    sortType?: "latest" | "replies" | "support" | "oppose"
+  ) => Promise<void>;
 }
 
 // Context creation
@@ -54,6 +65,15 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
   const [newCommentId, setNewCommentId] = useState<string | null>(null);
   // いいねしたコメントを追跡する状態
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
+  // 無限スクロール用の状態
+  const [lastCommentId, setLastCommentId] = useState<string | null>(null);
+  const [hasMoreComments, setHasMoreComments] = useState<boolean>(true);
+  const [isLoadingMoreComments, setIsLoadingMoreComments] =
+    useState<boolean>(false);
+  const [isFetchingFirstBatch, setIsFetchingFirstBatch] =
+    useState<boolean>(false);
+  // 現在のpoliticianIdを保持する参照
+  const currentPoliticianIdRef = useRef<string | null>(null);
 
   // Ref to track timeout for auto-scrolling
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,24 +99,107 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Fetch comments for a specific politician
   const fetchCommentsByPolitician = useCallback(
-    async (politicianId: string) => {
+    async (
+      politicianId: string,
+      startAfterId: string | null = null,
+      limitSize: number = 5,
+      sortType: "latest" | "replies" | "support" | "oppose" = "latest"
+    ) => {
       try {
-        setIsLoadingComments(true);
-        setCommentError(null);
+        // 初回取得の場合はローディング状態を設定
+        if (!startAfterId) {
+          setIsLoadingComments(true);
+          setCommentError(null);
+          setIsFetchingFirstBatch(true);
 
-        const fetchedComments = await fetchCommentsByPoliticianId(politicianId);
-        setComments(fetchedComments);
+          // 初回読み込みのためにリセット
+          setLastCommentId(null);
+          setHasMoreComments(true);
 
-        console.log(`${fetchedComments.length}件のコメントを取得しました`);
-        console.log(fetchedComments);
+          // 現在のpoliticianIdを保存
+          currentPoliticianIdRef.current = politicianId;
+        }
+
+        const { fetchedComments, lastDocId, hasMore } =
+          await fetchCommentsByPoliticianId(
+            politicianId,
+            startAfterId,
+            limitSize,
+            sortType
+          );
+
+        if (!startAfterId) {
+          // 初回読み込みの場合は置き換え
+          setComments(fetchedComments);
+        } else {
+          // 追加読み込みの場合は追加
+          setComments((prev) => [...prev, ...fetchedComments]);
+        }
+
+        setLastCommentId(lastDocId);
+        setHasMoreComments(hasMore);
+
+        console.log(
+          `${fetchedComments.length}件のコメントを取得しました (ソート: ${sortType})`
+        );
+        if (fetchedComments.length > 0) {
+          console.log(fetchedComments);
+        }
       } catch (error) {
         console.error("コメントの取得中にエラーが発生しました:", error);
         setCommentError("コメントの取得に失敗しました");
       } finally {
-        setIsLoadingComments(false);
+        if (!startAfterId) {
+          setIsLoadingComments(false);
+          setIsFetchingFirstBatch(false);
+        }
       }
     },
     []
+  );
+
+  // 追加する関数: 次のコメントバッチを読み込む（ソートタイプを考慮）
+  const loadMoreComments = useCallback(
+    async (
+      sortType: "latest" | "replies" | "support" | "oppose" = "latest"
+    ) => {
+      // 現在のpoliticianIdを取得
+      const politicianId = currentPoliticianIdRef.current;
+
+      if (
+        !politicianId ||
+        !lastCommentId ||
+        !hasMoreComments ||
+        isLoadingMoreComments ||
+        isFetchingFirstBatch
+      ) {
+        return;
+      }
+
+      try {
+        setIsLoadingMoreComments(true);
+
+        await fetchCommentsByPolitician(
+          politicianId,
+          lastCommentId,
+          10,
+          sortType
+        );
+
+        console.log(`追加でコメントを取得しました (ソート: ${sortType})`);
+      } catch (error) {
+        console.error("追加コメントの取得中にエラーが発生しました:", error);
+      } finally {
+        setIsLoadingMoreComments(false);
+      }
+    },
+    [
+      fetchCommentsByPolitician,
+      lastCommentId,
+      hasMoreComments,
+      isLoadingMoreComments,
+      isFetchingFirstBatch,
+    ]
   );
 
   // Refresh comments for a politician - only use when absolutely necessary
@@ -289,6 +392,8 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
         isLoadingComments,
         commentError,
         newCommentId,
+        hasMoreComments,
+        isLoadingMoreComments,
         fetchCommentsByPolitician,
         addReply,
         refreshComments,
@@ -298,6 +403,7 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
         clearNewCommentId,
         likeComment,
         hasUserLikedComment,
+        loadMoreComments,
       }}
     >
       {children}

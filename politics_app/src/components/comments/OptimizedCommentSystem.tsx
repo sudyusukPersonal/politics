@@ -133,6 +133,7 @@ const getReplyReference = (reply: any) => {
 // ===== メインコメントセクションコンポーネント =====
 // src/components/comments/OptimizedCommentSystem.tsx の一部
 /////
+
 export const CommentSection: React.FC<{
   entityId?: string;
   entityType?: "politician" | "policy" | "party";
@@ -146,17 +147,70 @@ export const CommentSection: React.FC<{
     commentError,
     fetchCommentsByPolitician,
     newCommentId,
+    hasMoreComments,
+    isLoadingMoreComments,
+    loadMoreComments,
   } = useReplyData();
 
   // ソート状態
   const [sortType, setSortType] = useState<SortType>("latest");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
+  const currentSortTypeRef = useRef<SortType>("latest");
 
-  // データ読み込み
+  // データ読み込み - 初回読み込み
   useEffect(() => {
-    targetId && fetchCommentsByPolitician(targetId);
+    if (targetId) {
+      // 初回はデフォルトの「新着順」でコメントを取得
+      fetchCommentsByPolitician(targetId, null, 5, "latest");
+    }
   }, [targetId, fetchCommentsByPolitician]);
+
+  // ソートタイプが変更されたときのデータ再取得
+  useEffect(() => {
+    if (targetId && currentSortTypeRef.current !== sortType) {
+      // ソートタイプが変更されたら、新しいソートで再取得
+      fetchCommentsByPolitician(targetId, null, 5, sortType);
+      currentSortTypeRef.current = sortType;
+    }
+  }, [targetId, sortType, fetchCommentsByPolitician]);
+
+  // loadMoreComments関数を拡張して現在のソートタイプを使用
+  const handleLoadMoreComments = useCallback(() => {
+    loadMoreComments(sortType);
+  }, [loadMoreComments, sortType]);
+
+  // 無限スクロールのインターセクションオブザーバー設定
+  useEffect(() => {
+    if (!hasMoreComments || isLoadingMoreComments || isLoadingComments) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          handleLoadMoreComments();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    const currentTrigger = loadMoreTriggerRef.current;
+    if (currentTrigger) {
+      observer.observe(currentTrigger);
+    }
+
+    return () => {
+      if (currentTrigger) {
+        observer.unobserve(currentTrigger);
+      }
+    };
+  }, [
+    hasMoreComments,
+    isLoadingMoreComments,
+    isLoadingComments,
+    handleLoadMoreComments,
+  ]);
 
   // ドロップダウン外クリック検出
   useEffect(() => {
@@ -172,38 +226,11 @@ export const CommentSection: React.FC<{
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ソートされたコメントリスト
-  const sortedComments = useMemo(() => {
-    if (!comments.length) return [];
-
-    switch (sortType) {
-      case "latest":
-        return [...comments].sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      case "replies":
-        return [...comments].sort((a, b) => b.repliesCount - a.repliesCount);
-      case "support":
-        return [...comments].sort((a, b) => {
-          if (a.type === "support" && b.type !== "support") return -1;
-          if (a.type !== "support" && b.type === "support") return 1;
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        });
-      case "oppose":
-        return [...comments].sort((a, b) => {
-          if (a.type === "oppose" && b.type !== "oppose") return -1;
-          if (a.type !== "oppose" && b.type === "oppose") return 1;
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        });
-      default:
-        return [...comments];
-    }
-  }, [comments, sortType]);
+  // クリックでソートオプションを変更
+  const handleSortChange = (type: SortType) => {
+    setSortType(type);
+    setShowSortDropdown(false);
+  };
 
   // コメントサマリーのレンダリング
   const renderCommentSummary = () => {
@@ -243,10 +270,7 @@ export const CommentSection: React.FC<{
                   (type) => (
                     <button
                       key={type}
-                      onClick={() => {
-                        setSortType(type);
-                        setShowSortDropdown(false);
-                      }}
+                      onClick={() => handleSortChange(type)}
                       className={STYLES.button.sort(sortType === type)}
                     >
                       <span
@@ -314,7 +338,7 @@ export const CommentSection: React.FC<{
       <InlineAdBanner format="rectangle" showCloseButton={true} />
       {renderCommentSummary()}
       <div className="space-y-2">
-        {sortedComments.map((comment) => (
+        {comments.map((comment) => (
           <CommentItem
             key={comment.id}
             comment={comment}
@@ -324,9 +348,43 @@ export const CommentSection: React.FC<{
         ))}
 
         {/* コメントがない場合の表示 */}
-        {comments.length === 0 && (
+        {comments.length === 0 && !isLoadingComments && (
           <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
             まだコメントはありません。最初のコメントを投稿してみましょう。
+          </div>
+        )}
+
+        {/* 無限スクロールトリガーと読み込み状態 */}
+        {hasMoreComments && comments.length > 0 && (
+          <div ref={loadMoreTriggerRef} className="py-4 text-center">
+            {isLoadingMoreComments ? (
+              <div className="flex justify-center items-center space-x-2">
+                <div className="animate-pulse flex space-x-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-2 w-2 bg-indigo-500 rounded-full"
+                    ></div>
+                  ))}
+                </div>
+                <span className="text-sm text-gray-500">
+                  コメントを読み込み中...
+                </span>
+              </div>
+            ) : (
+              <button
+                onClick={handleLoadMoreComments}
+                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+              >
+                もっと見る
+              </button>
+            )}
+          </div>
+        )}
+
+        {!hasMoreComments && comments.length > 0 && (
+          <div className="py-4 text-center text-sm text-gray-500">
+            すべてのコメントを表示しました
           </div>
         )}
       </div>
@@ -334,7 +392,7 @@ export const CommentSection: React.FC<{
   );
 };
 
-// ===== 統合コメントアイテムコンポーネント =====
+// ===== 統合コメントアイテムコンポーネント =====　　変更前
 interface CommentItemProps {
   comment: Comment;
   type: "support" | "oppose";
