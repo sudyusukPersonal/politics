@@ -21,6 +21,11 @@ import { Comment, Reply } from "../../types";
 import { useReplyData } from "../../context/ReplyDataContext";
 import { useData } from "../../context/DataContext";
 import InlineAdBanner from "../ads/InlineAdBanner";
+import ReportModal from "./ReportModal"; // 追加
+import {
+  saveReportToSessionStorage,
+  isReported,
+} from "../../utils/voteStorage";
 
 // ===== 共通ユーティリティと定数 =====
 // 匿名ユーザー情報
@@ -338,14 +343,17 @@ export const CommentSection: React.FC<{
       <InlineAdBanner format="rectangle" showCloseButton={true} />
       {renderCommentSummary()}
       <div className="space-y-2">
-        {comments.map((comment) => (
-          <CommentItem
-            key={comment.id}
-            comment={comment}
-            type={comment.type}
-            isNew={newCommentId === comment.id}
-          />
-        ))}
+        {comments.map(
+          (comment) =>
+            !isReported(comment.id) && (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                type={comment.type}
+                isNew={newCommentId === comment.id}
+              />
+            )
+        )}
 
         {/* コメントがない場合の表示 */}
         {comments.length === 0 && !isLoadingComments && (
@@ -411,6 +419,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const [isRepliesExpanded, setIsRepliesExpanded] = useState(false);
   const [isReplyFormVisible, setIsReplyFormVisible] = useState(false);
   const [highlighted, setHighlighted] = useState(isNew);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const {
     comments,
@@ -427,6 +436,23 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     isReply ? parentComment?.id || "" : comment.id,
     isReply ? comment.id : undefined
   );
+
+  const handleReportClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setIsReportModalOpen(true);
+  };
+
+  // 通報を確定する
+  const handleReportConfirm = () => {
+    // 通報対象のID
+    const targetId = isReply ? comment.id : comment.id;
+
+    // セッションストレージに保存
+    saveReportToSessionStorage(targetId);
+
+    // コンソールに確認のログを出力（開発用）
+    console.log(`通報されたID: ${targetId}`, comment);
+  };
 
   // ハイライト効果
   useEffect(() => {
@@ -501,7 +527,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               <ThumbsUp size={isReply ? 10 : 12} className="mr-1" />
               <span>{comment.likes}</span>
             </button>
-            <button className={""} onClick={() => alert("通報しました")}>
+            <button className={""} onClick={handleReportClick}>
               <span>通報</span>
             </button>
 
@@ -552,17 +578,27 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       {/* 返信一覧 - 展開時のみ表示 */}
       {!isReply && isRepliesExpanded && comment.replies?.length > 0 && (
         <div className={STYLES.container.replyList}>
-          {comment.replies.map((reply) => (
-            <CommentItem
-              key={reply.id}
-              comment={reply as unknown as Comment}
-              type={type}
-              isReply={true}
-              parentComment={comment}
-            />
-          ))}
+          {comment.replies.map(
+            (reply) =>
+              !isReported(reply.id) && (
+                <CommentItem
+                  key={reply.id}
+                  comment={reply as unknown as Comment}
+                  type={type}
+                  isReply={true}
+                  parentComment={comment}
+                />
+              )
+          )}
         </div>
       )}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        onConfirm={handleReportConfirm}
+        commentId={comment.id}
+        isReply={isReply}
+      />
     </div>
   );
 };
