@@ -10,6 +10,7 @@ import HomeScreen from "../home/HomeScreen";
 import PolicyDiscussionPage from "../policies/PolicyDetail";
 import PolicyListingPage from "../policies/PolicyListingPage";
 import PrivacyPolicyPage from "../privacy/PrivacyPolicyPage";
+import Home from "../home/Home";
 
 const AppContent: React.FC = () => {
   return (
@@ -25,7 +26,7 @@ const AppContent: React.FC = () => {
         <div className="mx-auto sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full">
           <Routes>
             <Route path="*" element={<Navigate to="/" replace />} />
-            <Route path="/" element={<HomeScreen />} />
+            <Route path="/" element={<Home />} />
             <Route path="/politicians" element={<AllPoliticiansList />} />
             <Route path="/politicians/:id" element={<PoliticianDetail />} />
             <Route

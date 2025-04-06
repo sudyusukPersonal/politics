@@ -5,6 +5,7 @@ import { Politician } from "../../types";
 import { useData } from "../../context/DataContext";
 import TrendIcon from "../common/TrendIcon";
 import { hasVoted } from "../../utils/voteStorage"; // 投票済みかどうかを確認する関数をインポート
+import { getPartyColor } from "../../utils/dataUtils";
 
 interface PoliticianCardProps {
   politician: Politician;
@@ -30,11 +31,16 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
             src={`/cm_images/${encodeURIComponent(politician.name)}.jpg`}
             alt={politician.name}
             className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 transform transition hover:scale-105"
-            style={{ borderColor: politician.party.color }}
+            style={{
+              borderColor: getPartyColor(politician.party.name) || "#cccccc",
+            }}
           />
           <div
             className="absolute bottom-0 right-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs text-white font-bold shadow-lg"
-            style={{ backgroundColor: politician.party.color }}
+            style={{
+              backgroundColor:
+                getPartyColor(politician.party.name) || "#cccccc",
+            }}
           >
             {politician.party.name.charAt(0)}
           </div>
