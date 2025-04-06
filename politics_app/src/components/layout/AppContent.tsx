@@ -6,11 +6,11 @@ import MobileMenu from "./MobileMenu";
 import PoliticianDetail from "../politicians/PoliticianDetail";
 import PartyDetail from "../parties/PartyDetail";
 import AllPoliticiansList from "../politicians/AllPoliticiansList";
-import HomeScreen from "../home/HomeScreen";
 import PolicyDiscussionPage from "../policies/PolicyDetail";
 import PolicyListingPage from "../policies/PolicyListingPage";
 import PrivacyPolicyPage from "../privacy/PrivacyPolicyPage";
 import Home from "../home/Home";
+import PartiesTab from "../home/PartiesTab";
 
 const AppContent: React.FC = () => {
   return (
@@ -29,10 +29,7 @@ const AppContent: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/politicians" element={<AllPoliticiansList />} />
             <Route path="/politicians/:id" element={<PoliticianDetail />} />
-            <Route
-              path="/parties"
-              element={<HomeScreen initialTab="parties" />}
-            />
+            <Route path="/parties" element={<PartiesTab />} />
             <Route path="/parties/:id" element={<PartyDetail />} />
             <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
             <Route path="/policy" element={<PolicyListingPage />} />
