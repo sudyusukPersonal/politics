@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // 追加: ナビゲーション用
 import PoliticiansTab from "./PoliticiansTab";
 import {
   FileText,
@@ -12,6 +13,7 @@ import {
 
 const Home = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const navigate = useNavigate(); // 追加: useNavigate フックを使用
 
   useEffect(() => {
     setTimeout(() => setIsVisible(true), 100);
@@ -61,27 +63,27 @@ const Home = () => {
                   <StatCard
                     icon={<Users size={14} className="text-blue-500" />}
                     label="政治家数"
-                    value="12,840"
+                    value="679"
                   />
 
                   <StatCard
                     icon={<ThumbsUp size={14} className="text-green-500" />}
                     label="政策数"
-                    value="47,129"
+                    value="168"
                   />
 
                   <StatCard
                     icon={
                       <MessageSquare size={14} className="text-purple-500" />
                     }
-                    label="投票数"
-                    value="8,375"
+                    label="政党数"
+                    value="10"
                   />
                 </div>
               </div>
             </div>
 
-            {/* ナビゲーションカード - 上下パディングのみ削減、レイアウト修正 */}
+            {/* ナビゲーションカード - リンク機能を追加 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <NavCardWithAnimation
                 icon={<Users size={20} />}
@@ -89,6 +91,8 @@ const Home = () => {
                 description="議員の活動と評価を確認"
                 color="#4361EE"
                 index={0}
+                path="/politicians" // 追加: 遷移先パス
+                navigate={navigate} // 追加: navigate関数を渡す
               />
 
               <NavCardWithAnimation
@@ -97,6 +101,8 @@ const Home = () => {
                 description="政党の政策と支持率をチェック"
                 color="#7209B7"
                 index={1}
+                path="/parties" // 追加: 遷移先パス
+                navigate={navigate} // 追加: navigate関数を渡す
               />
 
               <NavCardWithAnimation
@@ -105,6 +111,8 @@ const Home = () => {
                 description="政策への評価と議論に参加"
                 color="#228B22"
                 index={2}
+                path="/policy" // 追加: 遷移先パス
+                navigate={navigate} // 追加: navigate関数を渡す
               />
             </div>
 
@@ -173,13 +181,15 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value }) => (
   </div>
 );
 
-// ナビゲーションカード - 修正済みレイアウト
+// ナビゲーションカード - ナビゲーション機能を追加
 interface NavCardWithAnimationProps {
   icon: React.ReactNode;
   title: string;
   description: string;
   color: string;
   index: number;
+  path: string; // 追加: 遷移先パス
+  navigate: (path: string) => void; // 追加: ナビゲーション関数
 }
 
 const NavCardWithAnimation = ({
@@ -188,6 +198,8 @@ const NavCardWithAnimation = ({
   description,
   color,
   index,
+  path, // 追加: 遷移先パス
+  navigate, // 追加: ナビゲーション関数
 }: NavCardWithAnimationProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -200,6 +212,12 @@ const NavCardWithAnimation = ({
     return () => clearTimeout(timeout);
   }, [index]);
 
+  // 追加: ページ遷移処理関数
+  const handleClick = () => {
+    navigate(path);
+    window.scrollTo(0, 0); // ページトップにスクロール
+  };
+
   return (
     <div
       className={`group relative overflow-hidden rounded-lg bg-white shadow-sm cursor-pointer border border-gray-100 link-card-animation`}
@@ -209,6 +227,7 @@ const NavCardWithAnimation = ({
         transform: isVisible ? "translateY(0)" : "translateY(15px)",
         transition: "opacity 0.5s ease, transform 0.5s ease",
       }}
+      onClick={handleClick} // 追加: クリックイベントハンドラー
     >
       <div
         className="absolute top-0 left-0 h-1 w-full"
