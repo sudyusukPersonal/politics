@@ -501,6 +501,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               <ThumbsUp size={isReply ? 10 : 12} className="mr-1" />
               <span>{comment.likes}</span>
             </button>
+            <button className={""} onClick={() => alert("通報しました")}>
+              <span>通報</span>
+            </button>
 
             <button className={STYLES.button.reply} onClick={openReplyForm}>
               返信
