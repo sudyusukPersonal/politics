@@ -18,6 +18,7 @@ import LoadingAnimation from "../common/LoadingAnimation";
 import { Party } from "../../types";
 import { fetchAllParties } from "../../services/partyService";
 import { useNavigate } from "react-router-dom";
+import { hasVoted } from "../../utils/voteStorage";
 
 // ソートオプションの型定義
 type SortOption = "supportDesc" | "supportAsc" | "commentsDesc";
@@ -346,11 +347,32 @@ const PartiesTab: React.FC = () => {
 
                   {/* 右側：政党情報 */}
                   <div className="flex-grow">
-                    {/* 政党名と矢印アイコン */}
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-bold text-base text-gray-800 truncate">
-                        {party.name}
-                      </h3>
+                    {/* 政党名と投票ボタンを配置。投票ボタンをセンターラインに合わせる */}
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <h3 className="font-bold text-base text-gray-800 truncate">
+                          {party.name}
+                        </h3>
+                        {!hasVoted(party.id) && (
+                          <span className="mt-1 sm:mt-0 sm:ml-2 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium animate-pulse flex items-center">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-1"
+                            >
+                              <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z"></path>
+                            </svg>
+                            投票する
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center">
                         <div
                           className="px-2 py-0.5 rounded-full text-xs flex items-center"

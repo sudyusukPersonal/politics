@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 import { Party } from "../types";
-import { getPartyColor } from "./politicianService";
+import { getPartyColor } from "../utils/dataUtils"; // getPartyColor関数をインポート
 
 // 既存のコード...
 
@@ -58,11 +58,13 @@ export const addVoteToParty = async (
       const newOpposeCount =
         voteType === "oppose" ? currentOpposeCount + 1 : currentOpposeCount;
       const newTotalVotes = newSupportCount + newOpposeCount;
+      console.log("11111", updateData.supportRate);
 
       // 支持率を計算して更新データに追加
       updateData.supportRate = Math.round(
         (newSupportCount / newTotalVotes) * 100
       );
+      console.log("222222", updateData.supportRate);
 
       // トランザクション内で更新を実行
       transaction.update(partyRef, updateData);
@@ -113,12 +115,18 @@ export const fetchAllParties = async (): Promise<Party[]> => {
     const parties = partiesSnapshot.docs.map((doc) => {
       const data = doc.data();
 
+      const supportRate =
+        data.supportRate ||
+        (data.totalVotes > 0
+          ? Math.round(((data.supportCount || 0) / data.totalVotes) * 100)
+          : 50); // デフォルト値を50に設定
+
       return {
         id: doc.id,
         name: data.name,
         color: getPartyColor(data.name),
-        supportRate: data.supportRate || 50,
-        opposeRate: 100 - data.supportRate || 50,
+        supportRate: supportRate,
+        opposeRate: 100 - supportRate,
         totalVotes: data.totalVotes || 0,
         members: parseInt(data.politicians_count) || 0,
         keyPolicies: data.majorPolicies || [],
@@ -162,13 +170,19 @@ export const fetchPartyById = async (
     // ドキュメントデータを取得
     const data = partySnap.data();
 
+    const supportRate =
+      data.supportRate ||
+      (data.totalVotes > 0
+        ? Math.round(((data.supportCount || 0) / data.totalVotes) * 100)
+        : 50); // デフォルト値を50に設定
+
     // 政党オブジェクトを構築して返す
     return {
       id: partyId,
       name: data.name,
       color: getPartyColor(data.name),
-      supportRate: data.supportRate || 50,
-      opposeRate: 100 - data.supportRate || 50,
+      supportRate: supportRate,
+      opposeRate: 100 - supportRate,
       totalVotes: data.totalVotes || 0,
       members: parseInt(data.politicians_count) || 0,
       keyPolicies: data.majorPolicies || [],

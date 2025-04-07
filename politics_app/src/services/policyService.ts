@@ -16,7 +16,7 @@ import {
   runTransaction,
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
-import { getPartyColor } from "./politicianService";
+import { getPartyColor } from "../utils/dataUtils"; // 政党の色を取得する関数をインポート
 
 // 政策データの型定義
 export interface Policy {

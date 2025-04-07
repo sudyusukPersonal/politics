@@ -29,6 +29,8 @@ export const getPartyColor = (affiliation: string): string => {
       return "#118AB2"; // 青緑
     case "参政党":
       return "#FF4500"; // 黄色
+    case "日本保守党":
+      return "#00BFFF"; // 黄色
     default:
       return "#808080"; // グレー
   }
@@ -54,6 +56,8 @@ export const getPartyID = (affiliation: string): string => {
       return "GThYfAHQTQjWsiyX9w9I"; // 青緑
     case "参政党":
       return "F4PhicYTj6U6YcFiNyYB"; // 黄色
+    case "日本保守党":
+      return "wPNEWyTnmbkz0ni7AIOa"; // 黄色
     default:
       return "#808080"; // グレー
   }
