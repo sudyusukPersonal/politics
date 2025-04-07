@@ -11,6 +11,8 @@ import PolicyListingPage from "../policies/PolicyListingPage";
 import PrivacyPolicyPage from "../privacy/PrivacyPolicyPage";
 import Home from "../home/Home";
 import PartiesTab from "../home/PartiesTab";
+import PolicyInfoComponent from "../policies/PolicyInfoComponent";
+import ForPoliticalPartiesPage from "../policies/ForPoliticalPartiesPage";
 
 const AppContent: React.FC = () => {
   return (
@@ -34,6 +36,8 @@ const AppContent: React.FC = () => {
             <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
             <Route path="/policy" element={<PolicyListingPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/partyinfo" element={<ForPoliticalPartiesPage />} />
+            <Route path="/policyinfo" element={<PolicyInfoComponent />} />
           </Routes>
         </div>
       </main>

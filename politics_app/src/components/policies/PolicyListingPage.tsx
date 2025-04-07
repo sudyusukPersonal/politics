@@ -912,7 +912,7 @@ const PolicyListingPage = () => {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400 via-transparent to-transparent opacity-20"></div>
         </div>
 
-        <div className="container mx-auto px-4 py-4 relative z-10 flex flex-col md:flex-row items-center justify-between">
+        <div className="container mx-auto px-4 py-3 relative z-10 flex flex-col md:flex-row items-center justify-between">
           <div className="mb-4 md:mb-0 text-center md:text-left">
             <h3 className="text-base font-bold mb-1 inline-flex items-center">
               <div className="mr-2 p-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded">
@@ -920,45 +920,31 @@ const PolicyListingPage = () => {
               </div>
               政策について
             </h3>
-            <p className="text-sm md:text-base opacity-80">
-              政策は中立を期す為、各政党の公式HPに掲載されている情報を解析しAIが要約しています。
+            <p className="text-sm md:text-base opacity-80 mb-3">
+              政策は中立の立場を保ち、公平な紹介を心掛けています
             </p>
-            {/* <p className="text-sm md:text-base">
-              各政党様は自党の政策を編集、追加出来ます。
-            </p>
-            <button>詳しくはこちら</button> */}
+
+            <div className="flex flex-row justify-around space-x-3 mt-2 w-full sm:w-auto">
+              <button
+                className="inline-flex items-center px-2 py-2 rounded-full text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r from-indigo-600/30 to-indigo-500/90 hover:from-indigo-500 hover:to-indigo-400 shadow-md hover:shadow-lg border border-indigo-300/30"
+                onClick={() => navigate("/policyinfo")}
+              >
+                <Activity size={16} className="mr-2" />
+                詳しくはこちら
+                <ChevronRight size={16} className="ml-1" />
+              </button>
+
+              <button
+                className="inline-flex items-center px-2 py-2 rounded-full text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r from-purple-600/30 to-purple-500/90 hover:from-purple-500 hover:to-purple-400 shadow-md hover:shadow-lg border border-purple-300/30"
+                onClick={() => navigate("/partyinfo")}
+              >
+                <Building size={16} className="mr-2" />
+                政党の皆様へ
+                <ChevronRight size={16} className="ml-1" />
+              </button>
+            </div>
           </div>
         </div>
-        {/* <form
-            onSubmit={handleSearchSubmit}
-            className="relative w-full md:w-auto md:max-w-md"
-          >
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className={STYLES.search(search.fired).icon} />
-            </div>
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder={
-                filters.party === "all"
-                  ? "全ての政策を検索..."
-                  : `${selectedParty.name}の政策を検索...`
-              }
-              className={STYLES.search(search.fired).input}
-              value={search.tempQuery}
-              onChange={handleSearchChange}
-            />
-            <button
-              type="submit"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white opacity-70 hover:opacity-100 transition-opacity"
-              aria-label="検索"
-            >
-              <ChevronRight
-                size={18}
-                className={STYLES.search(search.fired).button}
-              />
-            </button>
-          </form> */}
       </div>
 
       {/* Main content */}
