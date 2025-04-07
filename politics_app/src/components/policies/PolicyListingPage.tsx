@@ -376,6 +376,7 @@ const PolicyListingPage = () => {
         { id: "れいわ新選組", name: "れいわ新選組", color: "#F72585" },
         { id: "社民党", name: "社民党", color: "#118AB2" },
         { id: "参政党", name: "参政党", color: "#FF4500" },
+        { id: "日本保守党", name: "日本保守党", color: "#00BFFF" },
       ];
 
       setState((prev) => ({
@@ -1010,17 +1011,6 @@ const PolicyListingPage = () => {
               </div>
             )}
         </div>
-      </div>
-
-      {/* Back to top button */}
-      <div className="fixed bottom-6 right-6">
-        <button
-          className="w-12 h-12 bg-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-indigo-700 transition-colors"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label="ページトップへ戻る"
-        >
-          <TrendingUp size={20} />
-        </button>
       </div>
 
       {/* Animations */}

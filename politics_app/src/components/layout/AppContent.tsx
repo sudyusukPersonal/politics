@@ -13,6 +13,7 @@ import Home from "../home/Home";
 import PartiesTab from "../home/PartiesTab";
 import PolicyInfoComponent from "../policies/PolicyInfoComponent";
 import ForPoliticalPartiesPage from "../policies/ForPoliticalPartiesPage";
+import ScrollToTopButton from "../common/ScrollToTopButton"; // 新しく作成したコンポーネントをインポート
 
 const AppContent: React.FC = () => {
   return (
@@ -41,6 +42,7 @@ const AppContent: React.FC = () => {
           </Routes>
         </div>
       </main>
+      <ScrollToTopButton />
 
       {/* CSS animations */}
       <style>{`
