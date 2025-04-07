@@ -912,19 +912,19 @@ const PolicyListingPage = () => {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400 via-transparent to-transparent opacity-20"></div>
         </div>
 
-        <div className="container mx-auto px-4 py-3 relative z-10 flex flex-col md:flex-row items-center justify-between">
-          <div className="mb-4 md:mb-0 text-center md:text-left">
+        <div className="container mx-auto px-4 pt-3 pb-5 relative z-10 flex flex-col md:flex-row items-center justify-between">
+          <div className="text-center md:text-left">
             <h3 className="text-base font-bold mb-1 inline-flex items-center">
               <div className="mr-2 p-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded">
                 <AlertCircle size={14} className="text-white" />
               </div>
               政策について
             </h3>
-            <p className="text-sm md:text-base opacity-80 mb-3">
+            <p className="text-sm md:text-base opacity-80 mb-2">
               政策は中立の立場を保ち、公平な紹介を心掛けています
             </p>
 
-            <div className="flex flex-row justify-around space-x-3 mt-2 w-full sm:w-auto">
+            <div className="flex flex-row justify-around space-x-3 mt-1 w-full sm:w-auto">
               <button
                 className="inline-flex items-center px-2 py-2 rounded-full text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r from-indigo-600/30 to-indigo-500/90 hover:from-indigo-500 hover:to-indigo-400 shadow-md hover:shadow-lg border border-indigo-300/30"
                 onClick={() => navigate("/policyinfo")}
