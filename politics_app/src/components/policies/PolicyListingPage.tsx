@@ -321,7 +321,6 @@ const PolicyListingPage = () => {
         docId,
         6
       );
-      console.log("Policies loaded:", result.policies);
       const updatedPolicies = refresh
         ? result.policies
         : [

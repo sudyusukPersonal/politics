@@ -164,7 +164,6 @@ export const fetchPolicyById = async (
   try {
     const policyRef = doc(db, "policy", policyId);
     const policySnap = await getDoc(policyRef);
-    console.log("Fetched Policy:", policySnap.data());
 
     if (policySnap.exists()) {
       return convertToPolicyObject(policyId, policySnap.data());

@@ -329,7 +329,6 @@ const convertToPolitician = async (
       imageUrl = data.imageUrl || "/api/placeholder/80/80";
     }
   }
-  console.log("trend", data.trend);
   return {
     id,
     name: data.name || "",
@@ -382,12 +381,6 @@ export const fetchPoliticiansWithFilterAndSort = async (
   hasMore: boolean;
 }> => {
   try {
-    console.log(
-      `Fetching politicians: party=${partyFilter}, sort=${sortMethod}, lastDocId=${
-        lastDocumentId || "none"
-      }`
-    );
-
     const politiciansRef = collection(db, "politicians");
     let q;
 
@@ -419,10 +412,6 @@ export const fetchPoliticiansWithFilterAndSort = async (
 
     // Apply party filter if not "all"
     if (partyFilter !== "all") {
-      console.log(
-        `Filtering by party: "${partyFilter}" and sorting by ${orderByField} ${orderDirection}`
-      );
-
       if (!lastDocumentId) {
         // First page with party filter
         q = query(
@@ -444,9 +433,6 @@ export const fetchPoliticiansWithFilterAndSort = async (
       }
     } else {
       // No party filter, just sort
-      console.log(
-        `Sorting all politicians by ${orderByField} ${orderDirection}`
-      );
 
       if (!lastDocumentId) {
         // First page without party filter
@@ -468,9 +454,7 @@ export const fetchPoliticiansWithFilterAndSort = async (
     }
 
     // Execute query
-    console.log("Executing Firestore query");
     const querySnapshot = await getDocs(q);
-    console.log(`Query returned ${querySnapshot.docs.length} documents`);
 
     // Map documents to politician objects - Process them in parallel for efficiency
     const politiciansPromises = querySnapshot.docs.map(async (doc) => {

@@ -66,51 +66,16 @@ const AllPoliticiansList: React.FC = () => {
     APP_STATE.scrollPosition = window.scrollY;
     APP_STATE.sort = sort;
     APP_STATE.party = party;
-
-    // APP_STATEの状態をテーブル形式でログ出力
-    console.table({
-      データ件数: APP_STATE.politicians.length,
-      スクロール位置: APP_STATE.scrollPosition,
-      ドキュメントID: APP_STATE.lastDocumentId,
-      続きあり: APP_STATE.hasMore,
-      ソート条件: APP_STATE.sort,
-      政党フィルター: APP_STATE.party,
-    });
-
-    // 政治家データの最初の数件をテーブル形式で出力
-    if (APP_STATE.politicians.length > 0) {
-      console.log("政治家データサンプル:");
-      console.table(
-        APP_STATE.politicians.slice(0, 3).map((p) => ({
-          id: p.id,
-          name: p.name,
-          party: p.party.name,
-          support: p.supportRate,
-        }))
-      );
-    }
   };
 
   // アプリケーション状態のリセット
   const resetAppState = () => {
-    console.log("APP_STATEをリセットします");
-
     APP_STATE.politicians = [];
     APP_STATE.lastDocumentId = undefined;
     APP_STATE.hasMore = true;
     APP_STATE.scrollPosition = 0;
     APP_STATE.sort = "";
     APP_STATE.party = "";
-
-    // リセット後の状態をログ出力
-    console.table({
-      データ件数: APP_STATE.politicians.length,
-      スクロール位置: APP_STATE.scrollPosition,
-      ドキュメントID: APP_STATE.lastDocumentId,
-      続きあり: APP_STATE.hasMore,
-      ソート条件: APP_STATE.sort,
-      政党フィルター: APP_STATE.party,
-    });
   };
 
   // Get display text for current filter
@@ -204,12 +169,6 @@ const AllPoliticiansList: React.FC = () => {
       // If refresh is true, reset everything
       const docId = refresh ? undefined : lastDocumentId;
 
-      console.log(
-        `Loading politicians. Page: ${page}, Sort: ${sort}, Party: ${party}, LastDocId: ${
-          docId || "none"
-        }`
-      );
-
       const result = await fetchPoliticiansWithFilterAndSort(
         party,
         sort,
@@ -253,8 +212,6 @@ const AllPoliticiansList: React.FC = () => {
         sort
       );
 
-      console.log(`Loaded ${result.politicians.length} politicians`);
-
       if (result.politicians.length === 0 && refresh) {
         console.log("No politicians found with current filters");
       }
@@ -290,21 +247,6 @@ const AllPoliticiansList: React.FC = () => {
   useEffect(() => {
     const params = getUrlParams();
 
-    // 現在のURL条件をログ出力
-    console.log("URLパラメータ:", params);
-
-    // アプリケーション状態をログ出力
-    console.table({
-      データ件数: APP_STATE.politicians.length,
-      スクロール位置: APP_STATE.scrollPosition,
-      ドキュメントID: APP_STATE.lastDocumentId,
-      続きあり: APP_STATE.hasMore,
-      ソート条件: APP_STATE.sort,
-      政党フィルター: APP_STATE.party,
-      URL一致:
-        APP_STATE.sort === params.sort && APP_STATE.party === params.party,
-    });
-
     // アプリケーション状態とURLパラメータが一致する場合のみ復元
     if (
       APP_STATE.politicians.length > 0 &&
@@ -327,7 +269,6 @@ const AllPoliticiansList: React.FC = () => {
       }, 100);
     } else {
       // 保存データがない、または条件が変わった場合は通常ロード
-      console.log("通常のデータロードを実行します");
       setAnimateItems(true);
       setCurrentSort(params.sort);
       setCurrentParty(params.party);
@@ -359,7 +300,6 @@ const AllPoliticiansList: React.FC = () => {
         !isLoading &&
         hasMore
       ) {
-        console.log("画面下部に到達: 追加データをロードします");
         loadMorePoliticians();
       }
     };
@@ -371,9 +311,6 @@ const AllPoliticiansList: React.FC = () => {
   // Watch for URL changes and reload data if needed
   useEffect(() => {
     const params = getUrlParams();
-    console.log(
-      `URL params changed: page=${params.page}, sort=${params.sort}, party=${params.party}`
-    );
 
     if (params.sort !== currentSort || params.party !== currentParty) {
       console.log("Filter parameters changed, reloading data");

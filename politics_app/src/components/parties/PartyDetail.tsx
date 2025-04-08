@@ -74,9 +74,6 @@ const PartyDetail: React.FC = () => {
 
         if (partyData) {
           setParty(partyData);
-          console.log("政党データを取得しました:", partyData);
-          const voteType = getVoteFromLocalStorage(partyData.id);
-          console.log(`政党ID ${id} の投票タイプ:`, voteType);
 
           // メインコンテンツ表示後に少し遅れてコメント表示
           setTimeout(() => {

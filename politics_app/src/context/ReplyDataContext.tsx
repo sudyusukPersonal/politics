@@ -138,13 +138,6 @@ export const ReplyDataProvider: React.FC<{ children: ReactNode }> = ({
 
         setLastCommentId(lastDocId);
         setHasMoreComments(hasMore);
-
-        console.log(
-          `${fetchedComments.length}件のコメントを取得しました (ソート: ${sortType})`
-        );
-        if (fetchedComments.length > 0) {
-          console.log(fetchedComments);
-        }
       } catch (error) {
         console.error("コメントの取得中にエラーが発生しました:", error);
         setCommentError("コメントの取得に失敗しました");

@@ -140,8 +140,6 @@ export const processPoliticiansData = (): Politician[] => {
       return politician;
     });
 
-  console.timeEnd("政治家データ処理時間");
-
   // 結果をキャッシュして今後の呼び出しで再利用できるようにする
   cachedPoliticians = politicians;
 
@@ -284,8 +282,6 @@ export const saveRecentlyViewedPolitician = (politician: {
       "recentlyViewedPoliticians",
       JSON.stringify(recentlyViewed)
     );
-
-    console.log("最近見た政治家を拡張情報付きで保存しました:", politician.name);
   } catch (error) {
     console.error("LocalStorageへの保存に失敗しました:", error);
   }

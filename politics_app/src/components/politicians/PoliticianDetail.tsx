@@ -52,10 +52,7 @@ const PoliticianDetail: React.FC = () => {
 
         if (politicianData) {
           setPolitician(politicianData);
-          // Update in DataContext so other components can access it
-          console.log("Selected politician:", politicianData);
-          const voteType = getVoteFromLocalStorage(politicianData.id);
-          console.log(`政治家ID ${politicianData.id} の投票タイプ:`, voteType);
+
           // 最近見た政治家リストに追加（positionフィールドを含める）
           saveRecentlyViewedPolitician({
             id: politicianData.id,

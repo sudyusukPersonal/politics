@@ -141,10 +141,6 @@ export const fetchCommentsByPoliticianId = async (
 
     // Execute the query
     const querySnapshot = await getDocs(q);
-    console.log(
-      "Fetched Comments:",
-      querySnapshot.docs.map((doc) => doc.data())
-    );
 
     // Convert documents to Comment type
     const comments: Comment[] = querySnapshot.docs.map((doc) => ({
