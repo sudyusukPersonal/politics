@@ -9,11 +9,13 @@ import AllPoliticiansList from "../politicians/AllPoliticiansList";
 import PolicyDiscussionPage from "../policies/PolicyDetail";
 import PolicyListingPage from "../policies/PolicyListingPage";
 import PrivacyPolicyPage from "../privacy/PrivacyPolicyPage";
+import ContactPage from "../privacy/ContactPage";
+import AboutPage from "../privacy/AboutPage"; // 新しくインポート
 import Home from "../home/Home";
 import PartiesTab from "../home/PartiesTab";
 import PolicyInfoComponent from "../policies/PolicyInfoComponent";
 import ForPoliticalPartiesPage from "../policies/ForPoliticalPartiesPage";
-import ScrollToTopButton from "../common/ScrollToTopButton"; // 新しく作成したコンポーネントをインポート
+import ScrollToTopButton from "../common/ScrollToTopButton";
 
 const AppContent: React.FC = () => {
   return (
@@ -37,6 +39,9 @@ const AppContent: React.FC = () => {
             <Route path="/policy/:id" element={<PolicyDiscussionPage />} />
             <Route path="/policy" element={<PolicyListingPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/about" element={<AboutPage />} />{" "}
+            {/* 新しいルートを追加 */}
             <Route path="/partyinfo" element={<ForPoliticalPartiesPage />} />
             <Route path="/policyinfo" element={<PolicyInfoComponent />} />
           </Routes>

@@ -10,6 +10,7 @@ import {
   FileText,
   Shield,
   MessageCircle,
+  Info,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 
@@ -80,24 +81,23 @@ const MobileMenu: React.FC = () => {
               </button>
             </li>
           </ul>
-
-          {/* お問い合わせリンクはフッターに移動したため、このセクションを削除 */}
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
           <div className="flex flex-col space-y-2">
-            {/* お問い合わせリンクをフッター部分に移動 */}
-            <a
-              href="https://docs.google.com/forms/d/1ZcgPtJWDM83K544yzeWrUjo7RHdk4AVVeoYnzprDlcM/edit"
-              target="_blank"
-              rel="noopener noreferrer"
+            {/* お問い合わせリンク */}
+            <button
+              onClick={() => {
+                navigate("/contact");
+                setMobileMenuOpen(false);
+              }}
               className="flex items-center justify-center text-sm font-medium text-gray-600 hover:text-green-600 transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
             >
               <MessageCircle size={16} className="mr-2 text-gray-500" />
               お問い合わせ
-            </a>
+            </button>
 
+            {/* プライバシーポリシーリンク */}
             <button
               onClick={() => {
                 navigate("/privacy-policy");
@@ -109,8 +109,19 @@ const MobileMenu: React.FC = () => {
               プライバシーポリシー
             </button>
 
+            <button
+              onClick={() => {
+                navigate("/about");
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-center text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
+            >
+              <Info size={16} className="mr-2 text-gray-500" />
+              このサイトについて
+            </button>
+
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-gray-500">© 2025 Politics Hub</span>
+              <span className="text-xs text-gray-500">2025 Politics Hub</span>
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
