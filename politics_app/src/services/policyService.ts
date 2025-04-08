@@ -157,35 +157,6 @@ export const fetchPoliciesByCategory = async (
   }
 };
 
-// 検索条件に基づいて政策を取得する関数
-export const searchPolicies = async (searchTerm: string): Promise<Policy[]> => {
-  try {
-    // Firestoreはフルテキスト検索に対応していないため、
-    // すべてのドキュメントを取得してクライアント側でフィルタリングする
-    const policiesRef = collection(db, "policy");
-    const querySnapshot = await getDocs(policiesRef);
-
-    const allPolicies = querySnapshot.docs.map((doc) =>
-      convertToPolicyObject(doc.id, doc.data())
-    );
-
-    // クライアント側で検索条件に基づいてフィルタリング
-    if (!searchTerm.trim()) {
-      return allPolicies;
-    }
-
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return allPolicies.filter(
-      (policy) =>
-        policy.title.toLowerCase().includes(lowerSearchTerm) ||
-        policy.description.toLowerCase().includes(lowerSearchTerm)
-    );
-  } catch (error) {
-    console.error("政策検索エラー:", error);
-    throw error;
-  }
-};
-
 // 政策の詳細を取得する関数
 export const fetchPolicyById = async (
   policyId: string
@@ -237,31 +208,6 @@ export const sortPolicies = (
       );
     default:
       return sortedPolicies;
-  }
-};
-
-// 利用可能なカテゴリをすべて取得する関数
-export const fetchAllCategories = async (): Promise<string[]> => {
-  try {
-    const policiesRef = collection(db, "policy");
-    const querySnapshot = await getDocs(policiesRef);
-
-    // すべての政策から一意なカテゴリのリストを作成
-    const categoriesSet = new Set<string>();
-
-    querySnapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      if (data.AffectedFields && Array.isArray(data.AffectedFields)) {
-        data.AffectedFields.forEach((field: string) => {
-          categoriesSet.add(field);
-        });
-      }
-    });
-
-    return Array.from(categoriesSet);
-  } catch (error) {
-    console.error("カテゴリ取得エラー:", error);
-    throw error;
   }
 };
 

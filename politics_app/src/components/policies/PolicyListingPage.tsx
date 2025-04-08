@@ -17,7 +17,7 @@ import {
   Building,
   Clock,
 } from "lucide-react";
-import { fetchAllCategories, Policy } from "../../services/policyService";
+import { Policy } from "../../services/policyService";
 import { fetchPoliciesWithFilterAndSort } from "../../services/policyService";
 import LoadingAnimation from "../common/LoadingAnimation";
 import { navigateToPolicy } from "../../utils/navigationUtils";
@@ -189,6 +189,66 @@ const PolicyListingPage = () => {
           color: "#6366F1",
           icon: <Activity size={14} />,
         },
+        {
+          id: "経済",
+          name: "経済",
+          color: "#06B6D4",
+          icon: <TrendingUp size={14} />,
+        },
+        {
+          id: "環境",
+          name: "環境",
+          color: "#10B981",
+          icon: <AlertCircle size={14} />,
+        },
+        {
+          id: "教育",
+          name: "教育",
+          color: "#F59E0B",
+          icon: <Users size={14} />,
+        },
+        {
+          id: "社会保障",
+          name: "社会保障",
+          color: "#8B5CF6",
+          icon: <Users size={14} />,
+        },
+        {
+          id: "安全保障",
+          name: "安全保障",
+          color: "#EF4444",
+          icon: <AlertCircle size={14} />,
+        },
+        {
+          id: "外交",
+          name: "外交",
+          color: "#3B82F6",
+          icon: <Users size={14} />,
+        },
+        {
+          id: "人権",
+          name: "人権",
+          color: "#EC4899",
+          icon: <Activity size={14} />,
+        },
+        {
+          id: "医療",
+          name: "医療",
+          color: "#14B8A6",
+          icon: <Users size={14} />,
+        },
+        {
+          id: "科学技術",
+          name: "科学技術",
+          color: "#3B82F6",
+          icon: <Activity size={14} />,
+        },
+        {
+          id: "地方創生",
+          name: "地方創生",
+          color: "#10B981",
+          icon: <Building size={14} />,
+        },
       ],
       parties: [{ id: "all", name: "すべての政党", color: "#6366F1" }],
     },
@@ -259,7 +319,7 @@ const PolicyListingPage = () => {
         sort,
         searchTerm,
         docId,
-        10
+        6
       );
       console.log("Policies loaded:", result.policies);
       const updatedPolicies = refresh
@@ -327,44 +387,8 @@ const PolicyListingPage = () => {
   };
 
   // Load categories and parties
-  const loadCategoriesAndParties = async () => {
+  const loadCategoriesAndParties = () => {
     try {
-      const allCategories = await fetchAllCategories();
-
-      // Category icon and color mappings
-      const categoryIconsAndColors: Record<
-        string,
-        { icon: JSX.Element; color: string }
-      > = {
-        経済: { icon: <TrendingUp size={14} />, color: "#06B6D4" },
-        環境: { icon: <AlertCircle size={14} />, color: "#10B981" },
-        教育: { icon: <Users size={14} />, color: "#F59E0B" },
-        社会保障: { icon: <Users size={14} />, color: "#8B5CF6" },
-        安全保障: { icon: <AlertCircle size={14} />, color: "#EF4444" },
-        外交: { icon: <Users size={14} />, color: "#3B82F6" },
-        人権: { icon: <Activity size={14} />, color: "#EC4899" },
-        医療: { icon: <Users size={14} />, color: "#14B8A6" },
-        科学技術: { icon: <Activity size={14} />, color: "#3B82F6" },
-        地方創生: { icon: <Building size={14} />, color: "#10B981" },
-      };
-
-      const formattedCategories = [
-        {
-          id: "all",
-          name: "すべて",
-          color: "#6366F1",
-          icon: <Activity size={14} />,
-        },
-        ...allCategories.map((category) => ({
-          id: category,
-          name: category,
-          color: categoryIconsAndColors[category]?.color || "#6B7280",
-          icon: categoryIconsAndColors[category]?.icon || (
-            <Activity size={14} />
-          ),
-        })),
-      ];
-
       // Party data
       const partyData = [
         { id: "all", name: "すべての政党", color: "#6366F1" },
@@ -382,7 +406,10 @@ const PolicyListingPage = () => {
 
       setState((prev) => ({
         ...prev,
-        master: { categories: formattedCategories, parties: partyData },
+        master: {
+          categories: prev.master.categories,
+          parties: partyData,
+        },
       }));
     } catch (error) {
       setState((prev) => ({
