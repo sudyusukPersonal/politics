@@ -440,16 +440,6 @@ const AllPoliticiansList: React.FC = () => {
                   <div style={animationStyle}>
                     <PoliticianCard politician={politician} index={index} />
                   </div>
-
-                  {/* Show ad after 3rd politician */}
-                  {index === 2 && (
-                    <div className="flex justify-center py-3 border-b border-gray-100">
-                      <InlineAdBanner
-                        format="rectangle"
-                        showCloseButton={true}
-                      />
-                    </div>
-                  )}
                 </React.Fragment>
               );
             })}

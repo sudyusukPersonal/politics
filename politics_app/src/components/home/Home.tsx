@@ -63,13 +63,13 @@ const Home = () => {
                   <StatCard
                     icon={<Users size={14} className="text-blue-500" />}
                     label="政治家数"
-                    value="679"
+                    value="682"
                   />
 
                   <StatCard
                     icon={<ThumbsUp size={14} className="text-green-500" />}
                     label="政策数"
-                    value="168"
+                    value="178"
                   />
 
                   <StatCard
