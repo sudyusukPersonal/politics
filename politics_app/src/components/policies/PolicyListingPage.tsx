@@ -931,7 +931,7 @@ const PolicyListingPage = () => {
               政策は中立の立場を保ち、公平な紹介を心掛けています
             </p>
 
-            <div className="flex flex-row justify-around space-x-3 mt-1 w-full sm:w-auto">
+            <div className="flex flex-row justify-around sm:justify-start space-x-3 mt-1 w-full sm:w-auto">
               <button
                 className="inline-flex items-center px-2 py-2 rounded-full text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r from-indigo-600/30 to-indigo-500/90 hover:from-indigo-500 hover:to-indigo-400 shadow-md hover:shadow-lg border border-indigo-300/30"
                 onClick={() => navigate("/policyinfo")}
@@ -941,14 +941,14 @@ const PolicyListingPage = () => {
                 <ChevronRight size={16} className="ml-1" />
               </button>
 
-              <button
+              {/* <button
                 className="inline-flex items-center px-2 py-2 rounded-full text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r from-purple-600/30 to-purple-500/90 hover:from-purple-500 hover:to-purple-400 shadow-md hover:shadow-lg border border-purple-300/30"
                 onClick={() => navigate("/partyinfo")}
               >
                 <Building size={16} className="mr-2" />
                 政党の皆様へ
                 <ChevronRight size={16} className="ml-1" />
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
