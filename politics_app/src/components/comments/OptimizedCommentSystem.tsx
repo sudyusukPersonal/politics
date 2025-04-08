@@ -54,6 +54,11 @@ const STYLES = {
         animation: highlight-pulse 2s 1;
         scroll-margin-top: 80px;
       }
+      
+      /* 返信参照ハイライト用 */
+      .highlighted-reply {
+        background-color: rgba(96, 165, 250, 0.2) !important;
+      }
     `,
   // ボタンスタイル
   button: {
@@ -86,7 +91,8 @@ const STYLES = {
           ? "bg-green-50 border-green-100 hover:shadow-md"
           : "bg-red-50 border-red-100 hover:shadow-md"
       }`,
-    reply: "rounded-lg px-3 py-2 border bg-white border-gray-200",
+    reply:
+      "rounded-lg px-3 py-2 border bg-white border-gray-200 cursor-pointer hover:bg-gray-50 transition-all",
     replyForm:
       "mt-3 p-3 bg-white rounded-lg border border-gray-200 animate-slideUp",
     replyList: (type: string) =>
@@ -139,9 +145,6 @@ const getReplyReference = (reply: any) => {
 };
 
 // ===== メインコメントセクションコンポーネント =====
-// src/components/comments/OptimizedCommentSystem.tsx の一部
-/////
-
 export const CommentSection: React.FC<{
   entityId?: string;
   entityType?: "politician" | "policy" | "party";
@@ -166,6 +169,11 @@ export const CommentSection: React.FC<{
   const dropdownRef = useRef<HTMLDivElement>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
   const currentSortTypeRef = useRef<SortType>("latest");
+
+  // 返信元ID参照用のstate - コメントの参照先をハイライト表示するために使用
+  const [highlightedSourceId, setHighlightedSourceId] = useState<string | null>(
+    null
+  );
 
   // データ読み込み - 初回読み込み
   useEffect(() => {
@@ -354,6 +362,8 @@ export const CommentSection: React.FC<{
                 comment={comment}
                 type={comment.type}
                 isNew={newCommentId === comment.id}
+                highlightedSourceId={highlightedSourceId}
+                setHighlightedSourceId={setHighlightedSourceId}
               />
             )
         )}
@@ -403,13 +413,15 @@ export const CommentSection: React.FC<{
   );
 };
 
-// ===== 統合コメントアイテムコンポーネント =====　　変更前
+// ===== 統合コメントアイテムコンポーネント =====
 interface CommentItemProps {
   comment: Comment;
   type: "support" | "oppose";
   isNew?: boolean;
   isReply?: boolean;
   parentComment?: Comment;
+  highlightedSourceId?: string | null;
+  setHighlightedSourceId?: (id: string | null) => void;
 }
 
 export const CommentItem: React.FC<CommentItemProps> = ({
@@ -418,6 +430,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   isNew = false,
   isReply = false,
   parentComment,
+  highlightedSourceId,
+  setHighlightedSourceId,
 }) => {
   const [isRepliesExpanded, setIsRepliesExpanded] = useState(false);
   const [isReplyFormVisible, setIsReplyFormVisible] = useState(false);
@@ -493,24 +507,59 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
-  // ユーザーとリプライデータの正規化
+  // 返信カードクリックハンドラー - 返信カード全体がクリックされたときの処理
+  const handleReplyCardClick = (e: React.MouseEvent) => {
+    // ボタンクリックなどのイベント伝播を止める
+    if (
+      (e.target as HTMLElement).tagName === "BUTTON" ||
+      (e.target as HTMLElement).closest("button")
+    ) {
+      return;
+    }
+
+    // 返信元コメントのIDを取得
+    if (isReply && setHighlightedSourceId) {
+      const replyTo = getReplyReference(comment as unknown as Reply);
+      if (replyTo && replyTo.reply_id) {
+        // 参照先IDをハイライト対象としてセット
+        setHighlightedSourceId(replyTo.reply_id);
+      } else {
+        // 参照先がない場合はハイライトを消す
+        setHighlightedSourceId(null);
+      }
+    }
+  };
+
+  // ユーザーデータの正規化
   const user = normalizeUserData(comment, isReply);
+
+  // 返信参照情報
   const replyTo = isReply
     ? getReplyReference(comment as unknown as Reply)
     : null;
+
+  // この返信が現在ハイライト対象かどうか（IDと一致するか）
+  const isHighlighted = comment.id === highlightedSourceId;
 
   return (
     <div
       className={isReply ? "mt-1 animate-fadeIn" : ""}
       id={`comment-${comment.id}`}
       ref={commentRef}
+      onClick={isReply ? handleReplyCardClick : undefined}
     >
+      {/* 返信用のID付きマーカー - 返信元が見つけられるようにする */}
+      {isReply && <div id={`reply-${comment.id}`} className="sr-only"></div>}
+
       <div
-        className={
-          isReply
-            ? STYLES.container.reply
-            : STYLES.container.comment(highlighted, type)
-        }
+        className={`
+          ${
+            isReply
+              ? STYLES.container.reply
+              : STYLES.container.comment(highlighted, type)
+          }
+          ${isHighlighted ? "highlighted-reply" : ""}
+        `}
       >
         {/* 一段目: 投稿者名と投稿時間 + アクションボタン */}
         <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
@@ -553,7 +602,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 {`>>`}
                 {replyTo.reply_to_username}
               </span>
-              {/* →をスペースに変更 */}
               <span className="mx-1"> </span>
             </span>
           )}
@@ -578,7 +626,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           </div>
         )}
       </div>
-      {/* 返信フォーム ///////////- 表示/非表示を条件で制御 */}
+      {/* 返信フォーム - 表示/非表示を条件で制御 */}
       {isReplyFormVisible && (
         <ReplyForm
           comment={isReply ? (parentComment as Comment) : comment}
@@ -598,6 +646,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                   type={type}
                   isReply={true}
                   parentComment={comment}
+                  highlightedSourceId={highlightedSourceId}
+                  setHighlightedSourceId={setHighlightedSourceId}
                 />
               )
           )}
@@ -770,4 +820,3 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
     </div>
   );
 };
-/////
