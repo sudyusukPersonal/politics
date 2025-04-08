@@ -86,10 +86,13 @@ const STYLES = {
           ? "bg-green-50 border-green-100 hover:shadow-md"
           : "bg-red-50 border-red-100 hover:shadow-md"
       }`,
-    reply: "rounded-lg p-3 border bg-white border-gray-100",
+    reply: "rounded-lg px-3 py-2 border bg-white border-gray-200",
     replyForm:
       "mt-3 p-3 bg-white rounded-lg border border-gray-200 animate-slideUp",
-    replyList: "mt-2 pl-2 ml-2 border-l-2 border-gray-200",
+    replyList: (type: string) =>
+      `mt-2 pl-1 border-l-2 ${
+        type === "support" ? "border-green-200" : "border-red-200"
+      }`,
   },
 };
 
@@ -498,7 +501,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
   return (
     <div
-      className={isReply ? "mt-2 animate-fadeIn" : ""}
+      className={isReply ? "mt-1 animate-fadeIn" : ""}
       id={`comment-${comment.id}`}
       ref={commentRef}
     >
@@ -512,7 +515,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         {/* 一段目: 投稿者名と投稿時間 + アクションボタン */}
         <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
           <div className="flex items-center">
-            <span className="font-medium">{user.name}</span>
+            <span className="font-medium">
+              {user.name}
+              {isReply ? " 名無し" : ""}
+            </span>
             <span className="mx-2">•</span>
             <span>{formatDate(comment.createdAt)}</span>
           </div>
@@ -542,11 +548,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           {isReply && replyTo && (
             <span className="inline-flex items-center mr-1 text-xs text-gray-600">
               <CornerDownRight size={12} className="mr-0.5" />
-              <span className="font-medium">@{replyTo.reply_to_username}</span>
+              <span className="mx-1"> </span>
+              <span className="font-medium">
+                {`>>`}
+                {replyTo.reply_to_username}
+              </span>
               {/* →をスペースに変更 */}
               <span className="mx-1"> </span>
             </span>
           )}
+          {isReply && replyTo && <br />}
           <span className={`${isReply ? "text-sm" : ""} whitespace-pre-wrap`}>
             {comment.text}
           </span>
@@ -577,7 +588,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       )}
       {/* 返信一覧 - 展開時のみ表示 */}
       {!isReply && isRepliesExpanded && comment.replies?.length > 0 && (
-        <div className={STYLES.container.replyList}>
+        <div className={STYLES.container.replyList(type)}>
           {comment.replies.map(
             (reply) =>
               !isReported(reply.id) && (

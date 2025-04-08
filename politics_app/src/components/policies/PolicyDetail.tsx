@@ -537,17 +537,6 @@ const PolicyDiscussionPage = () => {
         </div>
       </main>
 
-      {/* Floating action button */}
-      <div className="fixed bottom-6 right-6">
-        <button
-          className="w-12 h-12 bg-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-indigo-700 transition-colors"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label="ページトップへ戻る"
-        >
-          <TrendingUp size={20} />
-        </button>
-      </div>
-
       {/* CSS animations */}
       <style>{commonAnimations}</style>
     </div>

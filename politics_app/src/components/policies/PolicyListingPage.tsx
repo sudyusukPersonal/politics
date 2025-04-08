@@ -15,6 +15,7 @@ import {
   Users,
   MessageSquare,
   Building,
+  Clock,
 } from "lucide-react";
 import { fetchAllCategories, Policy } from "../../services/policyService";
 import { fetchPoliciesWithFilterAndSort } from "../../services/policyService";
@@ -690,6 +691,11 @@ const PolicyListingPage = () => {
                   <MessageSquare size={16} className="mr-2 text-indigo-600" />
                 ),
               },
+              {
+                id: "newest", // <- この辺りに新着順を追加
+                label: "新着順",
+                icon: <Clock size={16} className="mr-2 text-indigo-600" />,
+              },
             ].map((option) => (
               <button
                 key={option.id}
@@ -978,6 +984,10 @@ const PolicyListingPage = () => {
               <p className="text-sm text-gray-500 mt-1">
                 {activeTab.name !== "すべて" ? `${activeTab.name}` : "全ての"}
                 政策
+                {filters.sort === "supportDesc" && " (支持率高い順)"}
+                {filters.sort === "supportAsc" && " (支持率低い順)"}
+                {filters.sort === "commentsDesc" && " (コメント数順)"}
+                {filters.sort === "newest" && " (新着順)"}
                 {loading.isLoading && " (読み込み中...)"}
               </p>
             </div>

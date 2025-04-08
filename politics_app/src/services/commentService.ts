@@ -141,6 +141,10 @@ export const fetchCommentsByPoliticianId = async (
 
     // Execute the query
     const querySnapshot = await getDocs(q);
+    console.log(
+      "Fetched Comments:",
+      querySnapshot.docs.map((doc) => doc.data())
+    );
 
     // Convert documents to Comment type
     const comments: Comment[] = querySnapshot.docs.map((doc) => ({
@@ -151,10 +155,12 @@ export const fetchCommentsByPoliticianId = async (
       politicianID: doc.data().politician_id,
       createdAt: convertTimestamp(doc.data().created_at),
       likes: doc.data().likes || 0,
-      replies: (doc.data().replies || []).map((reply: any) => ({
-        ...reply,
-        createdAt: convertTimestamp(reply.created_at),
-      })),
+      replies: sortRepliesDepthFirst(
+        (doc.data().replies || []).map((reply: any) => ({
+          ...reply,
+          createdAt: convertTimestamp(reply.created_at),
+        }))
+      ),
       repliesCount: doc.data().replies?.length || 0,
       type: doc.data().type,
     }));
@@ -175,6 +181,71 @@ export const fetchCommentsByPoliticianId = async (
     console.error("コメントの取得中にエラーが発生しました:", error);
     throw error;
   }
+};
+const sortRepliesDepthFirst = (replies: Reply[]): Reply[] => {
+  // 返信がない場合は空配列を返す
+  if (!replies || replies.length === 0) {
+    return [];
+  }
+
+  // IDから返信へのマップを作成
+  const replyMap: { [key: string]: Reply } = {};
+  replies.forEach((reply) => {
+    replyMap[reply.id] = reply;
+  });
+
+  // 返信先IDから返信のリストへのマップを作成
+  const replyToMap: { [key: string]: Reply[] } = {};
+
+  // ルート返信（返信先がnull）を特定
+  const rootReplies: Reply[] = [];
+
+  replies.forEach((reply) => {
+    if (!reply.reply_to) {
+      // 返信先がnullならルート返信
+      rootReplies.push(reply);
+    } else {
+      // 返信先があれば対応するマップに追加
+      const replyToId = reply.reply_to.reply_id;
+      if (!replyToMap[replyToId]) {
+        replyToMap[replyToId] = [];
+      }
+      replyToMap[replyToId].push(reply);
+    }
+  });
+
+  // 結果を格納する配列
+  const result: Reply[] = [];
+
+  // 処理済みの返信を追跡
+  const processed: { [key: string]: boolean } = {};
+
+  // 深さ優先探索関数
+  const dfs = (reply: Reply) => {
+    // すでに処理済みならスキップ
+    if (processed[reply.id]) {
+      return;
+    }
+
+    // 現在の返信を結果に追加
+    result.push(reply);
+    processed[reply.id] = true;
+
+    // この返信に対する返信があれば再帰的に処理
+    const childReplies = replyToMap[reply.id] || [];
+
+    // 各子返信に対して深さ優先探索
+    childReplies.forEach((childReply) => {
+      dfs(childReply);
+    });
+  };
+
+  // ルート返信から深さ優先探索を開始
+  rootReplies.forEach((rootReply) => {
+    dfs(rootReply);
+  });
+
+  return result;
 };
 // Fetch a specific comment by ID
 export const fetchCommentById = async (commentId: string): Promise<void> => {
@@ -215,7 +286,7 @@ export const addReplyToComment = async (
       if (replyUserName === "匿名ユーザー") {
         const currentReplies = commentData.replies || [];
         const replyCount = currentReplies.length + 1;
-        replyUserName = `匿名${replyCount}`;
+        replyUserName = `${replyCount}`;
       }
 
       // Format the reply object to match Firestore structure

@@ -125,7 +125,7 @@ const UnifiedVoteComponent: React.FC<UnifiedVoteComponentProps> = ({
       const commentId = await addNewComment({
         text: additionalComment.trim(),
         userID: "user_anonymous", // 匿名ユーザーID
-        userName: "匿名ユーザー", // 匿名ユーザー名
+        userName: "名無し", // 匿名ユーザー名
         politicianID: entityId, // 対象エンティティのID
         entityType: entityType, // "politician", "policy", "party"
         type: previousVote || "support", // 既存の投票タイプ

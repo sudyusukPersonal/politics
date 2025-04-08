@@ -11,7 +11,7 @@ import { removeVoteFromLocalStorage } from "../utils/voteStorage";
 // 匿名ユーザー情報
 const MOCK_CURRENT_USER = {
   uid: "user_anonymous",
-  displayName: "匿名ユーザー",
+  displayName: "名無し",
 };
 
 // 統合投票サービス関数 - entityTypeに"party"を追加

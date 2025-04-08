@@ -26,6 +26,7 @@ const PartyFilterDropdown: React.FC<PartyFilterDropdownProps> = ({
     { value: "れいわ新選組", label: "れいわ新選組" },
     { value: "社民党", label: "社民党" },
     { value: "参政党", label: "参政党" },
+    { value: "日本保守党", label: "日本保守党" },
   ];
 
   // Get current party label

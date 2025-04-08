@@ -355,6 +355,10 @@ export const fetchPoliciesWithFilterAndSort = async (
         orderByField = "totalCommentCount";
         orderDirection = "desc";
         break;
+      case "newest":
+        orderByField = "CreatedAt";
+        orderDirection = "desc";
+        break;
       default:
         orderByField = "supportRating";
         orderDirection = "desc";
