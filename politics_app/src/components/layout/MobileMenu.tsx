@@ -83,11 +83,9 @@ const MobileMenu: React.FC = () => {
             </li>
 
             {/* 区切り線 */}
-            <li className="px-2 py-2">
+            {/* <li className="px-2 py-2">
               <div className="border-t border-gray-200"></div>
             </li>
-
-            {/* 政党様向けリンク */}
             <li>
               <button
                 onClick={() => {
@@ -99,7 +97,7 @@ const MobileMenu: React.FC = () => {
                 <ExternalLink size={18} className="mr-3 text-indigo-600" />
                 政党の皆様へ
               </button>
-            </li>
+            </li> */}
           </ul>
         </div>
 
