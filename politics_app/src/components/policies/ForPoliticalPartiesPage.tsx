@@ -1,6 +1,6 @@
 // src/components/political-parties/PoliticalPartiesPage.tsx
 import React, { useState, useEffect } from "react";
-import { Mail, ChevronRight } from "lucide-react";
+import { Mail, ChevronRight, Calendar } from "lucide-react";
 
 const PoliticalPartiesPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -14,21 +14,73 @@ const PoliticalPartiesPage = () => {
   const colors = {
     primary: "#3B5EDB",
     secondary: "#6050DC",
+    accent: "#FF6B35",
+  };
+
+  // フォントファミリーの定義
+  const fontFamily = {
+    primary:
+      "'Noto Sans JP', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif",
+    heading:
+      "'Noto Sans JP', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif",
   };
 
   return (
-    <article className="mx-auto max-w-3xl px-4 py-6">
+    <article
+      className="mx-auto max-w-3xl px-4 py-6"
+      style={{ fontFamily: fontFamily.primary }}
+    >
       {/* ヘッダー */}
       <header className="mb-8">
         <h1
           className={`mb-2 text-2xl font-bold transition-opacity duration-500 ${
             isLoaded ? "opacity-100" : "opacity-0"
           }`}
-          style={{ color: colors.primary }}
+          style={{
+            color: colors.primary,
+            fontFamily: fontFamily.heading,
+            letterSpacing: "0.02em",
+          }}
         >
           政党の皆様へ - メディアバイアスなしに、自らの声を直接有権者へ
         </h1>
       </header>
+
+      {/* 近日公開のお知らせ - 追加セクション */}
+      <section className="mb-8">
+        <div
+          className={`mb-6 rounded border-l-4 p-4 shadow-sm transition-opacity duration-500 delay-100 bg-white ${
+            isLoaded ? "opacity-100" : "opacity-0"
+          }`}
+          style={{ borderLeftColor: colors.accent, backgroundColor: "#FFF8F5" }}
+        >
+          <div className="flex items-center mb-2">
+            <Calendar
+              size={18}
+              style={{ color: colors.accent }}
+              className="mr-2"
+            />
+            <h2
+              className="text-lg font-bold"
+              style={{
+                color: colors.accent,
+                fontFamily: fontFamily.heading,
+                letterSpacing: "0.02em",
+              }}
+            >
+              政党専用管理システム 近日公開のお知らせ
+            </h2>
+          </div>
+
+          <p className="mb-0 text-sm">
+            <span className="font-bold">
+              POLITICS HUB政党専用管理システムは近日公開予定です。
+            </span>
+            現在最終調整を行っており、まもなく各政党様にご利用いただけるようになります。
+            ご興味のある政党様は詳細は本ページ下部のお問い合わせ先までご連絡ください。公開時にメールでご案内いたします。
+          </p>
+        </div>
+      </section>
 
       {/* 主要コンテンツ */}
       <section className="mb-8">
@@ -38,11 +90,17 @@ const PoliticalPartiesPage = () => {
           }`}
           style={{ borderLeftColor: colors.primary }}
         >
-          <h2 className="mb-3 text-lg font-bold">
+          <h2
+            className="mb-3 text-lg font-bold"
+            style={{ fontFamily: fontFamily.heading, letterSpacing: "0.02em" }}
+          >
             「報道されない政策」をなくす。あなたの政党の「本当の姿」を届けるために
           </h2>
 
-          <p className="mb-4 font-semibold" style={{ color: colors.primary }}>
+          <p
+            className="mb-4 font-semibold"
+            style={{ color: colors.primary, letterSpacing: "0.01em" }}
+          >
             POLITICS HUBは、メディアの解釈に左右されない直接発信を可能にします。
           </p>
 
@@ -73,7 +131,11 @@ const PoliticalPartiesPage = () => {
         <div className="rounded border p-4 shadow-sm">
           <h2
             className="mb-3 text-lg font-bold"
-            style={{ color: colors.primary }}
+            style={{
+              color: colors.primary,
+              fontFamily: fontFamily.heading,
+              letterSpacing: "0.02em",
+            }}
           >
             なぜPOLITICS HUBなのか？
           </h2>
@@ -131,7 +193,11 @@ const PoliticalPartiesPage = () => {
         <div className="rounded border p-4 shadow-sm">
           <h2
             className="mb-3 text-lg font-bold"
-            style={{ color: colors.primary }}
+            style={{
+              color: colors.primary,
+              fontFamily: fontFamily.heading,
+              letterSpacing: "0.02em",
+            }}
           >
             ご利用の流れ
           </h2>
@@ -170,7 +236,11 @@ const PoliticalPartiesPage = () => {
         <div className="rounded border p-4 shadow-sm">
           <h2
             className="mb-3 text-lg font-bold"
-            style={{ color: colors.primary }}
+            style={{
+              color: colors.primary,
+              fontFamily: fontFamily.heading,
+              letterSpacing: "0.02em",
+            }}
           >
             お問い合わせ
           </h2>

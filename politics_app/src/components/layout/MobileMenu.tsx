@@ -11,6 +11,7 @@ import {
   Shield,
   MessageCircle,
   Info,
+  ExternalLink,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 
@@ -78,6 +79,25 @@ const MobileMenu: React.FC = () => {
               >
                 <FileText size={18} className="mr-3 text-indigo-600" />
                 政策一覧
+              </button>
+            </li>
+
+            {/* 区切り線 */}
+            <li className="px-2 py-2">
+              <div className="border-t border-gray-200"></div>
+            </li>
+
+            {/* 政党様向けリンク */}
+            <li>
+              <button
+                onClick={() => {
+                  navigate("/partyinfo");
+                  setMobileMenuOpen(false);
+                }}
+                className="flex items-center w-full px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-indigo-50 transition-colors bg-gray-50"
+              >
+                <ExternalLink size={18} className="mr-3 text-indigo-600" />
+                政党様向け
               </button>
             </li>
           </ul>
