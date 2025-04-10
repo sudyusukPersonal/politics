@@ -1,18 +1,18 @@
-// Firebase configuration and initialization
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyB6XXyfJ0oY11JLBioRoO4jniGBXnxEBWU",
-  authDomain: "politics-77a64.firebaseapp.com",
-  projectId: "politics-77a64",
-  storageBucket: "politics-77a64.firebasestorage.app",
-  messagingSenderId: "129911974973",
-  appId: "1:129911974973:web:b58f16279e561afbcf8e54",
-  measurementId: "G-PLBM7TFLQW",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
