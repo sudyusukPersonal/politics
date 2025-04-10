@@ -97,7 +97,7 @@ const MobileMenu: React.FC = () => {
                 className="flex items-center w-full px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-indigo-50 transition-colors bg-gray-50"
               >
                 <ExternalLink size={18} className="mr-3 text-indigo-600" />
-                政党様向け
+                政党の皆様へ
               </button>
             </li>
           </ul>

@@ -76,8 +76,8 @@ const PoliticalPartiesPage = () => {
             <span className="font-bold">
               POLITICS HUB政党専用管理システムは近日公開予定です。
             </span>
-            現在最終調整を行っており、まもなく各政党様にご利用いただけるようになります。
-            ご興味のある政党様は詳細は本ページ下部のお問い合わせ先までご連絡ください。公開時にメールでご案内いたします。
+            <br />
+            上記システムは本サイトとは別にブラウザ上で各政党別に自党の政策情報を管理できる専用システムであり、現在最終調整段階です。ご興味のある政党様は本ページ下部のお問い合わせ先までご連絡ください。
           </p>
         </div>
       </section>
@@ -246,7 +246,7 @@ const PoliticalPartiesPage = () => {
           </h2>
 
           <p className="mb-4 text-sm">
-            政党専用管理システムの詳細や申請について、以下の連絡先までお気軽にお問い合わせください。
+            政党専用管理システムにご興味のある政党は、以下の連絡先までお気軽にお問い合わせください。
           </p>
 
           <div className="flex items-center justify-center mb-4">
@@ -264,7 +264,7 @@ const PoliticalPartiesPage = () => {
             </a>
           </div>
 
-          <p className="text-center text-sm">PLITICS HUB 運営</p>
+          <p className="text-center text-sm">POOLITICS HUB 運営</p>
 
           <p
             className="mt-4 text-center italic"
