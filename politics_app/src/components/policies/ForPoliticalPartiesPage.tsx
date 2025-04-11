@@ -52,32 +52,30 @@ const PoliticalPartiesPage = () => {
           className={`mb-6 rounded border-l-4 p-4 shadow-sm transition-opacity duration-500 delay-100 bg-white ${
             isLoaded ? "opacity-100" : "opacity-0"
           }`}
-          style={{ borderLeftColor: colors.accent, backgroundColor: "#FFF8F5" }}
+          style={{ borderLeftColor: "#4CAF50", backgroundColor: "#F5FFF8" }}
         >
           <div className="flex items-center mb-2">
-            <Calendar
-              size={18}
-              style={{ color: colors.accent }}
-              className="mr-2"
-            />
+            <Calendar size={18} style={{ color: "#4CAF50" }} className="mr-2" />
             <h2
               className="text-lg font-bold"
               style={{
-                color: colors.accent,
+                color: "#4CAF50",
                 fontFamily: fontFamily.heading,
                 letterSpacing: "0.02em",
               }}
             >
-              政党専用管理システム 近日公開のお知らせ
+              政党専用管理システムのお知らせ
             </h2>
           </div>
 
           <p className="mb-0 text-sm">
             <span className="font-bold">
-              POLITICS HUB政党専用管理システムは近日公開予定です。
+              POLITICS HUBは政党専用管理システムを開発中です。
             </span>
             <br />
-            上記システムは本サイトとは別にブラウザ上で各政党別に自党の政策情報を管理できる専用システムであり、現在最終調整段階です。ご興味のある政党様は本ページ下部のお問い合わせ先までご連絡ください。
+            上記システムは本サイトとは別にブラウザ上で各政党ごとに自党の政策情報を管理できる専用システムです。
+            <br />
+            ご興味のある政党様は本ページ下部のお問い合わせ先までご連絡ください。
           </p>
         </div>
       </section>
@@ -249,14 +247,14 @@ const PoliticalPartiesPage = () => {
             政党専用管理システムにご興味のある政党は、以下の連絡先までお気軽にお問い合わせください。
           </p>
 
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center mb-2">
             <Mail
               className="mr-2"
               size={16}
               style={{ color: colors.primary }}
             />
             <a
-              href="mailto:politics-hub-support@example.com"
+              href="mailto:politicshub.info@gmail.com"
               className="text-base font-semibold hover:underline"
               style={{ color: colors.primary }}
             >
@@ -264,7 +262,37 @@ const PoliticalPartiesPage = () => {
             </a>
           </div>
 
-          <p className="text-center text-sm">POOLITICS HUB 運営</p>
+          <p className="mb-2 text-sm text-center">
+            もしくは以下のXアカウントへ担当者様と分かるアカウントからDMをお送りください。
+          </p>
+
+          <div className="flex items-center justify-center mb-4">
+            <svg
+              className="mr-2"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ color: colors.primary }}
+            >
+              <path
+                d="M22 4.01c-1 .49-1.98.689-3 .99-1.121-1.265-2.783-1.335-4.38-.737S11.977 6.323 12 8v1c-3.245.083-6.135-1.395-8-4 0 0-4.182 7.433 4 11-1.872 1.247-3.739 2.088-6 2 3.308 1.803 6.913 2.423 10.034 1.517 3.58-1.04 6.522-3.723 7.651-7.742a13.84 13.84 0 0 0 .497-3.753C20.18 7.773 21.692 5.25 22 4.009z"
+                fill="currentColor"
+              />
+            </svg>
+            <a
+              href="https://x.com/InfoPoliticshub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-base font-semibold hover:underline"
+              style={{ color: colors.primary }}
+            >
+              @InfoPoliticshub
+            </a>
+          </div>
+
+          <p className="text-center text-sm">POLITICS HUB 運営</p>
 
           <p
             className="mt-4 text-center italic"
