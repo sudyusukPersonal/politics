@@ -72,7 +72,10 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
                 </span>
               )}
             </div>
-            <TrendIcon trend={politician.trending} />
+            {/* <TrendIcon trend={politician.trending} /> */}
+            <span className="text-xs text-gray-500">
+              {politician.totalVotes.toLocaleString()}票
+            </span>
           </div>
 
           <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-1">
@@ -90,16 +93,13 @@ const PoliticianCard: React.FC<PoliticianCardProps> = ({
                     {politician.supportRate}%
                   </span>
                 </div>
-                <div className="flex items-center">
-                  <ThumbsDownIcon className="text-red-500 mr-1 flex-shrink-0" />
-                  <span className="font-medium text-red-700">
-                    {politician.opposeRate}%
-                  </span>
-                </div>
               </div>
-              <span className="text-xs text-gray-500">
-                {politician.totalVotes.toLocaleString()}票
-              </span>
+              <div className="flex items-center">
+                <ThumbsDownIcon className="text-red-500 mr-1 flex-shrink-0" />
+                <span className="font-medium text-red-700">
+                  {politician.opposeRate}%
+                </span>
+              </div>
             </div>
 
             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">

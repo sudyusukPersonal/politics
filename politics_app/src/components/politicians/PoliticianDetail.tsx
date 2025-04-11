@@ -166,9 +166,9 @@ const PoliticianDetail: React.FC = () => {
               <div className="sm:ml-6 text-center sm:text-left">
                 <div className="flex flex-col sm:flex-row sm:items-center">
                   <h2 className="text-xl font-bold">{politician.name}</h2>
-                  <div className="mt-1 sm:mt-0 sm:ml-3">
+                  {/* <div className="mt-1 sm:mt-0 sm:ml-3">
                     <TrendIcon trend={politician.trending} />
-                  </div>
+                  </div> */}
                 </div>
                 <div className="flex flex-wrap justify-center sm:justify-start items-center text-sm text-gray-500 mt-1">
                   <span>{politician.position}</span>

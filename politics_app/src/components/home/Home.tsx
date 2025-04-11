@@ -88,7 +88,7 @@ const Home = () => {
               <NavCardWithAnimation
                 icon={<Users size={20} />}
                 title="政治家一覧"
-                description="議員の活動と評価を確認"
+                description="議員への評価と議論に参加"
                 color="#4361EE"
                 index={0}
                 path="/politicians" // 追加: 遷移先パス
