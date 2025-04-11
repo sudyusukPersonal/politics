@@ -966,7 +966,7 @@ const PolicyListingPage = () => {
                 詳しくはこちら
                 <ChevronRight size={16} className="ml-1" />
               </button>
-              {/* 
+
               <button
                 className="inline-flex items-center px-2 py-2 rounded-full text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r from-purple-600/30 to-purple-500/90 hover:from-purple-500 hover:to-purple-400 shadow-md hover:shadow-lg border border-purple-300/30"
                 onClick={() => navigate("/partyinfo")}
@@ -974,7 +974,7 @@ const PolicyListingPage = () => {
                 <Building size={16} className="mr-2" />
                 政党の皆様へ
                 <ChevronRight size={16} className="ml-1" />
-              </button> */}
+              </button>
             </div>
           </div>
         </div>
