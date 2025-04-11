@@ -374,7 +374,7 @@ export const fetchPoliticiansWithFilterAndSort = async (
   partyFilter: string,
   sortMethod: string,
   lastDocumentId?: string,
-  limitCount: number = 15
+  limitCount: number = 10
 ): Promise<{
   politicians: Politician[];
   lastDocumentId?: string;

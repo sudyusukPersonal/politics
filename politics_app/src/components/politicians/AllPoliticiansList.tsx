@@ -173,7 +173,7 @@ const AllPoliticiansList: React.FC = () => {
         party,
         sort,
         docId,
-        15
+        10
       );
 
       let updatedPoliticians;

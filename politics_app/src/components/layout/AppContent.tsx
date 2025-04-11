@@ -1,6 +1,6 @@
 // politics_app/src/components/layout/AppContent.tsx
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Header from "./Header";
 import MobileMenu from "./MobileMenu";
 import PoliticianDetail from "../politicians/PoliticianDetail";
@@ -17,7 +17,34 @@ import PolicyInfoComponent from "../policies/PolicyInfoComponent";
 import ForPoliticalPartiesPage from "../policies/ForPoliticalPartiesPage";
 import ScrollToTopButton from "../common/ScrollToTopButton";
 
+// Google Analytics用のイベント送信関数の型定義
+declare global {
+  interface Window {
+    gtag?: (
+      command: string,
+      action: string,
+      params?: Record<string, any>
+    ) => void;
+  }
+}
+
 const AppContent: React.FC = () => {
+  const location = useLocation();
+
+  // URLが変更されるたびにGoogle AnalyticsにPVイベントを送信
+  useEffect(() => {
+    // Google Analyticsが読み込まれているか確認
+    if (typeof window.gtag !== "undefined") {
+      // ページビューイベントを送信
+      window.gtag("event", "page_view", {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: location.pathname + location.search,
+      });
+      console.log("PV sent for:", location.pathname + location.search);
+    }
+  }, [location]); // locationが変わるたびに実行
+
   return (
     <div className="flex flex-col w-full min-h-screen font-sans bg-slate-50">
       {/* ヘッダー */}
