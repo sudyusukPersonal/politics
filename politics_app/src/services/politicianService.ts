@@ -115,6 +115,7 @@ export const addVoteToPolitician = async (
       updateData.supportRate = Math.round(
         (newSupportCount / newTotalVotes) * 100
       );
+      updateData.opposeRate = 100 - updateData.supportRate;
 
       // トランザクション内で更新を実行
       transaction.update(politicianRef, updateData);
@@ -394,8 +395,8 @@ export const fetchPoliticiansWithFilterAndSort = async (
         orderDirection = "desc";
         break;
       case "supportAsc":
-        orderByField = "supportRate";
-        orderDirection = "asc";
+        orderByField = "opposeRate";
+        orderDirection = "desc";
         break;
       case "totalVotesDesc":
         orderByField = "totalVotes";

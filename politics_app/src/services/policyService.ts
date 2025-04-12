@@ -255,6 +255,7 @@ export const addVoteToPolicy = async (
       updateData.supportRating = Math.round(
         (newSupportRate / (newSupportRate + newNonSupportRate)) * 100
       );
+      updateData.opposeRate = 100 - updateData.supportRating;
 
       // トランザクション内で更新を実行
       transaction.update(policyRef, updateData);

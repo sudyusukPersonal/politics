@@ -568,8 +568,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               {user.name}
               {isReply ? " 名無し" : ""}
             </span>
-            <span className="mx-2">•</span>
-            <span>{formatDate(comment.createdAt)}</span>
+            <span className="mx-2"></span>
+            {/* <span>{formatDate(comment.createdAt)}</span> */}
           </div>
 
           {/* アクションボタンを1段目に移動 */}
