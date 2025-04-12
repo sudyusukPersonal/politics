@@ -294,8 +294,8 @@ export const fetchPoliciesWithFilterAndSort = async (
         orderDirection = "desc";
         break;
       case "supportAsc":
-        orderByField = "supportRating";
-        orderDirection = "asc";
+        orderByField = "opposeRate";
+        orderDirection = "desc";
         break;
       case "commentsDesc":
         orderByField = "totalCommentCount";
