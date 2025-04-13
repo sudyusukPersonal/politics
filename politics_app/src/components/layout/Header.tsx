@@ -164,7 +164,7 @@ const Header: React.FC = () => {
                   isScrolled ? "text-slate-800 text-lg" : "text-white text-lg"
                 }`}
               >
-                POLITICS HUB
+                ポリはぶ
               </h1>
             </Link>
           )}
