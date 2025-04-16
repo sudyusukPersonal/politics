@@ -14,10 +14,24 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // 外部スクリプトの読み込みを許可
         manualChunks(id) {
+          // Google APIs
           if (id.includes("googleapis.com")) {
             return "external";
+          }
+
+          // node_modules内のライブラリを分割
+          if (id.includes("node_modules")) {
+            // Firebase関連
+            if (id.includes("firebase")) {
+              return "vendor-firebase";
+            }
+            // Reactとその周辺
+            if (id.includes("react") || id.includes("scheduler")) {
+              return "vendor-react";
+            }
+            // その他のライブラリ
+            return "vendor-others";
           }
         },
       },
